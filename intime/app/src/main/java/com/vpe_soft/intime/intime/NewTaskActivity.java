@@ -5,6 +5,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.NumberPicker;
 
 public class NewTaskActivity extends AppCompatActivity implements NewTaskFragment.OnFragmentInteractionListener {
 
@@ -12,6 +13,10 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_new_task);
+        NumberPicker np = (NumberPicker) findViewById(R.id.numberPicker);
+        np.setMaxValue(10);
+        np.setMinValue(1);
+        np.setValue(3);
     }
 
     @Override

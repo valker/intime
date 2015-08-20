@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="spinnerItems">
+        <item>Минуты</item>
+        <item>Часы</item>
+        <item>Дни</item>
+        <item>Недели</item>
+        <item>Месяцы</item>
+    </string-array>
+</resources>
