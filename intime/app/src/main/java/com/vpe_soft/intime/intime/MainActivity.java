@@ -1,6 +1,7 @@
 package com.vpe_soft.intime.intime;
 
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.support.v7.app.AppCompatActivity;
@@ -47,7 +48,9 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         }
         else if(id == R.id.action_newtask) {
             Log.d("VP","new task pressed");
-            return true; //todo: implement new task intent call
+            Intent intent = new Intent(this, NewTaskActivity.class);
+            startActivity(intent);
+            return true;
         }
 
 
