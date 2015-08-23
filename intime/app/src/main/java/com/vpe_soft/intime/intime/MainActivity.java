@@ -16,16 +16,6 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
-        SQLiteDatabase db = openHelper.getReadableDatabase();
-        Cursor cursor = db.query(false, "tasks", new String[]{"id", "description", "interval", "amount"},null,null,null,null,null,null);
-        while(cursor.moveToNext()) {
-            int id = cursor.getInt(0);
-            String description = cursor.getString(1);
-        }
-        db.close();
-        openHelper.close();
     }
 
     @Override

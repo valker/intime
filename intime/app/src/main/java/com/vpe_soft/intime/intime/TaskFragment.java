@@ -1,6 +1,9 @@
 package com.vpe_soft.intime.intime;
 
 import android.app.Activity;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.view.LayoutInflater;
@@ -8,7 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
+import android.widget.CursorAdapter;
 import android.widget.ListAdapter;
 import android.widget.TextView;
 
@@ -73,9 +76,28 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
 
-        // TODO: Change Adapter to display your content
-        mAdapter = new ArrayAdapter<DummyContent.DummyItem>(getActivity(),
-                android.R.layout.simple_list_item_1, android.R.id.text1, DummyContent.ITEMS);
+        InTimeOpenHelper openHelper = new InTimeOpenHelper(getActivity());
+        SQLiteDatabase database = openHelper.getReadableDatabase();
+        Cursor tasks = database.query("tasks", new String[]{"description", "id AS _id"}, null, null, null, null, null);
+        mAdapter = new CursorAdapter(getActivity(), tasks) {
+            @Override
+            public View newView(Context context, Cursor cursor, ViewGroup parent) {
+                return LayoutInflater.from(context).inflate(R.layout.task_item, parent, false);
+            }
+
+            @Override
+            public void bindView(View view, Context context, Cursor cursor) {
+// Find fields to populate in inflated template
+                TextView tvBody = (TextView) view.findViewById(R.id.tvBody);
+                TextView tvPriority = (TextView) view.findViewById(R.id.tvPriority);
+                // Extract properties from cursor
+                String body = cursor.getString(cursor.getColumnIndexOrThrow("description"));
+                //int priority = cursor.getInt(cursor.getColumnIndexOrThrow("priority"));
+                // Populate fields with extracted properties
+                tvBody.setText(body);
+                //tvPriority.setText(String.valueOf(priority));
+            }
+        };
     }
 
     @Override
