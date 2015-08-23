@@ -1,11 +1,19 @@
 package com.vpe_soft.intime.intime;
 
+import android.content.ContentValues;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.EditText;
 import android.widget.NumberPicker;
+import android.widget.Spinner;
+
+import java.util.Objects;
 
 public class NewTaskActivity extends AppCompatActivity implements NewTaskFragment.OnFragmentInteractionListener {
 
@@ -44,5 +52,41 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
     @Override
     public void onFragmentInteraction(Uri uri) {
         //todo: implement
+    }
+
+    public void OnButtonCreateTaskClicked(View view) {
+        Log.d("VP", "button create task clicked");
+        NumberPicker np = (NumberPicker) findViewById(R.id.numberPicker);
+        int amout = np.getValue();
+        Spinner spinner = (Spinner) findViewById(R.id.spinner);
+        String value = spinner.getSelectedItem().toString();
+        String[] spinnerItems = getResources().getStringArray(R.array.spinnerItems);
+        int interval = -1;
+        for(int i = 0; i < spinnerItems.length; ++i) {
+            if(Objects.equals(value, spinnerItems[i])) {
+                interval = i;
+                break;
+            }
+        }
+
+        EditText editText = (EditText) findViewById(R.id.description);
+        String description = editText.getText().toString();
+        long timestamp = System.currentTimeMillis();
+
+        createNewTask(description, interval, amout, timestamp);
+
+    }
+
+    private void createNewTask(String description, int interval, int amout, long timestamp) {
+        TaskInfo task = new TaskInfo(description, interval, amout, timestamp);
+        InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
+        SQLiteDatabase db = openHelper.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put("description", description);
+        contentValues.put("interval", interval);
+        contentValues.put("amount", amout);
+        db.insert("tasks", null, contentValues);
+        db.close();
+        openHelper.close();
     }
 }

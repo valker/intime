@@ -21,7 +21,9 @@ public class InTimeOpenHelper extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE main.tasks (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE" +
-                ", description TEXT" +
+                ", description TEXT NOT NULL" +
+                ", interval INTEGER NOT NULL" +
+                ", amount INTEGER NOT NULL" +
                 ")");
     }
 
