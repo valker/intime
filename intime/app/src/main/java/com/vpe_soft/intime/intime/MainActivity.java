@@ -1,16 +1,16 @@
 package com.vpe_soft.intime.intime;
 
-import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 
 public class MainActivity extends AppCompatActivity implements TaskFragment.OnFragmentInteractionListener {
+
+    private boolean _itemIsSelected;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,12 +43,34 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
             return true;
         }
 
-
         return super.onOptionsItemSelected(item);
     }
 
     @Override
-    public void onFragmentInteraction(String id) {
+    public boolean onPrepareOptionsMenu(Menu menu) {
 
+        MenuItem acknowledge = menu.findItem(R.id.action_acknowledge_task);
+        if(acknowledge != null) {
+            acknowledge.setVisible(_itemIsSelected);
+        }
+
+        MenuItem delete = menu.findItem(R.id.action_delete_task);
+        if(delete != null) {
+            delete.setVisible(_itemIsSelected);
+        }
+
+
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public void onFragmentInteraction(String id) {
+        _itemIsSelected = true;
+        invalidateOptionsMenu();
+    }
+
+    public void OnEmptySpaceClick(View view) {
+        _itemIsSelected = false;
+        invalidateOptionsMenu();
     }
 }

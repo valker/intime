@@ -8,4 +8,6 @@
     <string name="label_amout_text">Количество:</string>
     <string name="label_description_text">Описание:</string>
     <string name="label_intervals_text">Интервалы:</string>
+    <string name="action_acknowledge">Подтвердить</string>
+    <string name="action_delete">Удалить</string>
 </resources>

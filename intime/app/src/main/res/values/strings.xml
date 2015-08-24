@@ -9,4 +9,6 @@
     <string name="label_description_text">Description:</string>
     <string name="label_intervals_text">Intervals:</string>
     <string name="label_amout_text">Amount:</string>
+    <string name="action_acknowledge">Acknowledge</string>
+    <string name="action_delete">Delete</string>
 </resources>
