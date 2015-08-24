@@ -3,6 +3,7 @@ package com.vpe_soft.intime.intime;
 import android.content.ContentValues;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
+import android.support.v4.app.NavUtils;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -75,18 +76,22 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
 
         createNewTask(description, interval, amout, timestamp);
 
+        NavUtils.navigateUpFromSameTask(this);
     }
 
     private void createNewTask(String description, int interval, int amout, long timestamp) {
-        TaskInfo task = new TaskInfo(description, interval, amout, timestamp);
+        Log.d("VP", "createNewTask");
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
-        SQLiteDatabase db = openHelper.getWritableDatabase();
-        ContentValues contentValues = new ContentValues();
-        contentValues.put("description", description);
-        contentValues.put("interval", interval);
-        contentValues.put("amount", amout);
-        db.insert("tasks", null, contentValues);
-        db.close();
-        openHelper.close();
+        try {
+            try (SQLiteDatabase db = openHelper.getWritableDatabase()){
+                ContentValues contentValues = new ContentValues();
+                contentValues.put("description", description);
+                contentValues.put("interval", interval);
+                contentValues.put("amount", amout);
+                db.insert("tasks", null, contentValues);
+            }
+        }finally {
+            openHelper.close();
+        }
     }
 }

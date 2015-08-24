@@ -6,5 +6,6 @@
     <item android:id="@+id/action_newtask"
         android:title="@string/action_newtask"
         app:showAsAction="always"
+        android:icon="@drawable/add_task"
         />
 </menu>
