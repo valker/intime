@@ -15,8 +15,6 @@ import android.widget.CursorAdapter;
 import android.widget.ListAdapter;
 import android.widget.TextView;
 
-import com.vpe_soft.intime.intime.dummy.DummyContent;
-
 /**
  * A fragment representing a list of Items.
  * <p/>
@@ -137,7 +135,7 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
         if (null != mListener) {
             // Notify the active callbacks interface (the activity, if the
             // fragment is attached to one) that an item has been selected.
-            mListener.onFragmentInteraction(DummyContent.ITEMS.get(position).id);
+            mListener.onFragmentInteraction("" + id);
         }
     }
 
