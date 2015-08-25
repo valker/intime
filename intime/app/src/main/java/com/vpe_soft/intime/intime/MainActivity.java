@@ -4,18 +4,45 @@ import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ListView;
 
 public class MainActivity extends AppCompatActivity implements TaskFragment.OnFragmentInteractionListener {
-
-    private boolean _itemIsSelected;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        ListView listView = (ListView) findViewById(android.R.id.list);
+        registerForContextMenu(listView);
+    }
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v,
+                                    ContextMenu.ContextMenuInfo menuInfo) {
+        if (v.getId()==android.R.id.list) {
+            AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo)menuInfo;
+            String[] menuItems = new String[]{
+                    "Acknowledge",
+                    "Edit",
+                    "Delete"
+            };
+            for (int i = 0; i<menuItems.length; i++) {
+                menu.add(Menu.NONE, i, i, menuItems[i]);
+            }
+        }
+    }
+
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo)item.getMenuInfo();
+        int menuItemIndex = item.getItemId();
+        Log.d("VP", "menu clicked:"+menuItemIndex);
+        return true;
     }
 
     @Override
@@ -47,30 +74,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     }
 
     @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-
-        MenuItem acknowledge = menu.findItem(R.id.action_acknowledge_task);
-        if(acknowledge != null) {
-            acknowledge.setVisible(_itemIsSelected);
-        }
-
-        MenuItem delete = menu.findItem(R.id.action_delete_task);
-        if(delete != null) {
-            delete.setVisible(_itemIsSelected);
-        }
-
-
-        return super.onPrepareOptionsMenu(menu);
-    }
-
-    @Override
     public void onFragmentInteraction(String id) {
-        _itemIsSelected = true;
-        invalidateOptionsMenu();
     }
 
-    public void OnEmptySpaceClick(View view) {
-        _itemIsSelected = false;
-        invalidateOptionsMenu();
-    }
 }
