@@ -7,7 +7,8 @@
         android:id="@+id/tvBody"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Study cursors"
+        android:text="description"
+        android:padding="5dp"
         android:textAppearance="?android:attr/textAppearanceLarge" />
 
     <TextView
@@ -15,6 +16,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="10dp"
-        android:text="3"
+        android:text="timestamp"
+        android:padding="5dp"
         android:textAppearance="?android:attr/textAppearanceMedium" />
 </LinearLayout>

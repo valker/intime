@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.text.format.DateFormat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,6 +15,10 @@ import android.widget.AdapterView;
 import android.widget.CursorAdapter;
 import android.widget.ListAdapter;
 import android.widget.TextView;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 /**
  * A fragment representing a list of Items.
@@ -76,8 +81,8 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
         }
 
         InTimeOpenHelper openHelper = new InTimeOpenHelper(getActivity());
-        SQLiteDatabase database = openHelper.getReadableDatabase();
-        tasksCursor = database.query("tasks", new String[]{"description", "id AS _id"}, null, null, null, null, null);
+        final SQLiteDatabase database = openHelper.getReadableDatabase();
+        tasksCursor = database.query("tasks", new String[]{"description", "id AS _id", "next_alarm"}, null, null, null, null, null);
         mAdapter = new CursorAdapter(getActivity(), tasksCursor) {
             @Override
             public View newView(Context context, Cursor cursor, ViewGroup parent) {
@@ -91,10 +96,24 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
                 TextView tvPriority = (TextView) view.findViewById(R.id.tvPriority);
                 // Extract properties from cursor
                 String body = cursor.getString(cursor.getColumnIndexOrThrow("description"));
+                long next_alarm = cursor.getLong(cursor.getColumnIndexOrThrow("next_alarm"));
                 //int priority = cursor.getInt(cursor.getColumnIndexOrThrow("priority"));
                 // Populate fields with extracted properties
                 tvBody.setText(body);
-                //tvPriority.setText(String.valueOf(priority));
+
+                Date date = new Date(next_alarm * 1000L);
+
+                final Locale locale = getResources().getConfiguration().locale;
+                final String skeleton = "HHmmss ddMMyyyy";
+
+                try {
+                    final String pattern = DateFormat.getBestDateTimePattern(locale, skeleton);
+                    SimpleDateFormat format = new SimpleDateFormat(pattern, locale);
+                    final String value = format.format(date);
+                    tvPriority.setText(value);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         };
     }
