@@ -99,10 +99,10 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
                 calendar.add(Calendar.DAY_OF_YEAR, amount);
                 break;
             case 3:
-                calendar.add(Calendar.MONTH, amount);
+                calendar.add(Calendar.WEEK_OF_YEAR, amount);
                 break;
             case 4:
-                calendar.add(Calendar.YEAR, amount);
+                calendar.add(Calendar.MONTH, amount);
                 break;
         }
 
