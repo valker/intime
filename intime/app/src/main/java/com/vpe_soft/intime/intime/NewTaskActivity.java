@@ -21,6 +21,14 @@ import java.util.Objects;
 
 public class NewTaskActivity extends AppCompatActivity implements NewTaskFragment.OnFragmentInteractionListener {
 
+    private static final int[] fields= new int[]{
+        Calendar.MINUTE,
+        Calendar.HOUR,
+        Calendar.DAY_OF_YEAR,
+        Calendar.WEEK_OF_YEAR,
+        Calendar.MONTH
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -76,9 +84,7 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
         EditText editText = (EditText) findViewById(R.id.description);
         String description = editText.getText().toString();
         long currentTimeMillis = System.currentTimeMillis();
-
         createNewTask(description, interval, amount, currentTimeMillis);
-
         NavUtils.navigateUpFromSameTask(this);
     }
 
@@ -88,24 +94,8 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
         Date date = new Date(currentTimeMillis);
         Calendar calendar = new GregorianCalendar(getResources().getConfiguration().locale);
         calendar.setTime(date);
-        switch (interval) {
-            case 0:
-                calendar.add(Calendar.MINUTE, amount);
-                break;
-            case 1:
-                calendar.add(Calendar.HOUR, amount);
-                break;
-            case 2:
-                calendar.add(Calendar.DAY_OF_YEAR, amount);
-                break;
-            case 3:
-                calendar.add(Calendar.WEEK_OF_YEAR, amount);
-                break;
-            case 4:
-                calendar.add(Calendar.MONTH, amount);
-                break;
-        }
-
+        //noinspection ResourceType
+        calendar.add(fields[interval], amount);
         date = calendar.getTime();
         final long nextAlarm = date.getTime() / 1000L;
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
