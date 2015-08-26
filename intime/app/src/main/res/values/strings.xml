@@ -11,4 +11,7 @@
     <string name="label_amout_text">Amount:</string>
     <string name="action_acknowledge">Acknowledge</string>
     <string name="action_delete">Delete</string>
+    <string name="context_menu_acknowledge">Acknowledge</string>
+    <string name="context_menu_edit">Edit</string>
+    <string name="context_menu_delete">Delete</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.vpe_soft.intime.intime;
 
 import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -27,9 +28,9 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         if (v.getId()==android.R.id.list) {
             AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo)menuInfo;
             String[] menuItems = new String[]{
-                    "Acknowledge",
-                    "Edit",
-                    "Delete"
+                    getString(R.string.context_menu_acknowledge),
+                    getString(R.string.context_menu_edit),
+                    getString(R.string.context_menu_delete)
             };
             for (int i = 0; i<menuItems.length; i++) {
                 menu.add(Menu.NONE, i, i, menuItems[i]);
@@ -41,8 +42,38 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     public boolean onContextItemSelected(MenuItem item) {
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo)item.getMenuInfo();
         int menuItemIndex = item.getItemId();
-        Log.d("VP", "menu clicked:"+menuItemIndex);
+        switch(menuItemIndex) {
+            case 0:     // acknowledge
+                break;
+            case 1:     // edit
+                break;
+            case 2:     // delete
+                deleteTask(info.id);
+                refreshListView();
+                break;
+            default:
+                throw new RuntimeException("wrong menu item");
+        }
+
         return true;
+    }
+
+    private void refreshListView() {
+        TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
+        fragment.refreshListView();
+    }
+
+    private void deleteTask(long id) {
+        InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
+        try(SQLiteDatabase database = openHelper.getWritableDatabase()) {
+            final String identifier = "" + id;
+            int result = database.delete("tasks", "id=?", new String[]{identifier});
+            if(result != 1) {
+                throw new RuntimeException("wrong removing of the task");
+            }
+        } catch (Exception ex) {
+            Log.e("VP", "cannot delete", ex);
+        }
     }
 
     @Override

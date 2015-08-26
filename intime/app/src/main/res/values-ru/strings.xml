@@ -10,4 +10,7 @@
     <string name="label_intervals_text">Интервалы:</string>
     <string name="action_acknowledge">Подтвердить</string>
     <string name="action_delete">Удалить</string>
+    <string name="context_menu_acknowledge">Подтвердить</string>
+    <string name="context_menu_delete">Удалить</string>
+    <string name="context_menu_edit">Редактировать</string>
 </resources>

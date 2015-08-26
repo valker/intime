@@ -47,6 +47,7 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
      * Views.
      */
     private ListAdapter mAdapter;
+    private Cursor tasksCursor;
 
     // TODO: Rename and change types of parameters
     public static TaskFragment newInstance(String param1, String param2) {
@@ -76,8 +77,8 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
 
         InTimeOpenHelper openHelper = new InTimeOpenHelper(getActivity());
         SQLiteDatabase database = openHelper.getReadableDatabase();
-        Cursor tasks = database.query("tasks", new String[]{"description", "id AS _id"}, null, null, null, null, null);
-        mAdapter = new CursorAdapter(getActivity(), tasks) {
+        tasksCursor = database.query("tasks", new String[]{"description", "id AS _id"}, null, null, null, null, null);
+        mAdapter = new CursorAdapter(getActivity(), tasksCursor) {
             @Override
             public View newView(Context context, Cursor cursor, ViewGroup parent) {
                 return LayoutInflater.from(context).inflate(R.layout.task_item, parent, false);
@@ -150,6 +151,10 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
         if (emptyView instanceof TextView) {
             ((TextView) emptyView).setText(emptyText);
         }
+    }
+
+    public void refreshListView() {
+        tasksCursor.requery();
     }
 
     /**
