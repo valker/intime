@@ -1,6 +1,10 @@
 package com.vpe_soft.intime.intime;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -20,6 +24,23 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         setContentView(R.layout.activity_main);
         ListView listView = (ListView) findViewById(android.R.id.list);
         registerForContextMenu(listView);
+
+        InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
+        final SQLiteDatabase database = openHelper.getReadableDatabase();
+        final long currentTimestamp = System.currentTimeMillis() / 1000L;
+        final Cursor next_alarm = database.query("main.tasks", new String[]{"id", "next_alarm"}, "next_alarm>" + currentTimestamp, null, null, null, "next_alarm", "1");
+        if(next_alarm.moveToNext()) {
+            final int id = next_alarm.getInt(next_alarm.getColumnIndexOrThrow("id"));
+            final long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm")) * 1000L;
+            final Context context = getApplicationContext();
+            AlarmManager mgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            final Intent intent = new Intent(context, AlarmReceiver.class);
+            PendingIntent alarmIntent = PendingIntent.getBroadcast(context, 0, intent, 0);
+            mgr.set(AlarmManager.RTC_WAKEUP, nextAlarm, alarmIntent);
+        }
+
+        database.close();
+        openHelper.close();
     }
 
     @Override
