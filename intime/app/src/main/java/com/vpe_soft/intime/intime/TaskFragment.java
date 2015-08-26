@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Color;
+import android.graphics.drawable.PaintDrawable;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.text.format.DateFormat;
@@ -19,6 +21,7 @@ import android.widget.TextView;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.TimeZone;
 
 /**
  * A fragment representing a list of Items.
@@ -82,7 +85,20 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
 
         InTimeOpenHelper openHelper = new InTimeOpenHelper(getActivity());
         final SQLiteDatabase database = openHelper.getReadableDatabase();
-        tasksCursor = database.query("tasks", new String[]{"description", "id AS _id", "next_alarm"}, null, null, null, null, null);
+        final String selection = null;
+        final String[] selectionArgs = null;
+        final String groupBy = null;
+        final String having = null;
+        tasksCursor = database.query(
+                "tasks",
+                new String[]{
+                        "description",
+                        "id AS _id",
+                        "next_alarm"},
+                selection, selectionArgs,
+                groupBy,
+                having,
+                "next_alarm");
         mAdapter = new CursorAdapter(getActivity(), tasksCursor) {
             @Override
             public View newView(Context context, Cursor cursor, ViewGroup parent) {
@@ -96,23 +112,21 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
                 TextView tvPriority = (TextView) view.findViewById(R.id.tvPriority);
                 // Extract properties from cursor
                 String body = cursor.getString(cursor.getColumnIndexOrThrow("description"));
-                long next_alarm = cursor.getLong(cursor.getColumnIndexOrThrow("next_alarm"));
+                long next_alarm = cursor.getLong(cursor.getColumnIndexOrThrow("next_alarm")) * 1000L;
                 //int priority = cursor.getInt(cursor.getColumnIndexOrThrow("priority"));
                 // Populate fields with extracted properties
                 tvBody.setText(body);
-
-                Date date = new Date(next_alarm * 1000L);
-
+                Date date = new Date(next_alarm);
                 final Locale locale = getResources().getConfiguration().locale;
                 final String skeleton = "HHmmss ddMMyyyy";
-
-                try {
-                    final String pattern = DateFormat.getBestDateTimePattern(locale, skeleton);
-                    SimpleDateFormat format = new SimpleDateFormat(pattern, locale);
-                    final String value = format.format(date);
-                    tvPriority.setText(value);
-                } catch (Exception e) {
-                    e.printStackTrace();
+                final String pattern = DateFormat.getBestDateTimePattern(locale, skeleton);
+                SimpleDateFormat format = new SimpleDateFormat(pattern, locale);
+                format.setTimeZone(TimeZone.getDefault());
+                final String value = format.format(date);
+                tvPriority.setText(value);
+                final long currentTimeMillis = System.currentTimeMillis();
+                if(currentTimeMillis > next_alarm) {
+                    view.setBackground(new PaintDrawable(Color.RED));
                 }
             }
         };

@@ -14,6 +14,9 @@ import android.widget.EditText;
 import android.widget.NumberPicker;
 import android.widget.Spinner;
 
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.Objects;
 
 public class NewTaskActivity extends AppCompatActivity implements NewTaskFragment.OnFragmentInteractionListener {
@@ -58,7 +61,7 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
     public void OnButtonCreateTaskClicked(View view) {
         Log.d("VP", "button create task clicked");
         NumberPicker np = (NumberPicker) findViewById(R.id.numberPicker);
-        int amout = np.getValue();
+        int amount = np.getValue();
         Spinner spinner = (Spinner) findViewById(R.id.spinner);
         String value = spinner.getSelectedItem().toString();
         String[] spinnerItems = getResources().getStringArray(R.array.spinnerItems);
@@ -72,22 +75,47 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
 
         EditText editText = (EditText) findViewById(R.id.description);
         String description = editText.getText().toString();
-        long timestamp = System.currentTimeMillis();
+        long currentTimeMillis = System.currentTimeMillis();
 
-        createNewTask(description, interval, amout, timestamp);
+        createNewTask(description, interval, amount, currentTimeMillis);
 
         NavUtils.navigateUpFromSameTask(this);
     }
 
-    private void createNewTask(String description, int interval, int amout, long timestamp) {
+    private void createNewTask(String description, int interval, int amount, long currentTimeMillis) {
         Log.d("VP", "createNewTask");
+
+        Date date = new Date(currentTimeMillis);
+        Calendar calendar = new GregorianCalendar(getResources().getConfiguration().locale);
+        calendar.setTime(date);
+        switch (interval) {
+            case 0:
+                calendar.add(Calendar.MINUTE, amount);
+                break;
+            case 1:
+                calendar.add(Calendar.HOUR, amount);
+                break;
+            case 2:
+                calendar.add(Calendar.DAY_OF_YEAR, amount);
+                break;
+            case 3:
+                calendar.add(Calendar.MONTH, amount);
+                break;
+            case 4:
+                calendar.add(Calendar.YEAR, amount);
+                break;
+        }
+
+        date = calendar.getTime();
+        final long nextAlarm = date.getTime() / 1000L;
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
         try {
             try (SQLiteDatabase db = openHelper.getWritableDatabase()){
                 ContentValues contentValues = new ContentValues();
                 contentValues.put("description", description);
                 contentValues.put("interval", interval);
-                contentValues.put("amount", amout);
+                contentValues.put("amount", amount);
+                contentValues.put("next_alarm", nextAlarm);
                 db.insert("tasks", null, contentValues);
             }
         }finally {
