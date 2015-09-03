@@ -3,6 +3,7 @@ package com.vpe_soft.intime.intime;
 import android.content.ContentValues;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
+import android.support.annotation.NonNull;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -14,20 +15,9 @@ import android.widget.EditText;
 import android.widget.NumberPicker;
 import android.widget.Spinner;
 
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.Objects;
 
 public class NewTaskActivity extends AppCompatActivity implements NewTaskFragment.OnFragmentInteractionListener {
-
-    private static final int[] fields= new int[]{
-        Calendar.MINUTE,
-        Calendar.HOUR,
-        Calendar.DAY_OF_YEAR,
-        Calendar.WEEK_OF_YEAR,
-        Calendar.MONTH
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,25 +81,32 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
     private void createNewTask(String description, int interval, int amount, long currentTimeMillis) {
         Log.d("VP", "createNewTask");
 
-        Date date = new Date(currentTimeMillis);
-        Calendar calendar = new GregorianCalendar(getResources().getConfiguration().locale);
-        calendar.setTime(date);
-        //noinspection ResourceType
-        calendar.add(fields[interval], amount);
-        date = calendar.getTime();
-        final long nextAlarm = date.getTime() / 1000L;
+        final long nextAlarm = Util.getNextAlarm(interval, amount, currentTimeMillis, getResources().getConfiguration().locale);
+
+        ContentValues contentValues = getContentValuesForNewTask(
+                description,
+                interval,
+                amount,
+                nextAlarm);
+
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
         try {
             try (SQLiteDatabase db = openHelper.getWritableDatabase()){
-                ContentValues contentValues = new ContentValues();
-                contentValues.put("description", description);
-                contentValues.put("interval", interval);
-                contentValues.put("amount", amount);
-                contentValues.put("next_alarm", nextAlarm);
-                db.insert("tasks", null, contentValues);
+                db.insert(Util.TASK_TABLE, null, contentValues);
             }
         }finally {
             openHelper.close();
         }
     }
+
+    @NonNull
+    private ContentValues getContentValuesForNewTask(String description, int interval, int amount, long nextAlarm) {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put("description", description);
+        contentValues.put("interval", interval);
+        contentValues.put("amount", amount);
+        contentValues.put("next_alarm", nextAlarm);
+        return contentValues;
+    }
+
 }

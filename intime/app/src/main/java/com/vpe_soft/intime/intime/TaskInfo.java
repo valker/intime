@@ -7,12 +7,20 @@ public class TaskInfo {
     private final String _description;
     private final int _interval;
     private final int _amount;
-    private final long _timestamp;
+    private final long _nextAlarm;
 
-    public TaskInfo(String description, int interval, int amount, long timestamp) {
+    public TaskInfo(String description, int interval, int amount, long nextAlarm) {
         _description = description;
         _interval = interval;
         _amount = amount;
-        _timestamp = timestamp;
+        _nextAlarm = nextAlarm;
+    }
+
+    public int getInterval() {
+        return _interval;
+    }
+
+    public int getAmount() {
+        return _amount;
     }
 }

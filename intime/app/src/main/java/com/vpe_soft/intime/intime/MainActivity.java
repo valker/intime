@@ -2,6 +2,7 @@ package com.vpe_soft.intime.intime;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
@@ -28,7 +29,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
         final SQLiteDatabase database = openHelper.getReadableDatabase();
         final long currentTimestamp = System.currentTimeMillis() / 1000L;
-        final Cursor next_alarm = database.query("main.tasks", new String[]{"id", "next_alarm"}, "next_alarm>" + currentTimestamp, null, null, null, "next_alarm", "1");
+        final Cursor next_alarm = database.query(Util.TASK_TABLE, new String[]{"id", "next_alarm"}, "next_alarm>" + currentTimestamp, null, null, null, "next_alarm", "1");
         if(next_alarm.moveToNext()) {
             final int id = next_alarm.getInt(next_alarm.getColumnIndexOrThrow("id"));
             final long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm")) * 1000L;
@@ -41,6 +42,18 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
 
         database.close();
         openHelper.close();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // todo: register broadcast receiver
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // todu: unregister broadcast receiver
     }
 
     @Override
@@ -65,6 +78,8 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         int menuItemIndex = item.getItemId();
         switch(menuItemIndex) {
             case 0:     // acknowledge
+                acknowledgeTask(info.id);
+                refreshListView();
                 break;
             case 1:     // edit
                 break;
@@ -79,6 +94,46 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         return true;
     }
 
+    private void acknowledgeTask(long id) {
+        InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
+        try(SQLiteDatabase database = openHelper.getWritableDatabase()) {
+            TaskInfo taskInfo = findTaskById(database, id);
+            if(taskInfo == null) {
+                Log.d("VP", "cannot find task with id=" + id);
+                return;
+            }
+
+            final long currentTimeMillis = System.currentTimeMillis();
+            final long nextAlarm = Util.getNextAlarm(
+                    taskInfo.getInterval(),
+                    taskInfo.getAmount(),
+                    currentTimeMillis,
+                    getResources().getConfiguration().locale);
+            ContentValues values = new ContentValues();
+            values.put("next_alarm", nextAlarm);
+            String whereClause = "id=" + id;
+            final int result = database.update(Util.TASK_TABLE, values, whereClause, null);
+            if(result != 1) {
+                Log.d("VP", "Cannot update task with id=" + id);
+                throw new RuntimeException("cannot update task with id=" + id);
+            }
+        }
+    }
+
+    private TaskInfo findTaskById(SQLiteDatabase database, long id) {
+        final Cursor query = database.query(Util.TASK_TABLE, new String[] {"description", "interval", "amount", "next_alarm"}, "id=" + id, null, null, null, null, "1");
+        if(query.moveToNext()) {
+            String description = query.getString(query.getColumnIndexOrThrow("description"));
+            int interval = query.getInt(query.getColumnIndexOrThrow("interval"));
+            int amount = query.getInt(query.getColumnIndexOrThrow("amount"));
+            long nextAlarm = query.getLong(query.getColumnIndexOrThrow("next_alarm"));
+            TaskInfo taskInfo = new TaskInfo(description, interval, amount, nextAlarm);
+            return taskInfo;
+        }
+
+        return null;
+    }
+
     private void refreshListView() {
         TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
         fragment.refreshListView();
@@ -88,7 +143,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
         try(SQLiteDatabase database = openHelper.getWritableDatabase()) {
             final String identifier = "" + id;
-            int result = database.delete("tasks", "id=?", new String[]{identifier});
+            int result = database.delete(Util.TASK_TABLE, "id=?", new String[]{identifier});
             if(result != 1) {
                 throw new RuntimeException("wrong removing of the task");
             }
