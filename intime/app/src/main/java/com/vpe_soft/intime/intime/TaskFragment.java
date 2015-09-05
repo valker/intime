@@ -47,6 +47,7 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
      */
     private ListAdapter mAdapter;
     private Cursor tasksCursor;
+    public static final String SKELETON = "HHmmss ddMMyyyy";
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -83,28 +84,33 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
 
             @Override
             public void bindView(View view, Context context, Cursor cursor) {
-                // Find fields to populate in inflated template
-                TextView tvBody = (TextView) view.findViewById(R.id.tvBody);
-                TextView tvPriority = (TextView) view.findViewById(R.id.tvPriority);
                 // Extract properties from cursor
-                String body = cursor.getString(cursor.getColumnIndexOrThrow("description"));
+                String description = cursor.getString(cursor.getColumnIndexOrThrow("description"));
                 long next_alarm = cursor.getLong(cursor.getColumnIndexOrThrow("next_alarm")) * 1000L;
-                // Populate fields with extracted properties
-                tvBody.setText(body);
-                Date date = new Date(next_alarm);
+
+                // get current system properties (locale & timestamp)
                 final Locale locale = getResources().getConfiguration().locale;
-                final String skeleton = "HHmmss ddMMyyyy";
-                final String pattern = DateFormat.getBestDateTimePattern(locale, skeleton);
+                final long currentTimeMillis = System.currentTimeMillis();
+
+                Date date = new Date(next_alarm);
+                final String pattern = DateFormat.getBestDateTimePattern(locale, SKELETON);
                 SimpleDateFormat format = new SimpleDateFormat(pattern, locale);
                 format.setTimeZone(TimeZone.getDefault());
-                final String value = format.format(date);
-                tvPriority.setText(value);
-                final long currentTimeMillis = System.currentTimeMillis();
-                if(currentTimeMillis > next_alarm) {
-                    view.setBackground(new PaintDrawable(Color.RED));
-                }
+                final String nextAlarm = format.format(date);
+                final boolean isTaskOverdue = currentTimeMillis > next_alarm;
+                populateItemViewFields(view, description, nextAlarm, isTaskOverdue);
             }
         };
+    }
+
+    private static void populateItemViewFields(View view, String description, String nextAlarm, boolean isTaskOverdue) {
+        // Find fields to populate in inflated template
+        TextView tvBody = (TextView) view.findViewById(R.id.tvBody);
+        TextView tvPriority = (TextView) view.findViewById(R.id.tvPriority);
+        // Populate fields with extracted properties
+        tvBody.setText(description);
+        tvPriority.setText(nextAlarm);
+        view.setBackground(new PaintDrawable(isTaskOverdue ? Color.RED : Color.WHITE));
     }
 
     @Override

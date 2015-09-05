@@ -2,6 +2,7 @@ package com.vpe_soft.intime.intime;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -18,6 +19,8 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 
 public class MainActivity extends AppCompatActivity implements TaskFragment.OnFragmentInteractionListener {
+
+    private BroadcastReceiver _receiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,13 +50,15 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     @Override
     protected void onPause() {
         super.onPause();
+        BroadcastReceiver receiver = getReceiver();
+
         // todo: register broadcast receiver
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // todu: unregister broadcast receiver
+        // todo: unregister broadcast receiver
     }
 
     @Override
@@ -184,4 +189,11 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     public void onFragmentInteraction(String id) {
     }
 
+    public BroadcastReceiver getReceiver() {
+        if(_receiver == null) {
+            //_receiver = new BroadcastReceiver();
+        }
+
+        return _receiver;
+    }
 }
