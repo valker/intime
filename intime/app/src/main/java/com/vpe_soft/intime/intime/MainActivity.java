@@ -1,11 +1,12 @@
 package com.vpe_soft.intime.intime;
 
 import android.app.AlarmManager;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.support.v7.app.AppCompatActivity;
@@ -20,7 +21,8 @@ import android.widget.ListView;
 
 public class MainActivity extends AppCompatActivity implements TaskFragment.OnFragmentInteractionListener {
 
-    private BroadcastReceiver _receiver;
+    private MyBroadcastReceiver _receiver;
+    private PendingIntent _alarmIntent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,36 +31,51 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         ListView listView = (ListView) findViewById(android.R.id.list);
         registerForContextMenu(listView);
 
+
+        IntentFilter filter = new IntentFilter(Util.TASK_OVERDUE_ACTION);
+        registerReceiver(getReceiver(), filter);
+    }
+
+    @Override
+    protected void onPause() {
+        Log.d("VP", "onPause MainActivity");
+        super.onPause();
+        MyBroadcastReceiver receiver = getReceiver();
+        receiver.setPause();
+    }
+
+    @Override
+    protected void onResume() {
+        Log.d("VP", "onResume MainActivity");
+        super.onResume();
+        MyBroadcastReceiver receiver = getReceiver();
+        receiver.setResume();
+
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.cancel(Util.NOTIFICATION_TAG, 1);
+
+        AlarmManager mgr = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
+        if(_alarmIntent != null) {
+            mgr.cancel(_alarmIntent);
+        }
+
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
         final SQLiteDatabase database = openHelper.getReadableDatabase();
         final long currentTimestamp = System.currentTimeMillis() / 1000L;
         final Cursor next_alarm = database.query(Util.TASK_TABLE, new String[]{"id", "next_alarm"}, "next_alarm>" + currentTimestamp, null, null, null, "next_alarm", "1");
         if(next_alarm.moveToNext()) {
-            final int id = next_alarm.getInt(next_alarm.getColumnIndexOrThrow("id"));
             final long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm")) * 1000L;
             final Context context = getApplicationContext();
-            AlarmManager mgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
             final Intent intent = new Intent(context, AlarmReceiver.class);
             PendingIntent alarmIntent = PendingIntent.getBroadcast(context, 0, intent, 0);
             mgr.set(AlarmManager.RTC_WAKEUP, nextAlarm, alarmIntent);
+            Log.d("VP", "MainActivity.onResume - create alarm");
+            _alarmIntent = alarmIntent;
         }
 
         database.close();
         openHelper.close();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        BroadcastReceiver receiver = getReceiver();
-
-        // todo: register broadcast receiver
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        // todo: unregister broadcast receiver
     }
 
     @Override
@@ -189,11 +206,17 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     public void onFragmentInteraction(String id) {
     }
 
-    public BroadcastReceiver getReceiver() {
+    public MyBroadcastReceiver getReceiver() {
         if(_receiver == null) {
-            //_receiver = new BroadcastReceiver();
+            _receiver = new MyBroadcastReceiver(this);
         }
 
         return _receiver;
+    }
+
+    public void notifyTaskOverdue() {
+        Log.d("VP", "MainActivity.notifyTaskOverdue");
+        TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
+        fragment.refreshListView();
     }
 }

@@ -11,6 +11,8 @@ import java.util.Locale;
 public class Util {
 
     public final static String TASK_TABLE = "main.tasks";
+    public static final String TASK_OVERDUE_ACTION = "com.vpe_soft.intime.intime.TaskOverdue";
+    public static final String NOTIFICATION_TAG = "com.vpe_soft.intime.intime.NotificationTag";
 
     private static final int[] fields= new int[]{
         Calendar.MINUTE,
