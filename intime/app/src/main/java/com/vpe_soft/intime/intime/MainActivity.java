@@ -26,11 +26,11 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.d("VP", "onCreate MainActivity");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ListView listView = (ListView) findViewById(android.R.id.list);
         registerForContextMenu(listView);
-
 
         IntentFilter filter = new IntentFilter(Util.TASK_OVERDUE_ACTION);
         registerReceiver(getReceiver(), filter);

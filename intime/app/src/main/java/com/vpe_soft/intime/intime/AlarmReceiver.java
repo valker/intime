@@ -7,6 +7,7 @@ import android.util.Log;
 
 /**
  * Created by Valentin on 26.08.2015.
+ * Receives notifications from AlarmManager about next alarm and pass it to MainActivity
  */
 public class AlarmReceiver extends BroadcastReceiver {
 
@@ -15,6 +16,6 @@ public class AlarmReceiver extends BroadcastReceiver {
         Log.d("VP", "AlarmReceiver.onReceive");
 
         Intent broadcastIntent = new Intent(Util.TASK_OVERDUE_ACTION);
-        context.sendBroadcast(broadcastIntent);
+        context.sendOrderedBroadcast(broadcastIntent, null);
     }
 }
