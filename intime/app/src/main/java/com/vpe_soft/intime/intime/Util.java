@@ -1,5 +1,8 @@
 package com.vpe_soft.intime.intime;
 
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -33,5 +36,19 @@ public class Util {
         final long time = date.getTime();
         final long value = time / 1000L;
         return value;
+    }
+
+    public static TaskInfo findTaskById(SQLiteDatabase database, long id) {
+        final Cursor query = database.query(TASK_TABLE, new String[] {"description", "interval", "amount", "next_alarm"}, "id=" + id, null, null, null, null, "1");
+        if(query.moveToNext()) {
+            String description = query.getString(query.getColumnIndexOrThrow("description"));
+            int interval = query.getInt(query.getColumnIndexOrThrow("interval"));
+            int amount = query.getInt(query.getColumnIndexOrThrow("amount"));
+            long nextAlarm = query.getLong(query.getColumnIndexOrThrow("next_alarm"));
+            TaskInfo taskInfo = new TaskInfo(description, interval, amount, nextAlarm);
+            return taskInfo;
+        }
+
+        return null;
     }
 }

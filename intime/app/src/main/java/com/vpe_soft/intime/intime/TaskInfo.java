@@ -23,4 +23,8 @@ public class TaskInfo {
     public int getAmount() {
         return _amount;
     }
+
+    public String getDescription() {
+        return _description;
+    }
 }

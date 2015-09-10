@@ -104,6 +104,8 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
                 refreshListView();
                 break;
             case 1:     // edit
+                editTask(info.id);
+                refreshListView();
                 break;
             case 2:     // delete
                 deleteTask(info.id);
@@ -116,10 +118,17 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         return true;
     }
 
+    private void editTask(long id) {
+        Intent intent = new Intent(this, NewTaskActivity.class);
+        intent.putExtra("action", "edit");
+        intent.putExtra("id", id);
+        startActivity(intent);
+    }
+
     private void acknowledgeTask(long id) {
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
         try(SQLiteDatabase database = openHelper.getWritableDatabase()) {
-            TaskInfo taskInfo = findTaskById(database, id);
+            TaskInfo taskInfo = Util.findTaskById(database, id);
             if(taskInfo == null) {
                 Log.d("VP", "cannot find task with id=" + id);
                 return;
@@ -140,20 +149,6 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
                 throw new RuntimeException("cannot update task with id=" + id);
             }
         }
-    }
-
-    private TaskInfo findTaskById(SQLiteDatabase database, long id) {
-        final Cursor query = database.query(Util.TASK_TABLE, new String[] {"description", "interval", "amount", "next_alarm"}, "id=" + id, null, null, null, null, "1");
-        if(query.moveToNext()) {
-            String description = query.getString(query.getColumnIndexOrThrow("description"));
-            int interval = query.getInt(query.getColumnIndexOrThrow("interval"));
-            int amount = query.getInt(query.getColumnIndexOrThrow("amount"));
-            long nextAlarm = query.getLong(query.getColumnIndexOrThrow("next_alarm"));
-            TaskInfo taskInfo = new TaskInfo(description, interval, amount, nextAlarm);
-            return taskInfo;
-        }
-
-        return null;
     }
 
     private void refreshListView() {
@@ -195,6 +190,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         else if(id == R.id.action_newtask) {
             Log.d("VP","new task pressed");
             Intent intent = new Intent(this, NewTaskActivity.class);
+            intent.putExtra("action", "create");
             startActivity(intent);
             return true;
         }

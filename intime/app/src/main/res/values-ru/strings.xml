@@ -13,4 +13,5 @@
     <string name="context_menu_acknowledge">Подтвердить</string>
     <string name="context_menu_delete">Удалить</string>
     <string name="context_menu_edit">Редактировать</string>
+    <string name="button_update_text">Сохранить</string>
 </resources>

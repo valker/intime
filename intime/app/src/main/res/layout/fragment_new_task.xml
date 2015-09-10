@@ -53,6 +53,13 @@
         android:id="@+id/button_create_task"
         android:onClick="OnButtonCreateTaskClicked"
         />
+    <Button  android:text="@string/button_update_text" android:layout_column="0" android:layout_row="3" android:layout_columnSpan="2"
+        android:layout_width="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:textColor="@android:color/holo_blue_dark"
+        android:id="@+id/button_update_task"
+        android:onClick="OnButtonUpdateTaskClicked"
+        />
 
     <!--<EditText-->
         <!--android:layout_width="wrap_content"-->
