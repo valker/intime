@@ -68,7 +68,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
             final long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm")) * 1000L;
             final Context context = getApplicationContext();
             final Intent intent = new Intent(context, AlarmReceiver.class);
-            PendingIntent alarmIntent = PendingIntent.getBroadcast(context, 0, intent, 0);
+            PendingIntent alarmIntent = PendingIntent.getBroadcast(context, 199709, intent, 0);
             mgr.set(AlarmManager.RTC_WAKEUP, nextAlarm, alarmIntent);
             Log.d("VP", "MainActivity.onResume - create alarm");
             _alarmIntent = alarmIntent;

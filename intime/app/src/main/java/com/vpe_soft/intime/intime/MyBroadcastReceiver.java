@@ -1,5 +1,6 @@
 package com.vpe_soft.intime.intime;
 
+import android.support.v4.app.*;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -25,7 +26,7 @@ public class MyBroadcastReceiver extends android.content.BroadcastReceiver {
             _parent.notifyTaskOverdue();
         } else {
             NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-            Notification.Builder builder = new Notification.Builder(context);
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
             builder.setTicker("Ticker");
             builder.setContentTitle("Title");
             builder.setContentText("Text");
