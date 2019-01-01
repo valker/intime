@@ -8,6 +8,7 @@
         <item name = "colorAccent">@color/colorAccent</item>
         <item name = "colorControlHighlight">@color/colorControlHighlight</item>
         <item name = "colorControlNormal">@color/colorControlNormal</item>
+
     </style>
 
 </resources>

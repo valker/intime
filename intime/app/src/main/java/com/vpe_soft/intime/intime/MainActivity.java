@@ -252,7 +252,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
                 builder.setTicker("Ticker");
                 builder.setContentTitle("Title");
                 builder.setContentText("Text");
-                builder.setSmallIcon(R.mipmap.ic_launcher);
+                builder.setSmallIcon(R.drawable.app_icon);
                 Intent mainActIntent = new Intent(context, MainActivity.class);
                 PendingIntent mainActivityIntent = PendingIntent.getActivity(context, 0, mainActIntent, 0);
                 builder.setContentIntent(mainActivityIntent);

@@ -1,26 +1,30 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools" tools:context=".MainActivity">
-    <item android:id="@+id/action_settings" android:title="@string/action_settings"
-        android:orderInCategory="100" app:showAsAction="never" />
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".MainActivity">
+    <item android:id="@+id/action_settings"
+        android:title="@string/action_settings"
+        android:orderInCategory="150"
+        app:showAsAction="ifRoom"
+        android:icon="@drawable/settings"/>
     <item android:id="@+id/action_newtask"
         android:title="@string/action_newtask"
-        app:showAsAction="always"
-        android:icon="@drawable/add_task"
-        />
-    <item android:id="@+id/action_acknowledge_task"
-        android:title="@string/action_acknowledge"
-        android:icon="@drawable/acknowledge"
         app:showAsAction="ifRoom"
-        android:visible="false"
-        android:orderInCategory="150"
-        />
+        android:orderInCategory="100"
+        android:icon="@drawable/add_task"/>
+    <!--<item android:id="@+id/action_acknowledge_task"-->
+        <!--android:title="@string/action_acknowledge"-->
+        <!--android:icon="@drawable/acknowledge"-->
+        <!--app:showAsAction="ifRoom"-->
+        <!--android:visible="false"-->
+        <!--android:orderInCategory="150"-->
+        <!--/>-->
 
-    <item android:id="@+id/action_delete_task"
-        android:title="@string/action_delete"
-        android:icon="@drawable/delete"
-        app:showAsAction="ifRoom"
-        android:orderInCategory="200"
-        android:visible="false"
-        />
+    <!--<item android:id="@+id/action_delete_task"-->
+        <!--android:title="@string/action_delete"-->
+        <!--android:icon="@drawable/delete"-->
+        <!--app:showAsAction="ifRoom"-->
+        <!--android:orderInCategory="200"-->
+        <!--android:visible="false"-->
+        <!--/>-->
 </menu>
