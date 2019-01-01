@@ -1,6 +1,7 @@
 package com.vpe_soft.intime.intime;
 
 import android.app.AlarmManager;
+import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.ContentValues;
@@ -9,6 +10,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -55,8 +57,9 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         notificationManager.cancel(Util.NOTIFICATION_TAG, 1);
 
         AlarmManager mgr = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-
+        Log.d("VP","mgr setup");
         if(_alarmIntent != null) {
+            Log.d("VP","true");
             mgr.cancel(_alarmIntent);
         }
 
@@ -65,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         final long currentTimestamp = System.currentTimeMillis() / 1000L;
         final Cursor next_alarm = database.query(Util.TASK_TABLE, new String[]{"id", "next_alarm"}, "next_alarm>" + currentTimestamp, null, null, null, "next_alarm", "1");
         if(next_alarm.moveToNext()) {
+            Log.d("VP","Moved to next");
             final long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm")) * 1000L;
             final Context context = getApplicationContext();
             final Intent intent = new Intent(context, AlarmReceiver.class);
@@ -152,6 +156,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     }
 
     private void refreshListView() {
+        Log.d("VP","resreshListView launch");
         TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
         fragment.refreshListView();
     }
@@ -214,5 +219,47 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         Log.d("VP", "MainActivity.notifyTaskOverdue");
         TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
         fragment.refreshListView();
+    }
+}
+public class MyBroadcastReceiver extends android.content.BroadcastReceiver {
+    MainActivity _parent;
+    private boolean _isForeground;
+
+    public MyBroadcastReceiver(MainActivity parent) {
+        this._parent = parent;
+    }
+
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        Log.d("VP", "MyBroadcastReceiver.onReceive");
+        Log.d("VP", Integer.toString(intent.getIntExtra("status", 0)));
+
+        if (_isForeground) {
+            // TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
+            //fragment.refreshListView();
+            _parent.notifyTaskOverdue();
+        } else {
+            Log.d("VP", "Notification sending");
+
+            NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
+            builder.setTicker("Ticker");
+            builder.setContentTitle("Title");
+            builder.setContentText("Text");
+            builder.setSmallIcon(R.mipmap.ic_launcher);
+            Intent mainActIntent = new Intent(context, MainActivity.class);
+            PendingIntent mainActivityIntent = PendingIntent.getActivity(context, 0, mainActIntent, 0);
+            builder.setContentIntent(mainActivityIntent);
+            Notification notification = builder.build();
+            notificationManager.notify(Util.NOTIFICATION_TAG, 1, notification);
+        }
+    }
+
+    public void setResume() {
+        _isForeground = true;
+    }
+
+    public void setPause() {
+        _isForeground = false;
     }
 }

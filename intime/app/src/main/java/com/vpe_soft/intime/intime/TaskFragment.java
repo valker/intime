@@ -1,6 +1,7 @@
 package com.vpe_soft.intime.intime;
 
 import android.app.Activity;
+import android.util.Log;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -154,9 +155,13 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
         }
     }
 
-    public void refreshListView() {
+    public void refreshListView(){
+        Log.d("VP","Zaletel here");
         tasksCursor.requery();
+        mListView.refreshDrawableState();
+        Log.d("VP","ya vernulsa");
     }
+
 
     /**
      * This interface must be implemented by activities that contain this

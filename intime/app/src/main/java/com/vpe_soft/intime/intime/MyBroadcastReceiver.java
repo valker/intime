@@ -7,7 +7,9 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
-
+import android.app.FragmentManager;
+import android.app.Fragment;
+import android.app.Activity;
 /**
  * Created by Valentin on 05.09.2015.
  */
@@ -22,9 +24,15 @@ public class MyBroadcastReceiver extends android.content.BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         Log.d("VP", "MyBroadcastReceiver.onReceive");
-        if(_isForeground) {
+        Log.d("VP", Integer.toString(intent.getIntExtra("status", 0)));
+
+        if (_isForeground) {
+           // TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
+            //fragment.refreshListView();
             _parent.notifyTaskOverdue();
         } else {
+            Log.d("VP", "Notification sending");
+
             NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
             builder.setTicker("Ticker");
