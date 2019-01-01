@@ -2,6 +2,7 @@ package com.vpe_soft.intime.intime;
 
 import android.content.ContentValues;
 import android.content.Intent;
+import android.support.v7.widget.Toolbar;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.support.annotation.NonNull;
@@ -20,14 +21,15 @@ import android.widget.Spinner;
 import java.util.Objects;
 
 public class NewTaskActivity extends AppCompatActivity implements NewTaskFragment.OnFragmentInteractionListener {
-
+    private Toolbar toolbar;
     private long _id;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_new_task);
-
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
         Intent intent = getIntent();
         String action = intent.getExtras().getString("action");
         if(action.equals("create")) {

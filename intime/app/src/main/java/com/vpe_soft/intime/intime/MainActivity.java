@@ -20,11 +20,12 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.support.v7.widget.Toolbar;
 
 public class MainActivity extends AppCompatActivity implements TaskFragment.OnFragmentInteractionListener {
     private MyBroadcastReceiver _receiver;
     private PendingIntent _alarmIntent;
-
+    private Toolbar toolbar;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d("VP", "onCreate MainActivity");
@@ -32,7 +33,8 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         setContentView(R.layout.activity_main);
         ListView listView = (ListView) findViewById(android.R.id.list);
         registerForContextMenu(listView);
-
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
         IntentFilter filter = new IntentFilter(Util.TASK_OVERDUE_ACTION);
         registerReceiver(getReceiver(), filter);
     }
