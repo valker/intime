@@ -44,6 +44,8 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         super.onPause();
         MyBroadcastReceiver receiver = getReceiver();
         receiver.setPause();
+        refreshListView();
+        createAlarm();
     }
 
     @Override
@@ -52,47 +54,23 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         super.onResume();
         MyBroadcastReceiver receiver = getReceiver();
         receiver.setResume();
-
+        refreshListView();
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(Util.NOTIFICATION_TAG, 1);
-
-        AlarmManager mgr = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-        Log.d("VP","mgr setup");
-        if(_alarmIntent != null) {
-            Log.d("VP","true");
-            mgr.cancel(_alarmIntent);
-        }
-
-        InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
-        final SQLiteDatabase database = openHelper.getReadableDatabase();
-        final long currentTimestamp = System.currentTimeMillis() / 1000L;
-        final Cursor next_alarm = database.query(Util.TASK_TABLE, new String[]{"id", "next_alarm"}, "next_alarm>" + currentTimestamp, null, null, null, "next_alarm", "1");
-        if(next_alarm.moveToNext()) {
-            Log.d("VP","Moved to next");
-            final long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm")) * 1000L;
-            final Context context = getApplicationContext();
-            final Intent intent = new Intent(context, AlarmReceiver.class);
-            PendingIntent alarmIntent = PendingIntent.getBroadcast(context, 199709, intent, 0);
-            mgr.set(AlarmManager.RTC_WAKEUP, nextAlarm, alarmIntent);
-            Log.d("VP", "MainActivity.onResume - create alarm");
-            _alarmIntent = alarmIntent;
-        }
-
-        database.close();
-        openHelper.close();
+     //createAlarm();
     }
 
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v,
                                     ContextMenu.ContextMenuInfo menuInfo) {
-        if (v.getId()==android.R.id.list) {
-            AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo)menuInfo;
+        if (v.getId() == android.R.id.list) {
+            AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
             String[] menuItems = new String[]{
                     getString(R.string.context_menu_acknowledge),
                     getString(R.string.context_menu_edit),
                     getString(R.string.context_menu_delete)
             };
-            for (int i = 0; i<menuItems.length; i++) {
+            for (int i = 0; i < menuItems.length; i++) {
                 menu.add(Menu.NONE, i, i, menuItems[i]);
             }
         }
@@ -100,9 +78,9 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
 
     @Override
     public boolean onContextItemSelected(MenuItem item) {
-        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo)item.getMenuInfo();
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
         int menuItemIndex = item.getItemId();
-        switch(menuItemIndex) {
+        switch (menuItemIndex) {
             case 0:     // acknowledge
                 acknowledgeTask(info.id);
                 refreshListView();
@@ -131,9 +109,9 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
 
     private void acknowledgeTask(long id) {
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
-        try(SQLiteDatabase database = openHelper.getWritableDatabase()) {
+        try (SQLiteDatabase database = openHelper.getWritableDatabase()) {
             TaskInfo taskInfo = Util.findTaskById(database, id);
-            if(taskInfo == null) {
+            if (taskInfo == null) {
                 Log.d("VP", "cannot find task with id=" + id);
                 return;
             }
@@ -148,25 +126,54 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
             values.put("next_alarm", nextAlarm);
             String whereClause = "id=" + id;
             final int result = database.update(Util.TASK_TABLE, values, whereClause, null);
-            if(result != 1) {
+            if (result != 1) {
                 Log.d("VP", "Cannot update task with id=" + id);
                 throw new RuntimeException("cannot update task with id=" + id);
             }
         }
+        createAlarm();
     }
+    private void createAlarm(){
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.cancel(Util.NOTIFICATION_TAG, 1);
 
+        AlarmManager mgr = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        Log.d("VP", "mgr setup");
+        if (_alarmIntent != null) {
+            Log.d("VP", "true");
+            mgr.cancel(_alarmIntent);
+        }
+
+        InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
+        final SQLiteDatabase database = openHelper.getReadableDatabase();
+        final long currentTimestamp = System.currentTimeMillis() / 1000L;
+        final Cursor next_alarm = database.query(Util.TASK_TABLE, new String[]{"id", "next_alarm"}, "next_alarm>" + currentTimestamp, null, null, null, "next_alarm", "1");
+        if (next_alarm.moveToNext()) {
+            Log.d("VP", "Moved to next");
+            final long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm")) * 1000L;
+            final Context context = getApplicationContext();
+            final Intent intent = new Intent(context, AlarmReceiver.class);
+            PendingIntent alarmIntent = PendingIntent.getBroadcast(context, 199709, intent, 0);
+            mgr.set(AlarmManager.RTC_WAKEUP, nextAlarm, alarmIntent);
+            Log.d("VP", "MainActivity.onResume - create alarm");
+            _alarmIntent = alarmIntent;
+        }
+
+        database.close();
+        openHelper.close();
+    }
     private void refreshListView() {
-        Log.d("VP","resreshListView launch");
+        Log.d("VP", "resreshListView launch");
         TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
         fragment.refreshListView();
     }
 
     private void deleteTask(long id) {
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
-        try(SQLiteDatabase database = openHelper.getWritableDatabase()) {
+        try (SQLiteDatabase database = openHelper.getWritableDatabase()) {
             final String identifier = "" + id;
             int result = database.delete(Util.TASK_TABLE, "id=?", new String[]{identifier});
-            if(result != 1) {
+            if (result != 1) {
                 throw new RuntimeException("wrong removing of the task");
             }
         } catch (Exception ex) {
@@ -191,9 +198,8 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
-        }
-        else if(id == R.id.action_newtask) {
-            Log.d("VP","new task pressed");
+        } else if (id == R.id.action_newtask) {
+            Log.d("VP", "new task pressed");
             Intent intent = new Intent(this, NewTaskActivity.class);
             intent.putExtra("action", "create");
             startActivity(intent);
@@ -208,7 +214,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     }
 
     public MyBroadcastReceiver getReceiver() {
-        if(_receiver == null) {
+        if (_receiver == null) {
             _receiver = new MyBroadcastReceiver(this);
         }
 
@@ -220,46 +226,47 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
         fragment.refreshListView();
     }
-}
-public class MyBroadcastReceiver extends android.content.BroadcastReceiver {
-    MainActivity _parent;
-    private boolean _isForeground;
 
-    public MyBroadcastReceiver(MainActivity parent) {
-        this._parent = parent;
-    }
+    class MyBroadcastReceiver extends android.content.BroadcastReceiver {
+//        MainActivity _parent;
+        private boolean _isForeground;
 
-    @Override
-    public void onReceive(Context context, Intent intent) {
-        Log.d("VP", "MyBroadcastReceiver.onReceive");
-        Log.d("VP", Integer.toString(intent.getIntExtra("status", 0)));
-
-        if (_isForeground) {
-            // TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
-            //fragment.refreshListView();
-            _parent.notifyTaskOverdue();
-        } else {
-            Log.d("VP", "Notification sending");
-
-            NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
-            builder.setTicker("Ticker");
-            builder.setContentTitle("Title");
-            builder.setContentText("Text");
-            builder.setSmallIcon(R.mipmap.ic_launcher);
-            Intent mainActIntent = new Intent(context, MainActivity.class);
-            PendingIntent mainActivityIntent = PendingIntent.getActivity(context, 0, mainActIntent, 0);
-            builder.setContentIntent(mainActivityIntent);
-            Notification notification = builder.build();
-            notificationManager.notify(Util.NOTIFICATION_TAG, 1, notification);
+        public MyBroadcastReceiver(MainActivity parent) {
+//            this._parent = parent;
         }
-    }
 
-    public void setResume() {
-        _isForeground = true;
-    }
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d("VP", "MyBroadcastReceiver.onReceive");
+            Log.d("VP", Integer.toString(intent.getIntExtra("status", 0)));
 
-    public void setPause() {
-        _isForeground = false;
+            if (_isForeground) {
+                // TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
+                //fragment.refreshListView();
+                notifyTaskOverdue();
+            } else {
+                Log.d("VP", "Notification sending");
+
+                NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
+                builder.setTicker("Ticker");
+                builder.setContentTitle("Title");
+                builder.setContentText("Text");
+                builder.setSmallIcon(R.mipmap.ic_launcher);
+                Intent mainActIntent = new Intent(context, MainActivity.class);
+                PendingIntent mainActivityIntent = PendingIntent.getActivity(context, 0, mainActIntent, 0);
+                builder.setContentIntent(mainActivityIntent);
+                Notification notification = builder.build();
+                notificationManager.notify(Util.NOTIFICATION_TAG, 1, notification);
+            }
+        }
+
+        public void setResume() {
+            _isForeground = true;
+        }
+
+        public void setPause() {
+            _isForeground = false;
+        }
     }
 }
