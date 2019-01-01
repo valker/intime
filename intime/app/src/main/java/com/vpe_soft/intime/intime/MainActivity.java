@@ -22,7 +22,6 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 
 public class MainActivity extends AppCompatActivity implements TaskFragment.OnFragmentInteractionListener {
-
     private MyBroadcastReceiver _receiver;
     private PendingIntent _alarmIntent;
 
@@ -106,7 +105,6 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         intent.putExtra("id", id);
         startActivity(intent);
     }
-
     private void acknowledgeTask(long id) {
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
         try (SQLiteDatabase database = openHelper.getWritableDatabase()) {
