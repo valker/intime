@@ -1,7 +1,6 @@
 package com.vpe_soft.intime.intime;
 
 import android.app.AlarmManager;
-import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.ContentValues;
@@ -10,7 +9,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -58,7 +56,6 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         refreshListView();
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(Util.NOTIFICATION_TAG, 1);
-     //createAlarm();
     }
 
     @Override
@@ -162,6 +159,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         database.close();
         openHelper.close();
     }
+
     private void refreshListView() {
         Log.d("VP", "resreshListView launch");
         TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
@@ -215,7 +213,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
 
     public MyBroadcastReceiver getReceiver() {
         if (_receiver == null) {
-            _receiver = new MyBroadcastReceiver(this);
+            _receiver = new MyBroadcastReceiver();
         }
 
         return _receiver;
@@ -228,11 +226,9 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     }
 
     class MyBroadcastReceiver extends android.content.BroadcastReceiver {
-//        MainActivity _parent;
         private boolean _isForeground;
 
-        public MyBroadcastReceiver(MainActivity parent) {
-//            this._parent = parent;
+        public MyBroadcastReceiver() {
         }
 
         @Override
@@ -241,23 +237,9 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
             Log.d("VP", Integer.toString(intent.getIntExtra("status", 0)));
 
             if (_isForeground) {
-                // TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
-                //fragment.refreshListView();
                 notifyTaskOverdue();
             } else {
-                Log.d("VP", "Notification sending");
-
-                NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
-                builder.setTicker("Ticker");
-                builder.setContentTitle("Title");
-                builder.setContentText("Text");
-                builder.setSmallIcon(R.drawable.app_icon);
-                Intent mainActIntent = new Intent(context, MainActivity.class);
-                PendingIntent mainActivityIntent = PendingIntent.getActivity(context, 0, mainActIntent, 0);
-                builder.setContentIntent(mainActivityIntent);
-                Notification notification = builder.build();
-                notificationManager.notify(Util.NOTIFICATION_TAG, 1, notification);
+                AlarmReceiver.ShowNotification(context);
             }
         }
 

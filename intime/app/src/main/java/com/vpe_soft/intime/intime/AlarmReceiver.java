@@ -22,14 +22,17 @@ public class AlarmReceiver extends BroadcastReceiver {
         Intent broadcastIntent = new Intent(Util.TASK_OVERDUE_ACTION);
         context.sendOrderedBroadcast(broadcastIntent, null);
 
+        ShowNotification(context);
+    }
+
+    public static void ShowNotification(Context context) {
         Log.d("VP", "Notification sending");
 
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
-        builder.setTicker("Ticker");
         builder.setContentTitle("Title");
         builder.setContentText("Text");
-        builder.setSmallIcon(R.drawable.app_icon);
+        builder.setSmallIcon(R.drawable.notification_icon);
         Intent mainActIntent = new Intent(context, MainActivity.class);
         PendingIntent mainActivityIntent = PendingIntent.getActivity(context, 0, mainActIntent, 0);
         builder.setContentIntent(mainActivityIntent);
