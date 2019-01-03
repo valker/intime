@@ -18,20 +18,31 @@ public class AlarmReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         Log.d("VP", "AlarmReceiver.onReceive");
+        String s = null;
+        try {
+            s = intent.getStringExtra("task_description");
+        } catch( Exception e) {
+            Log.d("VP", "exception1!!!");
+            Log.d("VP", e.getLocalizedMessage());
+        }
+
+        s = s == null?"unknown" : s;
 
         Intent broadcastIntent = new Intent(Util.TASK_OVERDUE_ACTION);
+        broadcastIntent.putExtra("task_description", s);
         context.sendOrderedBroadcast(broadcastIntent, null);
 
-        ShowNotification(context);
+//        ShowNotification(context, "AlarmReceiver"+s);
+        ShowNotification(context, s);
     }
 
-    public static void ShowNotification(Context context) {
+    public static void ShowNotification(Context context, String s) {
         Log.d("VP", "Notification sending");
 
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
-        builder.setContentTitle("Title");
-        builder.setContentText("Text");
+        builder.setContentTitle(context.getResources().getString(R.string.app_name));
+        builder.setContentText(s);
         builder.setSmallIcon(R.drawable.notification_icon);
         Intent mainActIntent = new Intent(context, MainActivity.class);
         PendingIntent mainActivityIntent = PendingIntent.getActivity(context, 0, mainActIntent, 0);

@@ -22,7 +22,7 @@ android {
 }
 
 dependencies {
-    implementation 'com.android.support:appcompat-v7:27.+'
-    implementation 'com.android.support:design:27.+'
-    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    compile 'com.android.support:appcompat-v7:27.+'
+    compile 'com.android.support:design:27.+'
+    compile fileTree(include: ['*.jar'], dir: 'libs')
 }

@@ -144,14 +144,16 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
         final SQLiteDatabase database = openHelper.getReadableDatabase();
         final long currentTimestamp = System.currentTimeMillis() / 1000L;
-        final Cursor next_alarm = database.query(Util.TASK_TABLE, new String[]{"id", "next_alarm"}, "next_alarm>" + currentTimestamp, null, null, null, "next_alarm", "1");
+        final Cursor next_alarm = database.query(Util.TASK_TABLE, new String[]{"id", "next_alarm", "description"}, "next_alarm>" + currentTimestamp, null, null, null, "next_alarm", "1");
         if (next_alarm.moveToNext()) {
             Log.d("VP", "Moved to next");
             final long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm")) * 1000L;
             final Context context = getApplicationContext();
             final Intent intent = new Intent(context, AlarmReceiver.class);
+            intent.putExtra("task_description", next_alarm.getString(next_alarm.getColumnIndexOrThrow("description")));
             PendingIntent alarmIntent = PendingIntent.getBroadcast(context, 199709, intent, 0);
             mgr.set(AlarmManager.RTC_WAKEUP, nextAlarm, alarmIntent);
+//            mgr.set(AlarmManager.RTC_WAKEUP, currentTimestamp + 15000, alarmIntent);
             Log.d("VP", "MainActivity.onResume - create alarm");
             _alarmIntent = alarmIntent;
         }
@@ -234,12 +236,22 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.d("VP", "MyBroadcastReceiver.onReceive");
+            // TODO: to be removed
             Log.d("VP", Integer.toString(intent.getIntExtra("status", 0)));
 
             if (_isForeground) {
                 notifyTaskOverdue();
             } else {
-                AlarmReceiver.ShowNotification(context);
+                String s = null;
+                try {
+                    s = intent.getStringExtra("task_description");
+                }catch(Exception e) {
+                    Log.d("VP", "exception2!!!");
+                    Log.d("VP", e.getLocalizedMessage());
+                }
+                s = s == null?"unknown" : s;
+//                AlarmReceiver.ShowNotification(context, "MainActivity" + s);
+                AlarmReceiver.ShowNotification(context, s);
             }
         }
 

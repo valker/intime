@@ -12,19 +12,4 @@
         app:showAsAction="ifRoom"
         android:orderInCategory="100"
         android:icon="@drawable/add_task"/>
-    <!--<item android:id="@+id/action_acknowledge_task"-->
-        <!--android:title="@string/action_acknowledge"-->
-        <!--android:icon="@drawable/acknowledge"-->
-        <!--app:showAsAction="ifRoom"-->
-        <!--android:visible="false"-->
-        <!--android:orderInCategory="150"-->
-        <!--/>-->
-
-    <!--<item android:id="@+id/action_delete_task"-->
-        <!--android:title="@string/action_delete"-->
-        <!--android:icon="@drawable/delete"-->
-        <!--app:showAsAction="ifRoom"-->
-        <!--android:orderInCategory="200"-->
-        <!--android:visible="false"-->
-        <!--/>-->
 </menu>
