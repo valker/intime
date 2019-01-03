@@ -12,10 +12,12 @@
         android:layout_column="0"
         android:layout_row="0"
         />
-    <EditText android:layout_column="1"
-        android:text="123456"
+    <EditText 
+		android:layout_column="1"
         android:layout_row="0"
         android:inputType="text"
+		android:hint="@string/newtask_hint"
+		android:textColorHint="#9E9E9E"
         android:id="@+id/description"
         />
 

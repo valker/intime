@@ -19,6 +19,7 @@ import android.widget.NumberPicker;
 import android.widget.Spinner;
 
 import java.util.Objects;
+import android.widget.*;
 
 public class NewTaskActivity extends AppCompatActivity implements NewTaskFragment.OnFragmentInteractionListener {
     private Toolbar toolbar;
@@ -111,8 +112,12 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
         EditText editText = (EditText) findViewById(R.id.description);
         String description = editText.getText().toString();
         long currentTimeMillis = System.currentTimeMillis();
+		Log.d("VP",description);
+		if(description.equals("")){
+			Toast.makeText(getApplicationContext(),R.string.newtask_hint,Toast.LENGTH_SHORT).show();
+		}else{
         createNewTask(description, interval, amount, currentTimeMillis);
-        NavUtils.navigateUpFromSameTask(this);
+        NavUtils.navigateUpFromSameTask(this);}
     }
 
     private void createNewTask(String description, int interval, int amount, long currentTimeMillis) {

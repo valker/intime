@@ -109,7 +109,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     }
     private void acknowledgeTask(long id) {
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
-        try (SQLiteDatabase database = openHelper.getWritableDatabase()) {
+        try (SQLiteDatabase database = openHelper.getWritableDatabase()){
             TaskInfo taskInfo = Util.findTaskById(database, id);
             if (taskInfo == null) {
                 Log.d("VP", "cannot find task with id=" + id);
@@ -170,7 +170,8 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
 
     private void deleteTask(long id) {
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
-        try (SQLiteDatabase database = openHelper.getWritableDatabase()) {
+        try {
+			SQLiteDatabase database = openHelper.getWritableDatabase();
             final String identifier = "" + id;
             int result = database.delete(Util.TASK_TABLE, "id=?", new String[]{identifier});
             if (result != 1) {
@@ -196,9 +197,9 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+       /* if (id == R.id.action_settings) {
             return true;
-        } else if (id == R.id.action_newtask) {
+        } else */if (id == R.id.action_newtask) {
             Log.d("VP", "new task pressed");
             Intent intent = new Intent(this, NewTaskActivity.class);
             intent.putExtra("action", "create");
