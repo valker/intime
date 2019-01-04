@@ -30,6 +30,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
 	private Timer timer;
 	private TimerTask timertask;
 	private long nextAlarm;
+    public static boolean _isOnScreen;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d("VP", "onCreate MainActivity");
@@ -47,8 +48,8 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     protected void onPause() {
         Log.d("VP", "onPause MainActivity");
         super.onPause();
+        _isOnScreen = false;
         MyBroadcastReceiver receiver = getReceiver();
-        receiver.setPause();
         refreshListView();
         createAlarm();
     }
@@ -57,8 +58,8 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     protected void onResume() {
         Log.d("VP", "onResume MainActivity");
         super.onResume();
+        _isOnScreen = true;
         MyBroadcastReceiver receiver = getReceiver();
-        receiver.setResume();
         refreshListView();
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(Util.NOTIFICATION_TAG, 1);
@@ -160,7 +161,6 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
             intent.putExtra("task_description", next_alarm.getString(next_alarm.getColumnIndexOrThrow("description")));
             PendingIntent alarmIntent = PendingIntent.getBroadcast(context, 199709, intent, 0);
             mgr.set(AlarmManager.RTC_WAKEUP, nextAlarm, alarmIntent);
-//            mgr.set(AlarmManager.RTC_WAKEUP, currentTimestamp + 15000, alarmIntent);
             Log.d("VP", "MainActivity.onResume - create alarm");
             _alarmIntent = alarmIntent;
         }
@@ -185,12 +185,13 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
 		//timer.schedule(timertask,seconds);
 	}
     private void refreshListView() {
-        Log.d("VP", "resreshListView launch");
+        Log.d("VP", "MainActivity.refreshListView");
         TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
         fragment.refreshListView();
     }
 
     private void deleteTask(long id) {
+        Log.d("VP", "MainActivity.deleteTask");
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
         try {
 			SQLiteDatabase database = openHelper.getWritableDatabase();
@@ -206,6 +207,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        Log.d("VP", "MainActivity.onCreateOptionsMenu");
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
@@ -251,39 +253,15 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     }
 
     class MyBroadcastReceiver extends android.content.BroadcastReceiver {
-        private boolean _isForeground;
-
         public MyBroadcastReceiver() {
         }
 
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.d("VP", "MyBroadcastReceiver.onReceive");
-            // TODO: to be removed
-            Log.d("VP", Integer.toString(intent.getIntExtra("status", 0)));
-
-            if (_isForeground) {
+            if (_isOnScreen) {
                 notifyTaskOverdue();
-            } else {
-                String s = null;
-                try {
-                    s = intent.getStringExtra("task_description");
-                }catch(Exception e) {
-                    Log.d("VP", "exception2!!!");
-                    Log.d("VP", e.getLocalizedMessage());
-                }
-                s = s == null?"unknown" : s;
-//                AlarmReceiver.ShowNotification(context, "MainActivity" + s);
-                AlarmReceiver.ShowNotification(context, s);
             }
-        }
-
-        public void setResume() {
-            _isForeground = true;
-        }
-
-        public void setPause() {
-            _isForeground = false;
         }
     }
 }

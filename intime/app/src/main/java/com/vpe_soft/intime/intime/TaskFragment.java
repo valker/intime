@@ -165,10 +165,9 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
     }
 
     public void refreshListView(){
-        Log.d("VP","Zaletel here");
+        Log.d("VP","TaskFragment.refreshListView");
         tasksCursor.requery();
         mListView.refreshDrawableState();
-        Log.d("VP","ya vernulsa");
     }
 
 
