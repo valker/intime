@@ -51,7 +51,7 @@
     <Button  android:text="@string/button_create_text" android:layout_column="0" android:layout_row="3" android:layout_columnSpan="2"
         android:layout_width="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:textColor="@android:color/holo_blue_dark"
+		android:textColor="#000000"
         android:id="@+id/button_create_task"
         android:onClick="OnButtonCreateTaskClicked"
         />

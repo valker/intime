@@ -42,7 +42,7 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
             final Button updateTaskButton = (Button) findViewById(R.id.button_update_task);
             createTaskButton.setVisibility(View.VISIBLE);
             updateTaskButton.setVisibility(View.INVISIBLE);
-
+ 
         } else if(action.equals("edit")) {
             long id = intent.getExtras().getLong("id");
             _id = id;
@@ -79,14 +79,14 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
+        //int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
+       // if (id == R.id.action_settings) {
+           // return true;
+        //}
 
-        return super.onOptionsItemSelected(item);
+       return super.onOptionsItemSelected(item);
     }
 
     @Override

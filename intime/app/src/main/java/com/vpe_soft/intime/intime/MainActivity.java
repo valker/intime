@@ -1,7 +1,6 @@
 package com.vpe_soft.intime.intime;
 
 import android.app.AlarmManager;
-import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.ContentValues;
@@ -10,7 +9,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -58,7 +56,6 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         refreshListView();
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(Util.NOTIFICATION_TAG, 1);
-     //createAlarm();
     }
 
     @Override
@@ -147,14 +144,16 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
         final SQLiteDatabase database = openHelper.getReadableDatabase();
         final long currentTimestamp = System.currentTimeMillis() / 1000L;
-        final Cursor next_alarm = database.query(Util.TASK_TABLE, new String[]{"id", "next_alarm"}, "next_alarm>" + currentTimestamp, null, null, null, "next_alarm", "1");
+        final Cursor next_alarm = database.query(Util.TASK_TABLE, new String[]{"id", "next_alarm", "description"}, "next_alarm>" + currentTimestamp, null, null, null, "next_alarm", "1");
         if (next_alarm.moveToNext()) {
             Log.d("VP", "Moved to next");
             final long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm")) * 1000L;
             final Context context = getApplicationContext();
             final Intent intent = new Intent(context, AlarmReceiver.class);
+            intent.putExtra("task_description", next_alarm.getString(next_alarm.getColumnIndexOrThrow("description")));
             PendingIntent alarmIntent = PendingIntent.getBroadcast(context, 199709, intent, 0);
             mgr.set(AlarmManager.RTC_WAKEUP, nextAlarm, alarmIntent);
+//            mgr.set(AlarmManager.RTC_WAKEUP, currentTimestamp + 15000, alarmIntent);
             Log.d("VP", "MainActivity.onResume - create alarm");
             _alarmIntent = alarmIntent;
         }
@@ -162,6 +161,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         database.close();
         openHelper.close();
     }
+
     private void refreshListView() {
         Log.d("VP", "resreshListView launch");
         TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
@@ -216,7 +216,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
 
     public MyBroadcastReceiver getReceiver() {
         if (_receiver == null) {
-            _receiver = new MyBroadcastReceiver(this);
+            _receiver = new MyBroadcastReceiver();
         }
 
         return _receiver;
@@ -229,36 +229,30 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     }
 
     class MyBroadcastReceiver extends android.content.BroadcastReceiver {
-//        MainActivity _parent;
         private boolean _isForeground;
 
-        public MyBroadcastReceiver(MainActivity parent) {
-//            this._parent = parent;
+        public MyBroadcastReceiver() {
         }
 
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.d("VP", "MyBroadcastReceiver.onReceive");
+            // TODO: to be removed
             Log.d("VP", Integer.toString(intent.getIntExtra("status", 0)));
 
             if (_isForeground) {
-                // TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
-                //fragment.refreshListView();
                 notifyTaskOverdue();
             } else {
-                Log.d("VP", "Notification sending");
-
-                NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
-                builder.setTicker("Ticker");
-                builder.setContentTitle("Title");
-                builder.setContentText("Text");
-                builder.setSmallIcon(R.drawable.app_icon);
-                Intent mainActIntent = new Intent(context, MainActivity.class);
-                PendingIntent mainActivityIntent = PendingIntent.getActivity(context, 0, mainActIntent, 0);
-                builder.setContentIntent(mainActivityIntent);
-                Notification notification = builder.build();
-                notificationManager.notify(Util.NOTIFICATION_TAG, 1, notification);
+                String s = null;
+                try {
+                    s = intent.getStringExtra("task_description");
+                }catch(Exception e) {
+                    Log.d("VP", "exception2!!!");
+                    Log.d("VP", e.getLocalizedMessage());
+                }
+                s = s == null?"unknown" : s;
+//                AlarmReceiver.ShowNotification(context, "MainActivity" + s);
+                AlarmReceiver.ShowNotification(context, s);
             }
         }
 

@@ -3,7 +3,7 @@
     <string name="app_name">Вовремя!</string>
     <string name="action_settings">Настройки</string>
     <string name="action_newtask">Новая Задача</string>
-    <string name="title_activity_new_task">Добавить Новую Задачу</string>
+    <string name="title_activity_new_task">Добавить новую задачу</string>
     <string name="button_create_text">Создать</string>
     <string name="label_amout_text">Количество:</string>
     <string name="label_description_text">Описание:</string>
