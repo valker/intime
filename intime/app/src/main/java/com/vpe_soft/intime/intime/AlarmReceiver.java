@@ -32,8 +32,12 @@ public class AlarmReceiver extends BroadcastReceiver {
         broadcastIntent.putExtra("task_description", s);
         context.sendOrderedBroadcast(broadcastIntent, null);
 
-//        ShowNotification(context, "AlarmReceiver"+s);
-        ShowNotification(context, s);
+        if(!MainActivity._isOnScreen) {
+            Log.d("VP", "show notification");
+            ShowNotification(context, s);
+        } else {
+            Log.d("VP", "don't show notification");
+        }
     }
 
     public static void ShowNotification(Context context, String s) {
