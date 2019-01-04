@@ -39,14 +39,18 @@ public class Util {
     }
 
     public static TaskInfo findTaskById(SQLiteDatabase database, long id) {
-        final Cursor query = database.query(TASK_TABLE, new String[] {"description", "interval", "amount", "next_alarm"}, "id=" + id, null, null, null, null, "1");
-        if(query.moveToNext()) {
-            String description = query.getString(query.getColumnIndexOrThrow("description"));
-            int interval = query.getInt(query.getColumnIndexOrThrow("interval"));
-            int amount = query.getInt(query.getColumnIndexOrThrow("amount"));
-            long nextAlarm = query.getLong(query.getColumnIndexOrThrow("next_alarm"));
-            TaskInfo taskInfo = new TaskInfo(description, interval, amount, nextAlarm);
-            return taskInfo;
+        final Cursor query = database.query(TASK_TABLE, new String[]{"description", "interval", "amount", "next_alarm"}, "id=" + id, null, null, null, null, "1");
+        try {
+            if (query.moveToNext()) {
+                String description = query.getString(query.getColumnIndexOrThrow("description"));
+                int interval = query.getInt(query.getColumnIndexOrThrow("interval"));
+                int amount = query.getInt(query.getColumnIndexOrThrow("amount"));
+                long nextAlarm = query.getLong(query.getColumnIndexOrThrow("next_alarm"));
+                TaskInfo taskInfo = new TaskInfo(description, interval, amount, nextAlarm);
+                return taskInfo;
+            }
+        } finally {
+            query.close();
         }
 
         return null;
