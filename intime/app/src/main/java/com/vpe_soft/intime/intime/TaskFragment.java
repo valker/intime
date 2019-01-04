@@ -36,7 +36,6 @@ import java.util.TimeZone;
 public class TaskFragment extends Fragment implements AbsListView.OnItemClickListener {
 
     private OnFragmentInteractionListener mListener;
-
     /**
      * The fragment's ListView/GridView.
      */
@@ -98,20 +97,30 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
                 SimpleDateFormat format = new SimpleDateFormat(pattern, locale);
                 format.setTimeZone(TimeZone.getDefault());
                 final String nextAlarm = format.format(date);
-                final boolean isTaskOverdue = currentTimeMillis > next_alarm;
-                populateItemViewFields(view, description, nextAlarm, isTaskOverdue);
+                final int type = currentTimeMillis > next_alarm?1:0;
+                populateItemViewFields(view, description, nextAlarm,type);
             }
         };
     }
 
-    private static void populateItemViewFields(View view, String description, String nextAlarm, boolean isTaskOverdue) {
+    private static void populateItemViewFields(View view, String description, String nextAlarm,int type) {
         // Find fields to populate in inflated template
         TextView tvBody = (TextView) view.findViewById(R.id.tvBody);
         TextView tvPriority = (TextView) view.findViewById(R.id.tvPriority);
         // Populate fields with extracted properties
         tvBody.setText(description);
         tvPriority.setText(nextAlarm);
-        view.setBackground(new PaintDrawable(isTaskOverdue ? Color.RED : Color.WHITE));
+		switch(type){
+			case 0://white
+				view.setBackground(new PaintDrawable(Color.WHITE));
+			break;
+			case 1://red
+				view.setBackground(new PaintDrawable(Color.RED));
+			break;
+			case 2://yellow
+				view.setBackground(new PaintDrawable(Color.YELLOW));
+			break;
+		}
     }
 
     @Override

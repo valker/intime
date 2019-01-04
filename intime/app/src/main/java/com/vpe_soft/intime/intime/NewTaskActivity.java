@@ -20,6 +20,8 @@ import android.widget.Spinner;
 
 import java.util.Objects;
 import android.widget.*;
+import android.view.*;
+import android.graphics.*;
 
 public class NewTaskActivity extends AppCompatActivity implements NewTaskFragment.OnFragmentInteractionListener {
     private Toolbar toolbar;
@@ -55,6 +57,8 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
             spinner.setSelection(taskInfo.getInterval());
 
             final NumberPicker numberPicker = (NumberPicker) findViewById(R.id.numberPicker);
+			//TODO:add sounds for views using playSoundEffect
+			//numberPicker.playSoundEffect(android.view.SoundEffectConstants.CLICK);
             numberPicker.setMaxValue(10);
             numberPicker.setMinValue(1);
             numberPicker.setValue(taskInfo.getAmount());

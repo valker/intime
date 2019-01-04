@@ -19,11 +19,17 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.support.v7.widget.Toolbar;
+import android.view.*;
+import android.graphics.*;
+import java.util.*;
 
 public class MainActivity extends AppCompatActivity implements TaskFragment.OnFragmentInteractionListener {
     private MyBroadcastReceiver _receiver;
     private PendingIntent _alarmIntent;
     private Toolbar toolbar;
+	private Timer timer;
+	private TimerTask timertask;
+	private long nextAlarm;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d("VP", "onCreate MainActivity");
@@ -129,6 +135,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
             }
         }
         createAlarm();
+		createTimer(nextAlarm/100*5);
     }
     private void createAlarm(){
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -147,7 +154,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         final Cursor next_alarm = database.query(Util.TASK_TABLE, new String[]{"id", "next_alarm", "description"}, "next_alarm>" + currentTimestamp, null, null, null, "next_alarm", "1");
         if (next_alarm.moveToNext()) {
             Log.d("VP", "Moved to next");
-            final long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm")) * 1000L;
+            nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm")) * 1000L;
             final Context context = getApplicationContext();
             final Intent intent = new Intent(context, AlarmReceiver.class);
             intent.putExtra("task_description", next_alarm.getString(next_alarm.getColumnIndexOrThrow("description")));
@@ -161,7 +168,22 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         database.close();
         openHelper.close();
     }
-
+	private void createTimer(final long seconds){
+		Log.d("VP","create timer");
+		timertask = new TimerTask() {
+			@Override
+			public void run() {
+				runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+							//notifyTaskOverdue();
+							Log.d("VP",Long.toString(seconds));
+						}
+					});
+			}
+		};
+		//timer.schedule(timertask,seconds);
+	}
     private void refreshListView() {
         Log.d("VP", "resreshListView launch");
         TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
