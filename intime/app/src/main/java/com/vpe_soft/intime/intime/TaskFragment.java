@@ -71,7 +71,8 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
                 new String[]{
                         "description",
                         "id AS _id",
-                        "next_alarm"},
+                        "next_alarm",
+                        "next_caution"},
                 selection, selectionArgs,
                 groupBy,
                 having,
@@ -87,6 +88,7 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
                 // Extract properties from cursor
                 String description = cursor.getString(cursor.getColumnIndexOrThrow("description"));
                 long next_alarm = cursor.getLong(cursor.getColumnIndexOrThrow("next_alarm")) * 1000L;
+                long next_caution = cursor.getLong(cursor.getColumnIndexOrThrow("next_caution")) * 1000L;
 
                 // get current system properties (locale & timestamp)
                 final Locale locale = getResources().getConfiguration().locale;
@@ -97,7 +99,8 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
                 SimpleDateFormat format = new SimpleDateFormat(pattern, locale);
                 format.setTimeZone(TimeZone.getDefault());
                 final String nextAlarm = format.format(date);
-                final int type = currentTimeMillis > next_alarm?1:0;
+                // todo: change to '1' when yellowing algorithm will work OK
+                final int type = currentTimeMillis > next_caution ? currentTimeMillis > next_alarm?2:0:0;
                 populateItemViewFields(view, description, nextAlarm,type);
             }
         };
@@ -114,10 +117,10 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
 			case 0://white
 				view.setBackground(new PaintDrawable(Color.WHITE));
 			break;
-			case 1://red
+			case 2://red
 				view.setBackground(new PaintDrawable(Color.RED));
 			break;
-			case 2://yellow
+			case 1://yellow
 				view.setBackground(new PaintDrawable(Color.YELLOW));
 			break;
 		}

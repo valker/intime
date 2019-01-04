@@ -10,7 +10,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class InTimeOpenHelper extends SQLiteOpenHelper {
 
     public InTimeOpenHelper(Context context) {
-        super(context, "main", null, 2);
+        super(context, "main", null, 3);
     }
 
     @Override
@@ -20,12 +20,17 @@ public class InTimeOpenHelper extends SQLiteOpenHelper {
                 ", description TEXT NOT NULL" +                             // description for user
                 ", interval INTEGER NOT NULL" +                             // type of interval : minutes/hours/etc...
                 ", amount INTEGER NOT NULL" +                               // amount of interval to next alarm
-                ", next_alarm INTEGER NOT NULL DEFAULT 0" +                           // next alarm timestamp
+                ", next_alarm INTEGER NOT NULL DEFAULT 0" +                 // next alarm timestamp
+                ", next_caution INTEGER NOT NULL DEFAULT 0" +               // next caution timestamp
                 ")");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        if(oldVersion < 3) {
+            String sqlCommand = "ALTER TABLE main.tasks ADD COLUMN next_caution INTEGER NOT NULL DEFAULT 0;";
+            db.execSQL(sqlCommand);
+        }
         if(oldVersion < 2) {
             String sqlCommand = "ALTER TABLE main.tasks ADD COLUMN next_alarm INTEGER NOT NULL DEFAULT 0;";
             db.execSQL(sqlCommand);

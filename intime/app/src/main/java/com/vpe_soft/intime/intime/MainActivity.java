@@ -27,7 +27,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     private MyBroadcastReceiver _receiver;
     private PendingIntent _alarmIntent;
     private Toolbar toolbar;
-	private Timer timer;
+	private Timer timer = new Timer();
 	private TimerTask timertask;
 	private long nextAlarm;
     public static boolean _isOnScreen;
@@ -113,6 +113,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     }
     private void acknowledgeTask(long id) {
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
+        final long currentTimeMillis = System.currentTimeMillis();
         try (SQLiteDatabase database = openHelper.getWritableDatabase()){
             TaskInfo taskInfo = Util.findTaskById(database, id);
             if (taskInfo == null) {
@@ -120,14 +121,20 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
                 return;
             }
 
-            final long currentTimeMillis = System.currentTimeMillis();
-            final long nextAlarm = Util.getNextAlarm(
+            final long nextAlarmMoment = Util.getNextAlarm(
                     taskInfo.getInterval(),
                     taskInfo.getAmount(),
                     currentTimeMillis,
                     getResources().getConfiguration().locale);
+
+            final long currentTimeSeconds = currentTimeMillis / 1000;
+            final long cautionPeriod = (long) ((nextAlarmMoment - currentTimeSeconds) * 0.95);
+            // todo: uncomment when yellowing algorithm will work OK
+//            createTimer(cautionPeriod);
+            final long nextCautionMoment = currentTimeSeconds + cautionPeriod;
             ContentValues values = new ContentValues();
-            values.put("next_alarm", nextAlarm);
+            values.put("next_alarm", nextAlarmMoment);
+            values.put("next_caution", nextCautionMoment);
             String whereClause = "id=" + id;
             final int result = database.update(Util.TASK_TABLE, values, whereClause, null);
             if (result != 1) {
@@ -136,7 +143,6 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
             }
         }
         createAlarm();
-		createTimer(nextAlarm/100*5);
     }
     private void createAlarm(){
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -176,13 +182,12 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
 				runOnUiThread(new Runnable() {
 						@Override
 						public void run() {
-							//notifyTaskOverdue();
-							Log.d("VP",Long.toString(seconds));
+							notifyTaskOverdue();
 						}
 					});
 			}
 		};
-		//timer.schedule(timertask,seconds);
+		timer.schedule(timertask,seconds * 1000);
 	}
     private void refreshListView() {
         Log.d("VP", "MainActivity.refreshListView");
