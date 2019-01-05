@@ -47,7 +47,6 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         Log.d("VP", "onPause MainActivity");
         super.onPause();
         _isOnScreen = false;
-        refreshListView();
     }
 
     @Override
