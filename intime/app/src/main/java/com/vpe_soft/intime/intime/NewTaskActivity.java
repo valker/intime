@@ -105,8 +105,9 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
                 long id = intent.getExtras().getLong("id");
                 _id = id;
                 InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
-                SQLiteDatabase database = openHelper.getReadableDatabase();
-                _taskInfo = Util.findTaskById(database, id);
+                try (SQLiteDatabase database = openHelper.getReadableDatabase()) {
+                    _taskInfo = Util.findTaskById(database, id);
+                }
                 EditText description = findViewById(R.id.description);
                 description.setText(_taskInfo.getDescription());
                 final Spinner spinner = findViewById(R.id.spinner);

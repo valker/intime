@@ -1,5 +1,9 @@
 package com.vpe_soft.intime.intime;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
@@ -39,8 +43,7 @@ public class Util {
     }
 
     public static TaskInfo findTaskById(SQLiteDatabase database, long id) {
-        final Cursor query = database.query(TASK_TABLE, new String[]{"description", "interval", "amount", "next_alarm"}, "id=" + id, null, null, null, null, "1");
-        try {
+        try (Cursor query = database.query(TASK_TABLE, new String[]{"description", "interval", "amount", "next_alarm"}, "id=" + id, null, null, null, null, "1")) {
             if (query.moveToNext()) {
                 String description = query.getString(query.getColumnIndexOrThrow("description"));
                 int interval = query.getInt(query.getColumnIndexOrThrow("interval"));
@@ -49,10 +52,35 @@ public class Util {
                 TaskInfo taskInfo = new TaskInfo(description, interval, amount, nextAlarm);
                 return taskInfo;
             }
-        } finally {
-            query.close();
         }
 
         return null;
+    }
+
+    public static void setupAlarm(AlarmManager alarmManager, Context context) {
+        InTimeOpenHelper openHelper = new InTimeOpenHelper(context);
+        try (SQLiteDatabase database = openHelper.getReadableDatabase()) {
+            final long currentTimestamp = System.currentTimeMillis();
+            try (Cursor next_alarm = database.query(TASK_TABLE, new String[]{"id", "next_alarm", "description"}, "next_alarm>" + currentTimestamp, null, null, null, "next_alarm", "1")) {
+                if (next_alarm.moveToNext()) {
+                    long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm"));
+                    alarmManager.set(
+                            AlarmManager.RTC_WAKEUP,
+                            nextAlarm,
+                            createPendingIntent(
+                                    context,
+                                    next_alarm.getString(next_alarm.getColumnIndexOrThrow("description"))));
+                }
+            }
+        }
+    }
+
+    public static PendingIntent createPendingIntent(Context context, String taskDescription) {
+        final Intent intent = new Intent(context, AlarmReceiver.class);
+        if(taskDescription != null) {
+            intent.putExtra("task_description", taskDescription);
+        }
+
+        return PendingIntent.getBroadcast(context, 199709, intent, 0);
     }
 }

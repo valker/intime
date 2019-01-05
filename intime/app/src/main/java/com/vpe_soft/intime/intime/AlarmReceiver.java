@@ -40,7 +40,7 @@ public class AlarmReceiver extends BroadcastReceiver {
     }
 
     public static void ShowNotification(Context context, String s) {
-        Log.d("VP", "Notification sending");
+        Log.d("VP", "AlarmReceiver.ShowNotification");
 
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context);

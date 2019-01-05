@@ -2,12 +2,11 @@ package com.vpe_soft.intime.intime;
 
 import android.app.AlarmManager;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.database.Cursor;
+import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -23,11 +22,7 @@ import java.util.*;
 
 public class MainActivity extends AppCompatActivity implements TaskFragment.OnFragmentInteractionListener {
     private MyBroadcastReceiver _receiver;
-    private PendingIntent _alarmIntent;
-    private Toolbar toolbar;
-	private Timer timer = new Timer();
-	private TimerTask timertask;
-	private long nextAlarm;
+    private Timer timer = new Timer();
     public static boolean _isOnScreen;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,7 +31,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         setContentView(R.layout.activity_main);
         ListView listView = (ListView) findViewById(android.R.id.list);
         registerForContextMenu(listView);
-        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         IntentFilter filter = new IntentFilter(Util.TASK_OVERDUE_ACTION);
         registerReceiver(getReceiver(), filter);
@@ -47,11 +42,15 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         Log.d("VP", "onPause MainActivity");
         super.onPause();
         _isOnScreen = false;
+        SharedPreferences sharedPreferences = getSharedPreferences("SessionInfo", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putLong("LastUsageTimestamp", System.currentTimeMillis());
+        editor.apply();
     }
 
     @Override
     protected void onResume() {
-        Log.d("VP", "onResume MainActivity");
+        Log.d("VP", "MainActivity.onResume");
         super.onResume();
         _isOnScreen = true;
         refreshListView();
@@ -135,53 +134,35 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         }
         createAlarm();
     }
+
     private void createAlarm(){
+        Log.d("VP", "MainActivity.createAlarm");
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(Util.NOTIFICATION_TAG, 1);
 
-        AlarmManager mgr = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-        Log.d("VP", "mgr setup");
-        if (_alarmIntent != null) {
-            Log.d("VP", "true");
-            mgr.cancel(_alarmIntent);
-            _alarmIntent = null;
-        }
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        final Context context = getApplicationContext();
+        alarmManager.cancel(Util.createPendingIntent(context, null));
 
-        InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
-        final SQLiteDatabase database = openHelper.getReadableDatabase();
-        final long currentTimestamp = System.currentTimeMillis();
-        final Cursor next_alarm = database.query(Util.TASK_TABLE, new String[]{"id", "next_alarm", "description"}, "next_alarm>" + currentTimestamp, null, null, null, "next_alarm", "1");
-        if (next_alarm.moveToNext()) {
-            Log.d("VP", "Moved to next");
-            nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm"));
-            final Context context = getApplicationContext();
-            final Intent intent = new Intent(context, AlarmReceiver.class);
-            intent.putExtra("task_description", next_alarm.getString(next_alarm.getColumnIndexOrThrow("description")));
-            PendingIntent alarmIntent = PendingIntent.getBroadcast(context, 199709, intent, 0);
-            mgr.set(AlarmManager.RTC_WAKEUP, nextAlarm, alarmIntent);
-            Log.d("VP", "MainActivity.onResume - create alarm");
-            _alarmIntent = alarmIntent;
-        }
-
-        database.close();
-        openHelper.close();
+        Util.setupAlarm(alarmManager, context);
     }
-	private void createTimer(final long timeInterval){
+
+    private void createTimer(final long timeInterval){
 		Log.d("VP","create timer");
-		timertask = new TimerTask() {
-			@Override
-			public void run() {
-				runOnUiThread(new Runnable() {
-						@Override
-						public void run() {
-							notifyTaskOverdue();
-						}
-					});
-			}
-		};
-//		timer.schedule(timertask,seconds * 1000);
+        TimerTask timertask = new TimerTask() {
+            @Override
+            public void run() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        notifyTaskOverdue();
+                    }
+                });
+            }
+        };
 		timer.schedule(timertask, timeInterval);
 	}
+
     private void refreshListView() {
         Log.d("VP", "MainActivity.refreshListView");
         TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
@@ -201,6 +182,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         } catch (Exception ex) {
             Log.e("VP", "cannot delete", ex);
         }
+
         createAlarm();
     }
 

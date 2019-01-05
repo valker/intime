@@ -34,6 +34,11 @@ import java.util.TimeZone;
  * interface.
  */
 public class TaskFragment extends Fragment implements AbsListView.OnItemClickListener {
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        tasksCursor.close();
+    }
 
     private OnFragmentInteractionListener mListener;
     /**
@@ -61,22 +66,23 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
         super.onCreate(savedInstanceState);
 
         InTimeOpenHelper openHelper = new InTimeOpenHelper(getActivity());
-        final SQLiteDatabase database = openHelper.getReadableDatabase();
-        final String selection = null;
-        final String[] selectionArgs = null;
-        final String groupBy = null;
-        final String having = null;
-        tasksCursor = database.query(
-                Util.TASK_TABLE,
-                new String[]{
-                        "description",
-                        "id AS _id",
-                        "next_alarm",
-                        "next_caution"},
-                selection, selectionArgs,
-                groupBy,
-                having,
-                "next_alarm");
+        try (SQLiteDatabase database = openHelper.getReadableDatabase()) {
+            final String selection = null;
+            final String[] selectionArgs = null;
+            final String groupBy = null;
+            final String having = null;
+            tasksCursor = database.query(
+                    Util.TASK_TABLE,
+                    new String[]{
+                            "description",
+                            "id AS _id",
+                            "next_alarm",
+                            "next_caution"},
+                    selection, selectionArgs,
+                    groupBy,
+                    having,
+                    "next_alarm");
+        }
         mAdapter = new CursorAdapter(getActivity(), tasksCursor) {
             @Override
             public View newView(Context context, Cursor cursor, ViewGroup parent) {
