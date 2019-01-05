@@ -34,7 +34,7 @@ public class Util {
         calendar.add(field, amount);
         date = calendar.getTime();
         final long time = date.getTime();
-        final long value = time / 1000L;
+        final long value = time;
         return value;
     }
 

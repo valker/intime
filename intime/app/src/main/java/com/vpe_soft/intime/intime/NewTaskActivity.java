@@ -20,54 +20,113 @@ import android.widget.Spinner;
 
 import java.util.Objects;
 import android.widget.*;
-import android.view.*;
-import android.graphics.*;
+
+abstract class TaskViewModel {
+    final NewTaskActivity _parent;
+
+    TaskViewModel(NewTaskActivity parent) {
+        _parent = parent;
+    }
+
+    void OnClick() {
+        NumberPicker np = _parent.findViewById(R.id.numberPicker);
+        int amount = np.getValue();
+        Spinner spinner = _parent.findViewById(R.id.spinner);
+        String value = spinner.getSelectedItem().toString();
+        String[] spinnerItems = _parent.getResources().getStringArray(R.array.spinnerItems);
+        int interval = -1;
+        for(int i = 0; i < spinnerItems.length; ++i) {
+            if(Objects.equals(value, spinnerItems[i])) {
+                interval = i;
+                break;
+            }
+        }
+
+        EditText editText = _parent.findViewById(R.id.description);
+        String description = editText.getText().toString();
+        if(description.equals("")){
+            Toast.makeText(_parent.getApplicationContext(),R.string.newtask_hint,Toast.LENGTH_SHORT).show();
+        }else{
+            OnHandleTask(description, interval, amount, System.currentTimeMillis());
+            NavUtils.navigateUpFromSameTask(_parent);
+        }
+    }
+
+    protected abstract void OnHandleTask(String description, int interval, int amount, long currentTimeMillis);
+}
+
+class CreateTaskViewModel extends TaskViewModel {
+    CreateTaskViewModel(NewTaskActivity parent) {
+        super(parent);
+    }
+
+    @Override
+    protected void OnHandleTask(String description, int interval, int amount, long currentTimeMillis) {
+        _parent.createNewTask(description, interval, amount, currentTimeMillis);
+    }
+}
+class UpdateTaskViewModel extends TaskViewModel {
+    UpdateTaskViewModel(NewTaskActivity parent) {
+        super(parent);
+    }
+
+    @Override
+    protected void OnHandleTask(String description, int interval, int amount, long currentTimeMillis) {
+        _parent.updateTask(description, interval, amount, currentTimeMillis);
+    }
+}
 
 public class NewTaskActivity extends AppCompatActivity implements NewTaskFragment.OnFragmentInteractionListener {
-    private Toolbar toolbar;
     private long _id;
+    private TaskInfo _taskInfo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_new_task);
-        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         Intent intent = getIntent();
         String action = intent.getExtras().getString("action");
-        if(action.equals("create")) {
-            NumberPicker np = (NumberPicker) findViewById(R.id.numberPicker);
-            np.setMaxValue(10);
-            np.setMinValue(1);
-            np.setValue(3);
-            final Button createTaskButton = (Button) findViewById(R.id.button_create_task);
-            final Button updateTaskButton = (Button) findViewById(R.id.button_update_task);
-            createTaskButton.setVisibility(View.VISIBLE);
-            updateTaskButton.setVisibility(View.INVISIBLE);
- 
-        } else if(action.equals("edit")) {
-            long id = intent.getExtras().getLong("id");
-            _id = id;
-            InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
-            SQLiteDatabase database = openHelper.getReadableDatabase();
-            final TaskInfo taskInfo = Util.findTaskById(database, id);
-            EditText description = (EditText) findViewById(R.id.description);
-            description.setText(taskInfo.getDescription());
-            final Spinner spinner = (Spinner) findViewById(R.id.spinner);
-            spinner.setSelection(taskInfo.getInterval());
+        switch (action) {
+            case "create": {
+                NumberPicker np = findViewById(R.id.numberPicker);
+                np.setMaxValue(10);
+                np.setMinValue(1);
+                np.setValue(3);
+                final Button createTaskButton = findViewById(R.id.button_create_task);
+                final Button updateTaskButton = findViewById(R.id.button_update_task);
+                createTaskButton.setVisibility(View.VISIBLE);
+                updateTaskButton.setVisibility(View.INVISIBLE);
 
-            final NumberPicker numberPicker = (NumberPicker) findViewById(R.id.numberPicker);
-			//TODO:add sounds for views using playSoundEffect
-			//numberPicker.playSoundEffect(android.view.SoundEffectConstants.CLICK);
-            numberPicker.setMaxValue(10);
-            numberPicker.setMinValue(1);
-            numberPicker.setValue(taskInfo.getAmount());
-            final Button createTaskButton = (Button) findViewById(R.id.button_create_task);
-            final Button updateTaskButton = (Button) findViewById(R.id.button_update_task);
-            createTaskButton.setVisibility(View.INVISIBLE);
-            updateTaskButton.setVisibility(View.VISIBLE);
-        } else {
-            Log.e("VP", "unknown action:" + action);
+                break;
+            }
+            case "edit": {
+                long id = intent.getExtras().getLong("id");
+                _id = id;
+                InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
+                SQLiteDatabase database = openHelper.getReadableDatabase();
+                _taskInfo = Util.findTaskById(database, id);
+                EditText description = findViewById(R.id.description);
+                description.setText(_taskInfo.getDescription());
+                final Spinner spinner = findViewById(R.id.spinner);
+                spinner.setSelection(_taskInfo.getInterval());
+
+                final NumberPicker numberPicker = findViewById(R.id.numberPicker);
+                //TODO:add sounds for views using playSoundEffect
+                //numberPicker.playSoundEffect(android.view.SoundEffectConstants.CLICK);
+                numberPicker.setMaxValue(10);
+                numberPicker.setMinValue(1);
+                numberPicker.setValue(_taskInfo.getAmount());
+                final Button createTaskButton = findViewById(R.id.button_create_task);
+                final Button updateTaskButton = findViewById(R.id.button_update_task);
+                createTaskButton.setVisibility(View.INVISIBLE);
+                updateTaskButton.setVisibility(View.VISIBLE);
+                break;
+            }
+            default:
+                Log.e("VP", "unknown action:" + action);
+                break;
         }
     }
 
@@ -99,32 +158,11 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
     }
 
     public void OnButtonCreateTaskClicked(View view) {
-        Log.d("VP", "button create task clicked");
-        NumberPicker np = (NumberPicker) findViewById(R.id.numberPicker);
-        int amount = np.getValue();
-        Spinner spinner = (Spinner) findViewById(R.id.spinner);
-        String value = spinner.getSelectedItem().toString();
-        String[] spinnerItems = getResources().getStringArray(R.array.spinnerItems);
-        int interval = -1;
-        for(int i = 0; i < spinnerItems.length; ++i) {
-            if(Objects.equals(value, spinnerItems[i])) {
-                interval = i;
-                break;
-            }
-        }
-
-        EditText editText = (EditText) findViewById(R.id.description);
-        String description = editText.getText().toString();
-        long currentTimeMillis = System.currentTimeMillis();
-		Log.d("VP",description);
-		if(description.equals("")){
-			Toast.makeText(getApplicationContext(),R.string.newtask_hint,Toast.LENGTH_SHORT).show();
-		}else{
-        createNewTask(description, interval, amount, currentTimeMillis);
-        NavUtils.navigateUpFromSameTask(this);}
+        Log.d("VP", "NewTaskActivity.OnButtonCreateTaskClicked");
+        new CreateTaskViewModel(this).OnClick();
     }
 
-    private void createNewTask(String description, int interval, int amount, long currentTimeMillis) {
+    void createNewTask(String description, int interval, int amount, long currentTimeMillis) {
         Log.d("VP", "createNewTask");
 
         final long nextAlarm = Util.getNextAlarm(interval, amount, currentTimeMillis, getResources().getConfiguration().locale);
@@ -166,42 +204,32 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
 
 
     public void OnButtonUpdateTaskClicked(View view) {
-        Log.d("VP", "button update task clicked");
-        NumberPicker np = (NumberPicker) findViewById(R.id.numberPicker);
-        int amount = np.getValue();
-        Spinner spinner = (Spinner) findViewById(R.id.spinner);
-        String value = spinner.getSelectedItem().toString();
-        String[] spinnerItems = getResources().getStringArray(R.array.spinnerItems);
-        int interval = -1;
-        for(int i = 0; i < spinnerItems.length; ++i) {
-            if(Objects.equals(value, spinnerItems[i])) {
-                interval = i;
-                break;
-            }
-        }
-
-        EditText editText = (EditText) findViewById(R.id.description);
-        String description = editText.getText().toString();
-        updateTask(_id, description, interval, amount);
-        NavUtils.navigateUpFromSameTask(this);
+        Log.d("VP", "NewTaskActivity.OnButtonUpdateTaskClicked");
+        new UpdateTaskViewModel(this).OnClick();
     }
 
-    private void updateTask(long id, String description, int interval, int amount) {
+    void updateTask(String description, int interval, int amount, long currentTimeMillis) {
         Log.d("VP", "updateTask");
 
-        ContentValues contentValues = getContentValuesForNewTask(
-                description,
-                interval,
-                amount);
+        final long nextAlarm = Util.getNextAlarm(interval, amount, currentTimeMillis, getResources().getConfiguration().locale);
+
+        ContentValues contentValues;
+        contentValues = WasIntervalOrAmountChanged(interval, amount)
+                ? getContentValuesForNewTask(description, interval, amount, nextAlarm)
+                : getContentValuesForNewTask(description, interval, amount);
 
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
         try {
             try (SQLiteDatabase db = openHelper.getWritableDatabase()){
-                db.update(Util.TASK_TABLE, contentValues, "id=" + id, null);
+                db.update(Util.TASK_TABLE, contentValues, "id=" + _id, null);
             }
         } finally {
             openHelper.close();
         }
 
+    }
+
+    private boolean WasIntervalOrAmountChanged(int interval, int amount) {
+        return _taskInfo.getInterval() != interval || _taskInfo.getAmount() != amount;
     }
 }

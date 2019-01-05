@@ -19,8 +19,6 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.support.v7.widget.Toolbar;
-import android.view.*;
-import android.graphics.*;
 import java.util.*;
 
 public class MainActivity extends AppCompatActivity implements TaskFragment.OnFragmentInteractionListener {
@@ -49,9 +47,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         Log.d("VP", "onPause MainActivity");
         super.onPause();
         _isOnScreen = false;
-        MyBroadcastReceiver receiver = getReceiver();
         refreshListView();
-        createAlarm();
     }
 
     @Override
@@ -59,17 +55,14 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         Log.d("VP", "onResume MainActivity");
         super.onResume();
         _isOnScreen = true;
-        MyBroadcastReceiver receiver = getReceiver();
         refreshListView();
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.cancel(Util.NOTIFICATION_TAG, 1);
+        createAlarm();
     }
 
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v,
                                     ContextMenu.ContextMenuInfo menuInfo) {
         if (v.getId() == android.R.id.list) {
-            AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
             String[] menuItems = new String[]{
                     getString(R.string.context_menu_acknowledge),
                     getString(R.string.context_menu_edit),
@@ -127,11 +120,10 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
                     currentTimeMillis,
                     getResources().getConfiguration().locale);
 
-            final long currentTimeSeconds = currentTimeMillis / 1000;
-            final long cautionPeriod = (long) ((nextAlarmMoment - currentTimeSeconds) * 0.95);
+            final long cautionPeriod = (long) ((nextAlarmMoment - currentTimeMillis) * 0.95);
             // todo: uncomment when yellowing algorithm will work OK
 //            createTimer(cautionPeriod);
-            final long nextCautionMoment = currentTimeSeconds + cautionPeriod;
+            final long nextCautionMoment = currentTimeMillis + cautionPeriod;
             ContentValues values = new ContentValues();
             values.put("next_alarm", nextAlarmMoment);
             values.put("next_caution", nextCautionMoment);
@@ -153,15 +145,16 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         if (_alarmIntent != null) {
             Log.d("VP", "true");
             mgr.cancel(_alarmIntent);
+            _alarmIntent = null;
         }
 
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
         final SQLiteDatabase database = openHelper.getReadableDatabase();
-        final long currentTimestamp = System.currentTimeMillis() / 1000L;
+        final long currentTimestamp = System.currentTimeMillis();
         final Cursor next_alarm = database.query(Util.TASK_TABLE, new String[]{"id", "next_alarm", "description"}, "next_alarm>" + currentTimestamp, null, null, null, "next_alarm", "1");
         if (next_alarm.moveToNext()) {
             Log.d("VP", "Moved to next");
-            nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm")) * 1000L;
+            nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm"));
             final Context context = getApplicationContext();
             final Intent intent = new Intent(context, AlarmReceiver.class);
             intent.putExtra("task_description", next_alarm.getString(next_alarm.getColumnIndexOrThrow("description")));
@@ -174,7 +167,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         database.close();
         openHelper.close();
     }
-	private void createTimer(final long seconds){
+	private void createTimer(final long timeInterval){
 		Log.d("VP","create timer");
 		timertask = new TimerTask() {
 			@Override
@@ -187,7 +180,8 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
 					});
 			}
 		};
-		timer.schedule(timertask,seconds * 1000);
+//		timer.schedule(timertask,seconds * 1000);
+		timer.schedule(timertask, timeInterval);
 	}
     private void refreshListView() {
         Log.d("VP", "MainActivity.refreshListView");
@@ -208,6 +202,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         } catch (Exception ex) {
             Log.e("VP", "cannot delete", ex);
         }
+        createAlarm();
     }
 
     @Override
@@ -225,10 +220,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-       /* if (id == R.id.action_settings) {
-            return true;
-        } else */if (id == R.id.action_newtask) {
+        if (id == R.id.action_newtask) {
             Log.d("VP", "new task pressed");
             Intent intent = new Intent(this, NewTaskActivity.class);
             intent.putExtra("action", "create");

@@ -87,8 +87,8 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
             public void bindView(View view, Context context, Cursor cursor) {
                 // Extract properties from cursor
                 String description = cursor.getString(cursor.getColumnIndexOrThrow("description"));
-                long next_alarm = cursor.getLong(cursor.getColumnIndexOrThrow("next_alarm")) * 1000L;
-                long next_caution = cursor.getLong(cursor.getColumnIndexOrThrow("next_caution")) * 1000L;
+                long next_alarm = cursor.getLong(cursor.getColumnIndexOrThrow("next_alarm"));
+                long next_caution = cursor.getLong(cursor.getColumnIndexOrThrow("next_caution"));
 
                 // get current system properties (locale & timestamp)
                 final Locale locale = getResources().getConfiguration().locale;

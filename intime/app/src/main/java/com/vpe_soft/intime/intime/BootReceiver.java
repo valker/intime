@@ -14,6 +14,9 @@ public class BootReceiver extends BroadcastReceiver {
         if (intent.getAction().equals("android.intent.action.BOOT_COMPLETED")) {
             // Set the alarm here.
             Log.d("VP", "onReceive: BOOT_COMPLETED");
+            //1. get list of tasks that have next alarm between last-run and current time
+            //2. if this list is not empty, generate notification
+            //3. create alarm (if required for future task)
         }
     }
 }

@@ -22,11 +22,10 @@ public class AlarmReceiver extends BroadcastReceiver {
         try {
             s = intent.getStringExtra("task_description");
         } catch( Exception e) {
-            Log.d("VP", "exception1!!!");
             Log.d("VP", e.getLocalizedMessage());
         }
 
-        s = s == null?"unknown" : s;
+        s = s == null ? "unknown" : s;
 
         Intent broadcastIntent = new Intent(Util.TASK_OVERDUE_ACTION);
         broadcastIntent.putExtra("task_description", s);
