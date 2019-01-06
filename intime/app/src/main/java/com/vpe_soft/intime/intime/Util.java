@@ -18,7 +18,7 @@ import java.util.Locale;
  */
 public class Util {
 
-    private static final String TAG = "VP: Util.";
+    private static final String TAG = "Util";
 
     public final static String TASK_TABLE = "main.tasks";
     public static final String TASK_OVERDUE_ACTION = "com.vpe_soft.intime.intime.TaskOverdue";
@@ -50,12 +50,15 @@ public class Util {
         Log.d(TAG, "findTaskById");
         try (Cursor query = database.query(TASK_TABLE, new String[]{"description", "interval", "amount", "next_alarm"}, "id=" + id, null, null, null, null, "1")) {
             if (query.moveToNext()) {
+                Log.d(TAG, "findTaskById: task was found");
                 String description = query.getString(query.getColumnIndexOrThrow("description"));
                 int interval = query.getInt(query.getColumnIndexOrThrow("interval"));
                 int amount = query.getInt(query.getColumnIndexOrThrow("amount"));
                 long nextAlarm = query.getLong(query.getColumnIndexOrThrow("next_alarm"));
                 TaskInfo taskInfo = new TaskInfo(description, interval, amount, nextAlarm);
                 return taskInfo;
+            } else {
+                Log.d(TAG, "findTaskById: task not found");
             }
         }
 
@@ -70,6 +73,7 @@ public class Util {
             final long currentTimestamp = System.currentTimeMillis();
             try (Cursor next_alarm = database.query(TASK_TABLE, new String[]{"id", "next_alarm", "description"}, "next_alarm>" + currentTimestamp, null, null, null, "next_alarm", "1")) {
                 if (next_alarm.moveToNext()) {
+                    Log.d(TAG, "setupAlarmIfRequired: task was found. going to setup alarm");
                     long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm"));
                     alarmManager.set(
                             AlarmManager.RTC_WAKEUP,

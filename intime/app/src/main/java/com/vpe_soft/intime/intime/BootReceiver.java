@@ -16,10 +16,13 @@ import android.util.Log;
  * Created by Valentin on 26.08.2015.
  */
 public class BootReceiver extends BroadcastReceiver {
+    private static final String TAG = "BootReceiver";
+
     @Override
     public void onReceive(Context context, Intent intent) {
+        Log.d(TAG, "onReceive");
         if (intent.getAction().equals("android.intent.action.BOOT_COMPLETED")) {
-            Log.d("VP", "onReceive: BOOT_COMPLETED");
+            Log.d(TAG, "onReceive: BOOT_COMPLETED event received");
             //1. get list of tasks that have next alarm between last-run and current time
             // 1.1 get last usage timestamp
             SharedPreferences sharedPreferences = context.getSharedPreferences("SessionInfo", Context.MODE_PRIVATE);
@@ -35,6 +38,7 @@ public class BootReceiver extends BroadcastReceiver {
 
                 //2. if this list is not empty, generate notification
                 if(tasksCount > 0) {
+                    Log.d(TAG, "onReceive: overdue tasks were found");
                     // number of tasks were overdue during phone was off
                     // we will raise a notification
                     NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -47,6 +51,8 @@ public class BootReceiver extends BroadcastReceiver {
                     builder.setContentIntent(mainActivityIntent);
                     Notification notification = builder.build();
                     notificationManager.notify(Util.NOTIFICATION_TAG, 1, notification);
+                } else {
+                    Log.d(TAG, "onReceive: not found overdue tasks");
                 }
             }
 

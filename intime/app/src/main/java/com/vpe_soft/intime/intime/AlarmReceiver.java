@@ -15,14 +15,16 @@ import android.util.Log;
  */
 public class AlarmReceiver extends BroadcastReceiver {
 
+    private static final String TAG = "AlarmReceiver";
+
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.d("VP", "AlarmReceiver.onReceive");
+        Log.d(TAG, "onReceive");
         String s = null;
         try {
             s = intent.getStringExtra("task_description");
         } catch( Exception e) {
-            Log.d("VP", e.getLocalizedMessage());
+            Log.e(TAG, "onReceive: unexpected error", e);
         }
 
         s = s == null ? "unknown" : s;
@@ -32,15 +34,15 @@ public class AlarmReceiver extends BroadcastReceiver {
         context.sendOrderedBroadcast(broadcastIntent, null);
 
         if(!MainActivity._isOnScreen) {
-            Log.d("VP", "show notification");
-            ShowNotification(context, s);
+            Log.d(TAG, "onReceive: will show notification");
+            showNotification(context, s);
         } else {
-            Log.d("VP", "don't show notification");
+            Log.d(TAG, "onReceive: won't show notification");
         }
     }
 
-    public static void ShowNotification(Context context, String s) {
-        Log.d("VP", "AlarmReceiver.ShowNotification");
+    public static void showNotification(Context context, String s) {
+        Log.d(TAG, "showNotification");
 
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context);

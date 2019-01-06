@@ -27,4 +27,8 @@ public class TaskInfo {
     public String getDescription() {
         return _description;
     }
+
+    public long getNextAlarm() {
+        return _nextAlarm;
+    }
 }

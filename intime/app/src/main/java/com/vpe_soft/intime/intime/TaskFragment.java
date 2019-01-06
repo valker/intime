@@ -34,8 +34,12 @@ import java.util.TimeZone;
  * interface.
  */
 public class TaskFragment extends Fragment implements AbsListView.OnItemClickListener {
+
+    private static final String TAG = "TaskFragment";
+
     @Override
     public void onDestroy() {
+        Log.d(TAG, "onDestroy");
         super.onDestroy();
         tasksCursor.close();
     }
@@ -63,6 +67,7 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
 
         InTimeOpenHelper openHelper = new InTimeOpenHelper(getActivity());
@@ -112,6 +117,7 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
     }
 
     private static void populateItemViewFields(View view, String description, String nextAlarm,int type) {
+        Log.d(TAG, "populateItemViewFields");
         // Find fields to populate in inflated template
         TextView tvBody = (TextView) view.findViewById(R.id.tvBody);
         TextView tvPriority = (TextView) view.findViewById(R.id.tvPriority);
@@ -134,6 +140,7 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        Log.d(TAG, "onCreateView");
         View view = inflater.inflate(R.layout.fragment_task, container, false);
 
         // Set the adapter
@@ -173,7 +180,7 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
     }
 
     public void refreshListView(){
-        Log.d("VP","TaskFragment.refreshListView");
+        Log.d(TAG, "refreshListView");
         tasksCursor.requery();
         mListView.refreshDrawableState();
     }

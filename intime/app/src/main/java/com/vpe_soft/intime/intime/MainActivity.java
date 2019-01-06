@@ -1,6 +1,5 @@
 package com.vpe_soft.intime.intime;
 
-import android.app.AlarmManager;
 import android.app.NotificationManager;
 import android.content.ContentValues;
 import android.content.Context;
@@ -21,25 +20,40 @@ import android.support.v7.widget.Toolbar;
 import java.util.*;
 
 public class MainActivity extends AppCompatActivity implements TaskFragment.OnFragmentInteractionListener {
+
+    private static final String TAG = "MainActivity";
+
     private MyBroadcastReceiver _receiver;
     private Timer timer = new Timer();
     public static boolean _isOnScreen;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.d("VP", "onCreate MainActivity");
+        Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ListView listView = (ListView) findViewById(android.R.id.list);
         registerForContextMenu(listView);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
         IntentFilter filter = new IntentFilter(Util.TASK_OVERDUE_ACTION);
         registerReceiver(getReceiver(), filter);
     }
 
     @Override
+    protected void onStop() {
+        unregisterReceiver(getReceiver());
+        super.onStop();
+    }
+
+    @Override
     protected void onPause() {
-        Log.d("VP", "onPause MainActivity");
+        Log.d(TAG, "onPause");
         super.onPause();
         _isOnScreen = false;
         SharedPreferences sharedPreferences = getSharedPreferences("SessionInfo", Context.MODE_PRIVATE);
@@ -50,7 +64,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
 
     @Override
     protected void onResume() {
-        Log.d("VP", "MainActivity.onResume");
+        Log.d(TAG, "onResume");
         super.onResume();
         _isOnScreen = true;
         refreshListView();
@@ -97,18 +111,21 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     }
 
     private void editTask(long id) {
+        Log.d(TAG, "editTask");
         Intent intent = new Intent(this, NewTaskActivity.class);
         intent.putExtra("action", "edit");
         intent.putExtra("id", id);
         startActivity(intent);
     }
+
     private void acknowledgeTask(long id) {
+        Log.d(TAG, "acknowledgeTask");
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
         final long currentTimeMillis = System.currentTimeMillis();
         try (SQLiteDatabase database = openHelper.getWritableDatabase()){
             TaskInfo taskInfo = Util.findTaskById(database, id);
             if (taskInfo == null) {
-                Log.d("VP", "cannot find task with id=" + id);
+                Log.w("VP", "cannot find task with id=" + id);
                 return;
             }
 
@@ -128,7 +145,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
             String whereClause = "id=" + id;
             final int result = database.update(Util.TASK_TABLE, values, whereClause, null);
             if (result != 1) {
-                Log.d("VP", "Cannot update task with id=" + id);
+                Log.w(TAG, "acknowledgeTask: Cannot update task with id=" + id);
                 throw new RuntimeException("cannot update task with id=" + id);
             }
         }
@@ -136,14 +153,14 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     }
 
     private void createAlarm(){
-        Log.d("VP", "MainActivity.createAlarm");
+        Log.d(TAG, "createAlarm");
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(Util.NOTIFICATION_TAG, 1);
         Util.setupAlarmIfRequired(this);
     }
 
     private void createTimer(final long timeInterval){
-		Log.d("VP","create timer");
+        Log.d(TAG, "createTimer");
         TimerTask timertask = new TimerTask() {
             @Override
             public void run() {
@@ -159,13 +176,13 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
 	}
 
     private void refreshListView() {
-        Log.d("VP", "MainActivity.refreshListView");
+        Log.d(TAG, "refreshListView");
         TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
         fragment.refreshListView();
     }
 
     private void deleteTask(long id) {
-        Log.d("VP", "MainActivity.deleteTask");
+        Log.d(TAG, "deleteTask");
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
         try {
 			SQLiteDatabase database = openHelper.getWritableDatabase();
@@ -175,7 +192,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
                 throw new RuntimeException("wrong removing of the task");
             }
         } catch (Exception ex) {
-            Log.e("VP", "cannot delete", ex);
+            Log.e(TAG, "deleteTask: cannot delete task", ex);
         }
 
         createAlarm();
@@ -183,7 +200,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        Log.d("VP", "MainActivity.onCreateOptionsMenu");
+        Log.d(TAG, "onCreateOptionsMenu");
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
@@ -191,13 +208,14 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        Log.d(TAG, "onOptionsItemSelected");
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
         if (id == R.id.action_newtask) {
-            Log.d("VP", "new task pressed");
+            Log.d(TAG, "onOptionsItemSelected: 'new task' pressed");
             Intent intent = new Intent(this, NewTaskActivity.class);
             intent.putExtra("action", "create");
             startActivity(intent);
@@ -220,18 +238,21 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     }
 
     public void notifyTaskOverdue() {
-        Log.d("VP", "MainActivity.notifyTaskOverdue");
+        Log.d(TAG, "notifyTaskOverdue");
         TaskFragment fragment = (TaskFragment) getFragmentManager().findFragmentById(R.id.fragment);
         fragment.refreshListView();
     }
 
     class MyBroadcastReceiver extends android.content.BroadcastReceiver {
+
+        private static final String TAG = "MyBroadcastReceiver";
+
         public MyBroadcastReceiver() {
         }
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.d("VP", "MyBroadcastReceiver.onReceive");
+            Log.d(TAG, "onReceive");
             if (_isOnScreen) {
                 notifyTaskOverdue();
             }

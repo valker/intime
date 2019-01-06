@@ -77,12 +77,16 @@ class UpdateTaskViewModel extends TaskViewModel {
 }
 
 public class NewTaskActivity extends AppCompatActivity implements NewTaskFragment.OnFragmentInteractionListener {
+
+    private static final String TAG = "NewTaskActivity";
+
     private long _id;
     private TaskInfo _taskInfo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_new_task);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -126,7 +130,7 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
                 break;
             }
             default:
-                Log.e("VP", "unknown action:" + action);
+                Log.e(TAG, "onCreate: unknown action: " + action);
                 break;
         }
     }
@@ -159,12 +163,12 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
     }
 
     public void OnButtonCreateTaskClicked(View view) {
-        Log.d("VP", "NewTaskActivity.OnButtonCreateTaskClicked");
+        Log.d(TAG, "OnButtonCreateTaskClicked");
         new CreateTaskViewModel(this).OnClick();
     }
 
     void createNewTask(String description, int interval, int amount, long currentTimeMillis) {
-        Log.d("VP", "createNewTask");
+        Log.d(TAG, "createNewTask");
 
         final long nextAlarm = Util.getNextAlarm(interval, amount, currentTimeMillis, getResources().getConfiguration().locale);
 
@@ -186,6 +190,7 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
 
     @NonNull
     private ContentValues getContentValuesForNewTask(String description, int interval, int amount, long nextAlarm) {
+        Log.d(TAG, "getContentValuesForNewTask(long)");
         ContentValues contentValues = new ContentValues();
         contentValues.put("description", description);
         contentValues.put("interval", interval);
@@ -196,6 +201,7 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
 
     @NonNull
     private ContentValues getContentValuesForNewTask(String description, int interval, int amount) {
+        Log.d(TAG, "getContentValuesForNewTask(short)");
         ContentValues contentValues = new ContentValues();
         contentValues.put("description", description);
         contentValues.put("interval", interval);
@@ -205,12 +211,12 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
 
 
     public void OnButtonUpdateTaskClicked(View view) {
-        Log.d("VP", "NewTaskActivity.OnButtonUpdateTaskClicked");
+        Log.d(TAG, "OnButtonUpdateTaskClicked");
         new UpdateTaskViewModel(this).OnClick();
     }
 
     void updateTask(String description, int interval, int amount, long currentTimeMillis) {
-        Log.d("VP", "updateTask");
+        Log.d(TAG, "updateTask");
 
         final long nextAlarm = Util.getNextAlarm(interval, amount, currentTimeMillis, getResources().getConfiguration().locale);
 
