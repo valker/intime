@@ -1,6 +1,5 @@
 package com.vpe_soft.intime.intime;
 
-import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -20,7 +19,6 @@ public class BootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         if (intent.getAction().equals("android.intent.action.BOOT_COMPLETED")) {
-            // Set the alarm here.
             Log.d("VP", "onReceive: BOOT_COMPLETED");
             //1. get list of tasks that have next alarm between last-run and current time
             // 1.1 get last usage timestamp
@@ -53,8 +51,7 @@ public class BootReceiver extends BroadcastReceiver {
             }
 
             //3. create alarm (if required for future task)
-            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            Util.setupAlarm(alarmManager, context);
+            Util.setupAlarmIfRequired(context);
         }
     }
 }

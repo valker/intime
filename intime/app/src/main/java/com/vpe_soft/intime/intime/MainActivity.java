@@ -139,12 +139,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         Log.d("VP", "MainActivity.createAlarm");
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(Util.NOTIFICATION_TAG, 1);
-
-        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-        final Context context = getApplicationContext();
-        alarmManager.cancel(Util.createPendingIntent(context, null));
-
-        Util.setupAlarm(alarmManager, context);
+        Util.setupAlarmIfRequired(this);
     }
 
     private void createTimer(final long timeInterval){
