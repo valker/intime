@@ -16,4 +16,5 @@
     <string name="context_menu_delete">Delete</string>
     <string name="button_update_text">Save</string>
     <string name="newtask_hint">Enter task description</string>
+    <string name="boot_completed_overdue_tasks_notification">During device was off a number of tasks were overdue</string>
 </resources>

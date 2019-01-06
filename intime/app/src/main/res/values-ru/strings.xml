@@ -15,4 +15,5 @@
     <string name="context_menu_edit">Редактировать</string>
     <string name="button_update_text">Сохранить</string>
     <string name="newtask_hint">Введите описание задачи</string>
+    <string name="boot_completed_overdue_tasks_notification">Пока устройство было выключено, задачи были просрочены</string>
 </resources>

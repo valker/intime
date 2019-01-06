@@ -44,7 +44,7 @@ public class BootReceiver extends BroadcastReceiver {
                     NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
                     NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
                     builder.setContentTitle(context.getResources().getString(R.string.app_name));
-                    builder.setContentText("During phone was off a number of tasks were overdue.");
+                    builder.setContentText(context.getString(R.string.boot_completed_overdue_tasks_notification));
                     builder.setSmallIcon(R.drawable.notification_icon);
                     Intent mainActIntent = new Intent(context, MainActivity.class);
                     PendingIntent mainActivityIntent = PendingIntent.getActivity(context, 0, mainActIntent, 0);
