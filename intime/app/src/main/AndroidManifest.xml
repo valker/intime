@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.vpe_soft.intime.intime"
-    android:versionCode="2"
     android:installLocation="internalOnly"> <!-- internalOnly location allows receiving boot-completed events -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <application
