@@ -145,6 +145,8 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
 
         // Set the adapter
         mListView = (AbsListView) view.findViewById(android.R.id.list);
+        final View emptyView = view.findViewById(android.R.id.empty);
+        mListView.setEmptyView(emptyView);
         mListView.setAdapter(mAdapter);
 
         // Set OnItemClickListener so we can be notified on item clicks

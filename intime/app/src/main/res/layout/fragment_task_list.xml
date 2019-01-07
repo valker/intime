@@ -4,8 +4,8 @@
     android:layout_height="match_parent" tools:context="com.vpe_soft.intime.intime.TaskFragment"
     >
 
-    <ListView 
-		android:id="@android:id/list" 
+    <ListView
+		android:id="@android:id/list"
 		android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
@@ -13,6 +13,9 @@
         android:id="@android:id/empty"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center" />
+        android:gravity="center"
+        android:text="@string/no_tasks_were_added_yet"
+        android:textSize="24sp"
+        android:visibility="gone" />
 
 </FrameLayout>
