@@ -8,7 +8,7 @@ import android.util.Log;
 /**
  * Created by Valentin on 19.08.2015.
  */
-public class InTimeOpenHelper extends SQLiteOpenHelper {
+class InTimeOpenHelper extends SQLiteOpenHelper {
 
     private static final String TAG = "InTimeOpenHelper";
 

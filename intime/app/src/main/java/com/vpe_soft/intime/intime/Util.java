@@ -16,13 +16,13 @@ import java.util.Locale;
 /**
  * Created by Valentin on 27.08.2015.
  */
-public class Util {
+class Util {
 
     private static final String TAG = "Util";
 
-    public final static String TASK_TABLE = "main.tasks";
-    public static final String TASK_OVERDUE_ACTION = "com.vpe_soft.intime.intime.TaskOverdue";
-    public static final String NOTIFICATION_TAG = "com.vpe_soft.intime.intime.NotificationTag";
+    static final String TASK_TABLE = "main.tasks";
+    static final String TASK_OVERDUE_ACTION = "com.vpe_soft.intime.intime.TaskOverdue";
+    static final String NOTIFICATION_TAG = "com.vpe_soft.intime.intime.NotificationTag";
 
     private static final int[] fields= new int[]{
         Calendar.MINUTE,

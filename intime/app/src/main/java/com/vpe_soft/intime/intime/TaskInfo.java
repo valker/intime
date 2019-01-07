@@ -9,26 +9,26 @@ public class TaskInfo {
     private final int _amount;
     private final long _nextAlarm;
 
-    public TaskInfo(String description, int interval, int amount, long nextAlarm) {
+    TaskInfo(String description, int interval, int amount, long nextAlarm) {
         _description = description;
         _interval = interval;
         _amount = amount;
         _nextAlarm = nextAlarm;
     }
 
-    public int getInterval() {
+    int getInterval() {
         return _interval;
     }
 
-    public int getAmount() {
+    int getAmount() {
         return _amount;
     }
 
-    public String getDescription() {
+    String getDescription() {
         return _description;
     }
 
-    public long getNextAlarm() {
+    long getNextAlarm() {
         return _nextAlarm;
     }
 }

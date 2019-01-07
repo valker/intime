@@ -11,7 +11,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -45,7 +44,7 @@ abstract class TaskViewModel {
         EditText editText = _parent.findViewById(R.id.description);
         String description = editText.getText().toString();
         if(description.equals("")){
-            Toast.makeText(_parent.getApplicationContext(),R.string.newtask_hint,Toast.LENGTH_SHORT).show();
+            Toast.makeText(_parent.getApplicationContext(),R.string.new_task_description_hint,Toast.LENGTH_SHORT).show();
         }else{
             OnHandleTask(description, interval, amount, System.currentTimeMillis());
             NavUtils.navigateUpFromSameTask(_parent);
@@ -140,21 +139,6 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_new_task, menu);
         return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        //int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-       // if (id == R.id.action_settings) {
-           // return true;
-        //}
-
-       return super.onOptionsItemSelected(item);
     }
 
     @Override

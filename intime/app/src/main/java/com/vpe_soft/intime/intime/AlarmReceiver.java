@@ -41,7 +41,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         }
     }
 
-    public static void showNotification(Context context, String s) {
+    private static void showNotification(Context context, String s) {
         Log.d(TAG, "showNotification");
 
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);

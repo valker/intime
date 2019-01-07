@@ -18,7 +18,7 @@
         android:id="@+id/description"
         android:layout_row="0"
         android:layout_column="1"
-        android:hint="@string/newtask_hint"
+        android:hint="@string/new_task_description_hint"
         android:inputType="text"
         android:minHeight="48dp"
         android:textColorHint="#9E9E9E" />
@@ -40,7 +40,7 @@
         android:minHeight="48dp"
         />
     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:text="@string/label_amout_text"
+        android:text="@string/label_amount_text"
         android:layout_column="0"
         android:layout_row="2"
 		android:layout_marginStart="5dp"

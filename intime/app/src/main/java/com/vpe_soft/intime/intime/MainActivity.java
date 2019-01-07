@@ -24,7 +24,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     private static final String TAG = "MainActivity";
 
     private MyBroadcastReceiver _receiver;
-    private Timer timer = new Timer();
+    private final Timer timer = new Timer();
     public static boolean _isOnScreen;
 
     @Override
@@ -214,7 +214,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        if (id == R.id.action_newtask) {
+        if (id == R.id.action_new_task) {
             Log.d(TAG, "onOptionsItemSelected: 'new task' pressed");
             Intent intent = new Intent(this, NewTaskActivity.class);
             intent.putExtra("action", "create");
@@ -229,7 +229,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     public void onFragmentInteraction(String id) {
     }
 
-    public MyBroadcastReceiver getReceiver() {
+    private MyBroadcastReceiver getReceiver() {
         if (_receiver == null) {
             _receiver = new MyBroadcastReceiver();
         }

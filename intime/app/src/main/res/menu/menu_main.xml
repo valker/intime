@@ -7,8 +7,8 @@
         android:orderInCategory="150"
         app:showAsAction="ifRoom"
         android:icon="@drawable/settings"/>-->
-    <item android:id="@+id/action_newtask"
-        android:title="@string/action_newtask"
+    <item android:id="@+id/action_new_task"
+        android:title="@string/action_new_task"
         app:showAsAction="ifRoom"
         android:orderInCategory="100"
         android:icon="@drawable/add_task"/>
