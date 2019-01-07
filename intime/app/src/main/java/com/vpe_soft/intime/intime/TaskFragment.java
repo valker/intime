@@ -198,6 +198,6 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
      */
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
-        public void onFragmentInteraction(String id);
+        void onFragmentInteraction(String id);
     }
 }
