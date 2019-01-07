@@ -41,9 +41,7 @@ public class Util {
         //noinspection ResourceType
         calendar.add(field, amount);
         date = calendar.getTime();
-        final long time = date.getTime();
-        final long value = time;
-        return value;
+        return date.getTime();
     }
 
     public static TaskInfo findTaskById(SQLiteDatabase database, long id) {
@@ -55,8 +53,7 @@ public class Util {
                 int interval = query.getInt(query.getColumnIndexOrThrow("interval"));
                 int amount = query.getInt(query.getColumnIndexOrThrow("amount"));
                 long nextAlarm = query.getLong(query.getColumnIndexOrThrow("next_alarm"));
-                TaskInfo taskInfo = new TaskInfo(description, interval, amount, nextAlarm);
-                return taskInfo;
+                return new TaskInfo(description, interval, amount, nextAlarm);
             } else {
                 Log.d(TAG, "findTaskById: task not found");
             }
