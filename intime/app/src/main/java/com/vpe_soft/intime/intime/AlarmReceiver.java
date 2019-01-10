@@ -49,6 +49,8 @@ public class AlarmReceiver extends BroadcastReceiver {
         builder.setContentTitle(context.getResources().getString(R.string.app_name));
         builder.setContentText(s);
         builder.setSmallIcon(R.drawable.notification_icon);
+        builder.setDefaults(Notification.DEFAULT_ALL);
+
         Intent mainActIntent = new Intent(context, MainActivity.class);
         PendingIntent mainActivityIntent = PendingIntent.getActivity(context, 0, mainActIntent, 0);
         builder.setContentIntent(mainActivityIntent);
