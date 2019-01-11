@@ -11,7 +11,7 @@
         android:padding="5dp"
 		android:layout_marginStart="5dp"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        tools:text="task desription" />
+        tools:text="task description" />
 
     <TextView
         android:id="@+id/tvPriority"
