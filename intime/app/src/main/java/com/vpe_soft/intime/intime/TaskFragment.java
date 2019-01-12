@@ -56,7 +56,7 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
      */
     private ListAdapter mAdapter;
     private Cursor tasksCursor;
-    private static final String SKELETON = "HHmmss ddMMyyyy";
+    private static final String SKELETON = "jjmm ddMMyyyy";
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
