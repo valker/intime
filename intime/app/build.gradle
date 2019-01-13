@@ -6,8 +6,8 @@ android {
         applicationId "com.vpe_soft.intime.intime"
         minSdkVersion 21
         targetSdkVersion 27
-        versionCode 4
-        versionName "1.0.1"
+        versionCode 5
+        versionName "1.0.2"
     }
     buildTypes {
         release {
