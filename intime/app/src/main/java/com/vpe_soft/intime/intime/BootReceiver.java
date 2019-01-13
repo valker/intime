@@ -21,8 +21,12 @@ public class BootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         Log.d(TAG, "onReceive");
-        if (intent.getAction().equals("android.intent.action.BOOT_COMPLETED")) {
-            Log.d(TAG, "onReceive: BOOT_COMPLETED event received");
+        final String intentAction = intent.getAction();
+        if (intentAction.equals(Intent.ACTION_BOOT_COMPLETED)
+                ||
+            intentAction.equals(Intent.ACTION_LOCKED_BOOT_COMPLETED)
+                ) {
+            Log.d(TAG, "onReceive: " + intentAction);
             //1. get list of tasks that have next alarm between last-run and current time
             // 1.1 get last usage timestamp
             SharedPreferences sharedPreferences = context.getSharedPreferences("SessionInfo", Context.MODE_PRIVATE);
