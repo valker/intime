@@ -20,4 +20,5 @@
     <string name="new_task_description_hint">Enter task description</string>
     <string name="boot_completed_overdue_tasks_notification">During device was off a number of tasks were overdue</string>
     <string name="no_tasks_were_added_yet">No tasks were added</string>
+    <string name="edit_task_activity_title">Edit task</string>
 </resources>

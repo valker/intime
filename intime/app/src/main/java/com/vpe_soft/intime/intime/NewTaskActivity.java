@@ -93,6 +93,7 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
         String action = intent.getExtras().getString("action");
         switch (action) {
             case "create": {
+                setTitle(R.string.title_activity_new_task);
                 NumberPicker np = findViewById(R.id.numberPicker);
                 np.setMaxValue(10);
                 np.setMinValue(1);
@@ -105,6 +106,7 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
                 break;
             }
             case "edit": {
+                setTitle(R.string.edit_task_activity_title);
                 long id = intent.getExtras().getLong("id");
                 _id = id;
                 InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
