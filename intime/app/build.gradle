@@ -1,11 +1,11 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 27
+    compileSdkVersion 28
     defaultConfig {
         applicationId "com.vpe_soft.intime.intime"
-        minSdkVersion 21
-        targetSdkVersion 27
+        minSdkVersion 19
+        targetSdkVersion 28
         versionCode 6
         versionName "1.0.3"
     }
@@ -26,7 +26,8 @@ dependencies {
     implementation 'com.android.support:appcompat-v7:27.1.1'
     implementation 'com.android.support:design:27.1.1'
 	implementation fileTree(include: ['*.jar'], dir: 'libs')
-	//for AIDE
+    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
+    //for AIDE
 //    compile 'com.android.support:appcompat-v7:+'
 //    compile 'com.android.support:design:+'
 //    compile fileTree(include: ['*.jar'], dir: 'libs')
