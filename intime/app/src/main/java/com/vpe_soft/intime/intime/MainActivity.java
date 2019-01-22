@@ -119,7 +119,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
     }
 
     private void acknowledgeTask(long id) {
-        Log.d(TAG, "acknowledgeTask");
+        Log.d(TAG, "acknowledgeTask id=" + id);
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
         final long currentTimeMillis = System.currentTimeMillis();
         try (SQLiteDatabase database = openHelper.getWritableDatabase()){
@@ -142,6 +142,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
             ContentValues values = new ContentValues();
             values.put("next_alarm", nextAlarmMoment);
             values.put("next_caution", nextCautionMoment);
+            values.put("last_ack", currentTimeMillis);
             String whereClause = "id=" + id;
             final int result = database.update(Util.TASK_TABLE, values, whereClause, null);
             if (result != 1) {
@@ -149,6 +150,7 @@ public class MainActivity extends AppCompatActivity implements TaskFragment.OnFr
                 throw new RuntimeException("cannot update task with id=" + id);
             }
         }
+
         createAlarm();
     }
 
