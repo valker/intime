@@ -126,13 +126,13 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
         tvPriority.setText(nextAlarm);
 		switch(type){
 			case 0://white
-				view.setBackground(new PaintDrawable(Color.WHITE));
+				view.setBackgroundColor(Color.parseColor("FFFFFF"));
 			break;
 			case 2://red
-				view.setBackground(new PaintDrawable(Color.RED));
+                view.setBackgroundColor(Color.parseColor("F44336"));
 			break;
 			case 1://yellow
-				view.setBackground(new PaintDrawable(Color.YELLOW));
+                view.setBackgroundColor(Color.parseColor("FFEB3B"));
 			break;
 		}
     }
