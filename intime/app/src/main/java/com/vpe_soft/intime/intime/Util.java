@@ -46,14 +46,16 @@ class Util {
 
     public static TaskInfo findTaskById(SQLiteDatabase database, long id) {
         Log.d(TAG, "findTaskById");
-        try (Cursor query = database.query(TASK_TABLE, new String[]{"description", "interval", "amount", "next_alarm"}, "id=" + id, null, null, null, null, "1")) {
+        try (Cursor query = database.query(TASK_TABLE, new String[]{"description", "interval", "amount", "next_alarm", "next_caution", "last_ack"}, "id=" + id, null, null, null, null, "1")) {
             if (query.moveToNext()) {
                 Log.d(TAG, "findTaskById: task was found");
                 String description = query.getString(query.getColumnIndexOrThrow("description"));
                 int interval = query.getInt(query.getColumnIndexOrThrow("interval"));
                 int amount = query.getInt(query.getColumnIndexOrThrow("amount"));
                 long nextAlarm = query.getLong(query.getColumnIndexOrThrow("next_alarm"));
-                return new TaskInfo(description, interval, amount, nextAlarm);
+                long nextCaution = query.getLong(query.getColumnIndexOrThrow("next_caution"));
+                long lastAck = query.getLong(query.getColumnIndexOrThrow("last_ack"));
+                return new TaskInfo(id, description, interval, amount, nextAlarm, nextCaution, lastAck);
             } else {
                 Log.d(TAG, "findTaskById: task not found");
             }
