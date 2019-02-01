@@ -1,1 +1,4 @@
 intime/.idea/
+/intime/app/app.iml
+/intime/app/release/app-release.apk
+/intime/app/release/output.json
