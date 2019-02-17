@@ -157,12 +157,15 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
         Log.d(TAG, "createNewTask");
 
         final long nextAlarm = Util.getNextAlarm(interval, amount, currentTimeMillis, getResources().getConfiguration().locale);
+        final long cautionPeriod = (long) ((nextAlarm - currentTimeMillis) * 0.95);
+        final long nextCaution  = currentTimeMillis + cautionPeriod;
 
         ContentValues contentValues = getContentValuesForNewTask(
                 description,
                 interval,
                 amount,
-                nextAlarm);
+                nextAlarm,
+                nextCaution);
 
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
         try {
@@ -175,13 +178,14 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
     }
 
     @NonNull
-    private ContentValues getContentValuesForNewTask(String description, int interval, int amount, long nextAlarm) {
+    private ContentValues getContentValuesForNewTask(String description, int interval, int amount, long nextAlarm, long nextCaution) {
         Log.d(TAG, "getContentValuesForNewTask(long)");
         ContentValues contentValues = new ContentValues();
         contentValues.put("description", description);
         contentValues.put("interval", interval);
         contentValues.put("amount", amount);
         contentValues.put("next_alarm", nextAlarm);
+        contentValues.put("next_caution", nextCaution);
         return contentValues;
     }
 
@@ -205,10 +209,12 @@ public class NewTaskActivity extends AppCompatActivity implements NewTaskFragmen
         Log.d(TAG, "updateTask");
 
         final long nextAlarm = Util.getNextAlarm(interval, amount, currentTimeMillis, getResources().getConfiguration().locale);
+        final long cautionPeriod = (long) ((nextAlarm - currentTimeMillis) * 0.95);
+        final long nextCaution  = currentTimeMillis + cautionPeriod;
 
         ContentValues contentValues;
         contentValues = WasIntervalOrAmountChanged(interval, amount)
-                ? getContentValuesForNewTask(description, interval, amount, nextAlarm)
+                ? getContentValuesForNewTask(description, interval, amount, nextAlarm, nextCaution)
                 : getContentValuesForNewTask(description, interval, amount);
 
         InTimeOpenHelper openHelper = new InTimeOpenHelper(this);

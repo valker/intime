@@ -100,23 +100,29 @@ public class TaskFragment extends Fragment implements AbsListView.OnItemClickLis
                 long next_alarm = cursor.getLong(cursor.getColumnIndexOrThrow("next_alarm"));
                 long next_caution = cursor.getLong(cursor.getColumnIndexOrThrow("next_caution"));
 
+                final long currentTimeMillis = System.currentTimeMillis();
+                final String nextAlarm = getNextAlarmLocalString(next_alarm);
+                final int type = getType(currentTimeMillis, next_alarm, next_caution);
+                populateItemViewFields(view, description, nextAlarm,type);
+            }
+
+            private String getNextAlarmLocalString(long next_alarm) {
                 // get current system properties (locale & timestamp)
                 final Locale locale = getResources().getConfiguration().locale;
-                final long currentTimeMillis = System.currentTimeMillis();
-
-                Date date = new Date(next_alarm);
                 final String pattern = DateFormat.getBestDateTimePattern(locale, SKELETON);
                 SimpleDateFormat format = new SimpleDateFormat(pattern, locale);
                 format.setTimeZone(TimeZone.getDefault());
-                final String nextAlarm = format.format(date);
-                // todo: change to '1' when yellowing algorithm will work OK
-                final int type = currentTimeMillis > next_caution ? currentTimeMillis > next_alarm?2:0:0;
-                populateItemViewFields(view, description, nextAlarm,type);
+                Date date = new Date(next_alarm);
+                return format.format(date);
+            }
+
+            private int getType(long currentTimeMillis, long next_alarm, long next_caution) {
+                return currentTimeMillis > next_caution ? currentTimeMillis > next_alarm ? 2 : 1 : 0;
             }
         };
     }
 
-    private static void populateItemViewFields(View view, String description, String nextAlarm,int type) {
+    private static void populateItemViewFields(View view, String description, String nextAlarm, int type) {
         Log.d(TAG, "populateItemViewFields");
         // Find fields to populate in inflated template
         TextView tvBody = (TextView) view.findViewById(R.id.tvBody);
