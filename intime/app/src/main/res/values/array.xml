@@ -6,5 +6,6 @@
         <item>Days</item>
         <item>Weeks</item>
         <item>Months</item>
+        <item>Years</item>
     </string-array>
 </resources>

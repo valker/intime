@@ -29,7 +29,8 @@ class Util {
         Calendar.HOUR,
         Calendar.DAY_OF_YEAR,
         Calendar.WEEK_OF_YEAR,
-        Calendar.MONTH
+        Calendar.MONTH,
+        Calendar.FIELD_COUNT // substitute for YEAR
     };
 
     static long getNextAlarm(int interval, int amount, long currentTimeMillis, Locale locale) {
@@ -37,7 +38,12 @@ class Util {
         Date date = new Date(currentTimeMillis);
         Calendar calendar = new GregorianCalendar(locale);
         calendar.setTime(date);
-        final int field = fields[interval];
+        int field = fields[interval];
+        if(field == Calendar.FIELD_COUNT) {
+            // YEAR is not supported by calendar.add, so emulate it as 12 months
+            field = Calendar.MONTH;
+            amount = amount * 12;
+        }
         //noinspection ResourceType
         calendar.add(field, amount);
         date = calendar.getTime();

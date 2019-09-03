@@ -6,5 +6,6 @@
         <item>Дни</item>
         <item>Недели</item>
         <item>Месяцы</item>
+        <item>Годы</item>
     </string-array>
 </resources>
