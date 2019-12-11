@@ -1,24 +1,34 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 <com.google.android.material.appbar.AppBarLayout
     android:layout_width="match_parent"
     android:layout_height="?attr/actionBarSize">
-    <include
+    <androidx.appcompat.widget.Toolbar
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:id="@+id/toolbar"
-        layout="@layout/toolbar"
-        android:visibility="visible" />
+        android:background="@color/colorPrimary"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"/>
 </com.google.android.material.appbar.AppBarLayout>
-        <fragment xmlns:android="http://schemas.android.com/apk/res/android"
-            xmlns:tools="http://schemas.android.com/tools"
-            android:id="@+id/fragment"
-            android:padding="8dp"
-            app:layout_behavior="@string/appbar_scrolling_view_behavior"
-            android:name="com.vpe_soft.intime.intime.TaskFragment"
+    <FrameLayout
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="8dp">
+        <ListView
+            android:id="@+id/list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+        <TextView
+            android:id="@+id/empty"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            tools:layout="@layout/fragment_task_list"/>
+            android:gravity="center"
+            android:text="@string/no_tasks_were_added_yet"
+            android:textSize="24sp"
+            android:visibility="gone"/>
+    </FrameLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
