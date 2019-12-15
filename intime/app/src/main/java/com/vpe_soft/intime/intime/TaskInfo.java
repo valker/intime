@@ -40,11 +40,11 @@ public class TaskInfo {
         return _nextAlarm;
     }
 
-    public long getNextCaution() {
+    long getNextCaution() {
         return _nextCaution;
     }
 
-    public long getLastAcknowledge() {
+    long getLastAcknowledge() {
         return _lastAck;
     }
 }
