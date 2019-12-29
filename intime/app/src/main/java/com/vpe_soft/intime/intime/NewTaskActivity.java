@@ -4,6 +4,7 @@ import android.content.ContentValues;
 import android.content.Intent;
 import androidx.appcompat.widget.Toolbar;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import androidx.annotation.NonNull;
 import androidx.core.app.NavUtils;
 import androidx.appcompat.app.AppCompatActivity;
@@ -11,14 +12,13 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
-import android.widget.Toast;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.NumberPicker;
 import android.widget.Spinner;
 
 import java.util.Objects;
-
+import android.widget.*;
 
 abstract class TaskViewModel {
     final NewTaskActivity _parent;
@@ -53,6 +53,7 @@ abstract class TaskViewModel {
 
     protected abstract void OnHandleTask(String description, int interval, int amount, long currentTimeMillis);
 }
+
 class CreateTaskViewModel extends TaskViewModel {
     CreateTaskViewModel(NewTaskActivity parent) {
         super(parent);
@@ -74,7 +75,7 @@ class UpdateTaskViewModel extends TaskViewModel {
     }
 }
 
-public class NewTaskActivity extends AppCompatActivity{
+public class NewTaskActivity extends AppCompatActivity implements NewTaskFragment.OnFragmentInteractionListener {
 
     private static final String TAG = "NewTaskActivity";
 
@@ -137,8 +138,14 @@ public class NewTaskActivity extends AppCompatActivity{
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_new_task, menu);
         return true;
+    }
+
+    @Override
+    public void onFragmentInteraction(Uri uri) {
+        //todo: implement
     }
 
     public void OnButtonCreateTaskClicked(View view) {
@@ -191,6 +198,7 @@ public class NewTaskActivity extends AppCompatActivity{
         contentValues.put("amount", amount);
         return contentValues;
     }
+
 
     public void OnButtonUpdateTaskClicked(View view) {
         Log.d(TAG, "OnButtonUpdateTaskClicked");

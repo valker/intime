@@ -33,7 +33,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         broadcastIntent.putExtra("task_description", s);
         context.sendOrderedBroadcast(broadcastIntent, null);
 
-        if(!MainActivity.isOnScreen) {
+        if(!MainActivity._isOnScreen) {
             Log.d(TAG, "onReceive: will show notification");
             showNotification(context, s);
         } else {

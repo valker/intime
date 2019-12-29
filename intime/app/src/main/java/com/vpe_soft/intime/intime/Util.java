@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.os.Build;
 import android.util.Log;
 
 import java.util.Calendar;
@@ -17,11 +16,6 @@ import java.util.Locale;
 /**
  * Created by Valentin on 27.08.2015.
  */
-
-/**
- * Modified by kylichist on 9.12.2019.
- */
-
 class Util {
 
     private static final String TAG = "Util";
@@ -36,7 +30,7 @@ class Util {
         Calendar.DAY_OF_YEAR,
         Calendar.WEEK_OF_YEAR,
         Calendar.MONTH,
-        Calendar.FIELD_COUNT //substitute for YEAR
+        Calendar.FIELD_COUNT // substitute for YEAR
     };
 
     static long getNextAlarm(int interval, int amount, long currentTimeMillis, Locale locale) {
@@ -56,7 +50,7 @@ class Util {
         return date.getTime();
     }
 
-    static TaskInfo findTaskById(SQLiteDatabase database, long id) {
+    public static TaskInfo findTaskById(SQLiteDatabase database, long id) {
         Log.d(TAG, "findTaskById");
         try (Cursor query = database.query(TASK_TABLE, new String[]{"description", "interval", "amount", "next_alarm", "next_caution", "last_ack"}, "id=" + id, null, null, null, null, "1")) {
             if (query.moveToNext()) {
@@ -86,21 +80,12 @@ class Util {
                 if (next_alarm.moveToNext()) {
                     Log.d(TAG, "setupAlarmIfRequired: task was found. going to setup alarm");
                     long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm"));
-                    if(Build.VERSION.SDK_INT>=23) {
-                        alarmManager.setAndAllowWhileIdle(
-                                AlarmManager.RTC_WAKEUP,
-                                nextAlarm,
-                                createPendingIntent(
-                                        context,
-                                        next_alarm.getString(next_alarm.getColumnIndexOrThrow("description"))));
-                    }else {
-                        alarmManager.set(
-                                AlarmManager.RTC_WAKEUP,
-                                nextAlarm,
-                                createPendingIntent(
-                                        context,
-                                        next_alarm.getString(next_alarm.getColumnIndexOrThrow("description"))));
-                    }
+                    alarmManager.set(
+                            AlarmManager.RTC_WAKEUP,
+                            nextAlarm,
+                            createPendingIntent(
+                                    context,
+                                    next_alarm.getString(next_alarm.getColumnIndexOrThrow("description"))));
                 } else {
                     Log.d(TAG, "setupAlarmIfRequired: no task with alarm in future found");
                 }
