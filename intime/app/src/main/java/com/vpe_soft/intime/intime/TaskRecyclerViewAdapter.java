@@ -1,23 +1,13 @@
 package com.vpe_soft.intime.intime;
-import android.app.Activity;
+
 import android.content.Context;
-import android.database.CursorIndexOutOfBoundsException;
-import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
-import android.graphics.drawable.PaintDrawable;
 import androidx.recyclerview.widget.RecyclerView;
-import android.text.format.DateFormat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.database.Cursor;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Locale;
-import java.util.TimeZone;
 import androidx.cardview.widget.CardView;
 import android.graphics.Typeface;
 import android.widget.LinearLayout;
@@ -27,30 +17,10 @@ public class TaskRecyclerViewAdapter extends RecyclerView.Adapter<TaskRecyclerVi
     private Context context;
 
     private Locale locale;
-    private Cursor cursor;
-//    private String taskdescription;
-//    private String taskdate;
-    private Cursor tasksCursor;
-    private Context context;
 
     public TaskRecyclerViewAdapter(Context context, Locale locale){
         this.context = context;
         this.locale = locale;
-
-//        this.locale = locale;
-//        InTimeOpenHelper openHelper = new InTimeOpenHelper(activity);
-//        SQLiteDatabase database = openHelper.getReadableDatabase();
-//        this.tasksCursor = database.query(
-//			Util.TASK_TABLE,
-//			new String[]{
-//				"description",
-//				"id AS _id",
-//				"next_alarm",
-//				"next_caution"},
-//			null, null,
-//			null,
-//			null,
-//			"next_alarm");
     }
     @Override
     public TaskRVViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
@@ -61,26 +31,19 @@ public class TaskRecyclerViewAdapter extends RecyclerView.Adapter<TaskRecyclerVi
 
     @Override
     public void onBindViewHolder(TaskRVViewHolder viewHolder, int i) {
-        taskdescription = tasksCursor.getString(tasksCursor.getColumnIndexOrThrow("description"));
-        long next_alarm = tasksCursor.getLong(tasksCursor.getColumnIndexOrThrow("next_alarm"));
-        long next_caution = tasksCursor.getLong(tasksCursor.getColumnIndexOrThrow("next_caution"));
-        final long currentTimeMillis = System.currentTimeMillis();
-        Date date = new Date(next_alarm);
-        final String pattern = DateFormat.getBestDateTimePattern(locale, SKELETON);
-        SimpleDateFormat format = new SimpleDateFormat(pattern, locale);
-        format.setTimeZone(TimeZone.getDefault());
-        taskdate = format.format(date);
-        final int type = currentTimeMillis > next_caution ? currentTimeMillis > next_alarm?2:0:0;
+        TaskInfo taskInfo = Util.findTaskById(context, i + 1);
+        long currentTimeMillis = System.currentTimeMillis();
         // 0 - not ready, 1 - almost, 2 - ready
-        setPhase(this, viewHolder, i, Integer.parseInt(types[i]));
+        int phase = currentTimeMillis > taskInfo.getNextCaution() ? currentTimeMillis > taskInfo.getNextAlarm() ? 2 : 0 : 0;
+        updateCard(viewHolder, taskInfo, i, phase);
     }
 
     @Override
     public int getItemCount() {
-        return dates.length;
+        return Util.getDatabaseLength(context);
     }
 
-    public void setPhase(TaskRecyclerViewAdapter adapter, TaskRVViewHolder viewHolder, int pos, int phase){
+    public void updateCard(TaskRVViewHolder viewHolder, TaskInfo taskInfo, int pos, int phase){
         viewHolder.card.setCardElevation(12f);
         viewHolder.card.setRadius(40f);
         switch(phase){
@@ -100,10 +63,11 @@ public class TaskRecyclerViewAdapter extends RecyclerView.Adapter<TaskRecyclerVi
                 viewHolder.date.setTextColor(Color.parseColor("#FFFFFF"));
                 break;
         }
-        viewHolder.title.setText(titles[pos]);
-        viewHolder.date.setText(dates[pos]);
+        viewHolder.title.setText(taskInfo.getDescription());
+        viewHolder.date.setText(Util.getDateFromNextAlarm(locale, taskInfo.getNextAlarm()));
         viewHolder.title.setTypeface(Typeface.createFromAsset(context.getAssets(),"font/font.ttf"), Typeface.BOLD);
         viewHolder.date.setTypeface(Typeface.createFromAsset(context.getAssets(),"font/font.ttf"), Typeface.BOLD);
+        notifyItemChanged(pos);
     }
 
     public class TaskRVViewHolder extends  RecyclerView.ViewHolder{

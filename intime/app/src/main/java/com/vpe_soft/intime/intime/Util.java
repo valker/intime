@@ -5,14 +5,18 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Build;
+import android.text.format.DateFormat;
 import android.util.Log;
 
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Locale;
+import java.util.TimeZone;
 
 /**
  * Created by Valentin on 27.08.2015.
@@ -58,9 +62,25 @@ class Util {
         return date.getTime();
     }
 
-    static TaskInfo findTaskById(SQLiteDatabase database, long id) {
+    static String getDateFromNextAlarm(Locale locale, long nextAlarm){
+        Date date = new Date(nextAlarm);
+        String pattern = DateFormat.getBestDateTimePattern(locale, SKELETON);
+        SimpleDateFormat format = new SimpleDateFormat(pattern, locale);
+        format.setTimeZone(TimeZone.getDefault());
+        return format.format(date);
+    }
+
+    static int getDatabaseLength(Context context){
+        SQLiteDatabase database = getReadableDatabaseFromContext(context);
+        long length = DatabaseUtils.queryNumEntries(database, TASK_TABLE);
+        database.close();
+        return (int) length;
+    }
+
+    static TaskInfo findTaskById(Context context, long id) {
         Log.d(TAG, "findTaskById");
-        try (Cursor query = database.query(TASK_TABLE, new String[]{"description", "interval", "amount", "next_alarm", "next_caution", "last_ack"}, "id=" + id, null, null, null, null, "1")) {
+        //next line may cause an error (not checked yet)
+        try (Cursor query = getReadableDatabaseFromContext(context).query(TASK_TABLE, new String[]{"description", "interval", "amount", "next_alarm", "next_caution", "last_ack"}, "id=" + id, null, null, null, null, "1")) {
             if (query.moveToNext()) {
                 Log.d(TAG, "findTaskById: task was found");
                 String description = query.getString(query.getColumnIndexOrThrow("description"));
@@ -76,6 +96,16 @@ class Util {
         }
 
         return null;
+    }
+
+    static SQLiteDatabase getReadableDatabaseFromContext(Context context){
+        InTimeOpenHelper helper = new InTimeOpenHelper(context);
+        return helper.getReadableDatabase();
+    }
+
+    static SQLiteDatabase getWritableDatabaseFromContext(Context context){
+        InTimeOpenHelper helper = new InTimeOpenHelper(context);
+        return helper.getWritableDatabase();
     }
 
     static void setupAlarmIfRequired(Context context) {

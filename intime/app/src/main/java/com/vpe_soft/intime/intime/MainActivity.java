@@ -9,36 +9,21 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.graphics.Color;
 import android.os.Bundle;
-import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.ContextMenu;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.CursorAdapter;
-import android.widget.ListAdapter;
-import android.widget.ListView;
-import android.widget.TextView;
-
 import androidx.appcompat.widget.Toolbar;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
-
-/**
- * Modified by kylichist on 9.12.2019.
- */
 
 public class MainActivity extends AppCompatActivity{
 
@@ -46,108 +31,50 @@ public class MainActivity extends AppCompatActivity{
 
     private MyBroadcastReceiver receiver;
     private final Timer onScreenUpdate = new Timer();
+    private TaskRecyclerViewAdapter adapter;
     public static boolean isOnScreen;
 
-    private ListView listView;
-
-    private ListAdapter listAdapter;
     private Cursor tasksCursor;
-    private static final String SKELETON = "jjmm ddMMyyyy";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        listView = findViewById(R.id.list);
-        TextView emptyView = findViewById(R.id.empty);
-        listView.setEmptyView(emptyView);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        /**
-         * Init of database, cursor
-         * Must be changed because of RecyclerView and AsyncTask(MainActivity)
-         */
-        /**
-         * Need to be changed
-         * Start
-         */
-        InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
-        SQLiteDatabase database = openHelper.getReadableDatabase();
-        tasksCursor = database.query(
-                Util.TASK_TABLE,
-                new String[]{
-                        "description",
-                        "id AS _id",
-                        "next_alarm",
-                        "next_caution"},
-                null,
-                null,
-                null,
-                null,
-                "next_alarm");
-        listAdapter = new CursorAdapter(this, tasksCursor) {
+        //TODO: create empty view after deleting old empty view
+        RecyclerView recyclerView = findViewById(R.id.recyclerView);
+        recyclerView.setBackgroundColor(Color.parseColor("#FFFFFF"));
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(layoutManager);
+        adapter = new TaskRecyclerViewAdapter(this, getResources().getConfiguration().locale);
+        recyclerView.setAdapter(adapter);
+        ItemTouchHelper.SimpleCallback simpleItemTouchCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
             @Override
-            public View newView(Context context, Cursor cursor, ViewGroup parent) {
-                return LayoutInflater.from(context).inflate(R.layout.task_item, parent, false);
+            public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+                return false;
             }
 
             @Override
-            public void bindView(View view, Context context, Cursor cursor) {
-                // Extract properties from cursor
-                String description = cursor.getString(cursor.getColumnIndexOrThrow("description"));
-                long next_alarm = cursor.getLong(cursor.getColumnIndexOrThrow("next_alarm"));
-                long next_caution = cursor.getLong(cursor.getColumnIndexOrThrow("next_caution"));
-
-                final long currentTimeMillis = System.currentTimeMillis();
-                final String nextAlarm = getNextAlarmLocalString(next_alarm);
-                final int type = getType(currentTimeMillis, next_alarm, next_caution);
-                populateItemViewFields(view, description, nextAlarm,type);
+            public int getSwipeDirs(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
+                return super.getSwipeDirs(recyclerView, viewHolder);
             }
-
-            private String getNextAlarmLocalString(long next_alarm) {
-                // get current system properties (locale & timestamp)
-                final Locale locale = getResources().getConfiguration().locale;
-                final String pattern = DateFormat.getBestDateTimePattern(locale, SKELETON);
-                SimpleDateFormat format = new SimpleDateFormat(pattern, locale);
-                format.setTimeZone(TimeZone.getDefault());
-                Date date = new Date(next_alarm);
-                return format.format(date);
-            }
-
-            private int getType(long currentTimeMillis, long next_alarm, long next_caution) {
-                return currentTimeMillis > next_caution ? currentTimeMillis > next_alarm ? 2 : 1 : 0;
+            @Override
+            public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+                int pos = viewHolder.getAdapterPosition();
+                acknowledgeTask(pos + 1);
+                adapter.updateCard((TaskRecyclerViewAdapter.TaskRVViewHolder) viewHolder, Util.findTaskById(getApplicationContext(), pos + 1), pos, 0);
             }
         };
-        listView.setAdapter(listAdapter);
+        new ItemTouchHelper(simpleItemTouchCallback).attachToRecyclerView(recyclerView);
     }
 
-    private static void populateItemViewFields(View view, String description, String nextAlarm, int type) {
-        Log.d(TAG, "populateItemViewFields");
-        TextView tvBody = view.findViewById(R.id.tvBody);
-        TextView tvPriority = view.findViewById(R.id.tvPriority);
-        tvBody.setText(description);
-        tvPriority.setText(nextAlarm);
-        switch(type){
-            case 0://white
-                view.setBackgroundColor(Color.parseColor("#FFFFFF"));
-                break;
-            case 1://yellow
-                view.setBackgroundColor(Color.parseColor("#FFEB3B"));
-                break;
-            case 2://red
-                view.setBackgroundColor(Color.parseColor("#F44336"));
-                break;
-        }
-    }
-    /**
-     * End
-     */
     @Override
     protected void onStart() {
-        super.onStart();
         IntentFilter filter = new IntentFilter(Util.TASK_OVERDUE_ACTION);
         registerReceiver(getReceiver(), filter);
+        super.onStart();
     }
 
     @Override
@@ -159,21 +86,21 @@ public class MainActivity extends AppCompatActivity{
     @Override
     protected void onPause() {
         Log.d(TAG, "onPause");
-        super.onPause();
         isOnScreen = false;
         SharedPreferences sharedPreferences = getSharedPreferences("SessionInfo", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putLong("LastUsageTimestamp", System.currentTimeMillis());
         editor.apply();
+        super.onPause();
     }
 
     @Override
     protected void onResume() {
         Log.d(TAG, "onResume");
-        super.onResume();
         isOnScreen = true;
-        refreshListView();
+        refreshRecyclerView();
         createAlarm();
+        super.onResume();
     }
 
     @Override
@@ -198,15 +125,15 @@ public class MainActivity extends AppCompatActivity{
         switch (menuItemIndex) {
             case 0:
                 acknowledgeTask(info.id);
-                refreshListView();
+                refreshRecyclerView();
                 break;
             case 1:
                 editTask(info.id);
-                refreshListView();
+                refreshRecyclerView();
                 break;
             case 2:
                 deleteTask(info.id);
-                refreshListView();
+                refreshRecyclerView();
                 break;
             default:
                 throw new RuntimeException("wrong menu item");
@@ -225,37 +152,29 @@ public class MainActivity extends AppCompatActivity{
 
     private void acknowledgeTask(long id) {
         Log.d(TAG, "AcknowledgeTask id = " + id);
-        InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
         final long currentTimeMillis = System.currentTimeMillis();
-        try (SQLiteDatabase database = openHelper.getWritableDatabase()){
-            TaskInfo taskInfo = Util.findTaskById(database, id);
-            if (taskInfo == null) {
-                Log.w("VP", "Can't find task with id = " + id);
-                return;
-            }
-
-            final long nextAlarmMoment = Util.getNextAlarm(
-                    taskInfo.getInterval(),
-                    taskInfo.getAmount(),
-                    currentTimeMillis,
-                    getResources().getConfiguration().locale);
-
-            final long cautionPeriod = (long) ((nextAlarmMoment - currentTimeMillis) * 0.95);
-            // todo: uncomment when yellowing algorithm will work OK
-//            createTimer(cautionPeriod);
-            final long nextCautionMoment = currentTimeMillis + cautionPeriod;
-            ContentValues values = new ContentValues();
-            values.put("next_alarm", nextAlarmMoment);
-            values.put("next_caution", nextCautionMoment);
-            values.put("last_ack", currentTimeMillis);
-            String whereClause = "id=" + id;
-            final int result = database.update(Util.TASK_TABLE, values, whereClause, null);
-            if (result != 1) {
-                Log.w(TAG, "acknowledgeTask: Cannot update task with id=" + id);
-                throw new RuntimeException("cannot update task with id=" + id);
-            }
+        SQLiteDatabase database = Util.getWritableDatabaseFromContext(this);
+        TaskInfo taskInfo = Util.findTaskById(this, id);
+        if (taskInfo == null) {
+            Log.w("VP", "Can't find task with id = " + id);
+            return;
         }
-
+        final long nextAlarmMoment = taskInfo.getNextAlarm();
+        final long cautionPeriod = (long) ((nextAlarmMoment - currentTimeMillis) * 0.95);
+        //TODO: create timer for task status updating on screen
+        //createTimer(cautionPeriod);
+        final long nextCautionMoment = currentTimeMillis + cautionPeriod;
+        ContentValues values = new ContentValues();
+        values.put("next_alarm", nextAlarmMoment);
+        values.put("next_caution", nextCautionMoment);
+        values.put("last_ack", currentTimeMillis);
+        String whereClause = "id=" + id;
+        final int result = database.update(Util.TASK_TABLE, values, whereClause, null);
+        if (result != 1) {
+            Log.w(TAG, "acknowledgeTask: Cannot update task with id=" + id);
+            throw new RuntimeException("cannot update task with id=" + id);
+        }
+        database.close();
         createAlarm();
     }
 
@@ -274,7 +193,7 @@ public class MainActivity extends AppCompatActivity{
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        refreshListView();
+                        refreshRecyclerView();
                     }
                 });
             }
@@ -282,17 +201,15 @@ public class MainActivity extends AppCompatActivity{
 		onScreenUpdate.schedule(timertask, timeInterval);
 	}
 
-    private void refreshListView() {
+    private void refreshRecyclerView() {
         Log.d(TAG, "refreshListView");
-        tasksCursor.requery();
-        listView.refreshDrawableState();
+        adapter.notifyDataSetChanged();
     }
 
     private void deleteTask(long id) {
         Log.d(TAG, "deleteTask");
-        InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
         try {
-			SQLiteDatabase database = openHelper.getWritableDatabase();
+			SQLiteDatabase database = Util.getWritableDatabaseFromContext(this);
             final String identifier = "" + id;
             int result = database.delete(Util.TASK_TABLE, "id=?", new String[]{identifier});
             if (result != 1) {
@@ -349,7 +266,7 @@ public class MainActivity extends AppCompatActivity{
         public void onReceive(Context context, Intent intent) {
             Log.d(TAG, "onReceive");
             if (isOnScreen) {
-                refreshListView();
+                refreshRecyclerView();
             }
         }
     }

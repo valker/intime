@@ -3,48 +3,50 @@ package com.vpe_soft.intime.intime;
 /**
  * Created by Valentin on 23.08.2015.
  */
+
 public class TaskInfo {
-    private final long _id;
-    private final String _description;
-    private final int _interval;
-    private final int _amount;
-    private final long _nextAlarm;
-    private final long _nextCaution;
-    private final long _lastAck;
+
+    private final long id;
+    private final String description;
+    private final int interval;
+    private final int amount;
+    private final long nextAlarm;
+    private final long nextCaution;
+    private final long lastAck;
 
     TaskInfo(long id,  String description, int interval, int amount, long nextAlarm, long nextCaution, long lastAck) {
-        _id = id;
-        _description = description;
-        _interval = interval;
-        _amount = amount;
-        _nextAlarm = nextAlarm;
-        _nextCaution = nextCaution;
-        _lastAck = lastAck;
+        this.id = id;
+        this.description = description;
+        this.interval = interval;
+        this.amount = amount;
+        this.nextAlarm = nextAlarm;
+        this.nextCaution = nextCaution;
+        this.lastAck = lastAck;
     }
 
-    long getId() { return _id; }
+    long getId() { return id; }
 
     int getInterval() {
-        return _interval;
+        return interval;
     }
 
     int getAmount() {
-        return _amount;
+        return amount;
     }
 
     String getDescription() {
-        return _description;
+        return description;
     }
 
     long getNextAlarm() {
-        return _nextAlarm;
+        return nextAlarm;
     }
 
     long getNextCaution() {
-        return _nextCaution;
+        return nextCaution;
     }
 
     long getLastAcknowledge() {
-        return _lastAck;
+        return lastAck;
     }
 }
