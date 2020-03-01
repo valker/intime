@@ -13,22 +13,13 @@
         android:background="@color/colorPrimary"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"/>
 </com.google.android.material.appbar.AppBarLayout>
-    <FrameLayout
-        app:layout_behavior="@string/appbar_scrolling_view_behavior"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:padding="8dp">
-        <ListView
-            android:id="@+id/list"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"/>
-        <TextView
-            android:id="@+id/empty"
-            android:layout_width="match_parent"
+    <androidx.recyclerview.widget.RecyclerView
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"
             android:layout_height="match_parent"
-            android:gravity="center"
-            android:text="@string/no_tasks_were_added_yet"
-            android:textSize="24sp"
-            android:visibility="gone"/>
-    </FrameLayout>
+            android:layout_width="match_parent"
+            android:layoutAnimation="@anim/recyclerview_item_animation"
+            android:clipToPadding="false"
+            android:paddingBottom="3.5dp"
+            android:paddingTop="3.5dp"
+            android:id="@+id/resuccerview"/>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

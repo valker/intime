@@ -1,24 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:orientation="vertical" android:layout_width="match_parent"
-    android:layout_height="match_parent">
-
-    <TextView
-        android:id="@+id/tvBody"
-        android:layout_width="wrap_content"
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/linear1"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginLeft="7dp"
+    android:layout_marginTop="3.5dp"
+    android:layout_marginRight="7dp"
+    android:layout_marginBottom="3.5dp"
+    android:orientation="horizontal">
+    <LinearLayout
+        android:id="@+id/linear2"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="5dp"
-		android:layout_marginStart="5dp"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        tools:text="task description" />
-
-    <TextView
-        android:id="@+id/tvPriority"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:padding="5dp"
-		android:layout_marginStart="5dp"
-        android:textAppearance="?android:attr/textAppearanceMedium"
-        tools:text="@tools:sample/date/ddmmyy" />
-</LinearLayout>
+        android:padding="10dp"
+        android:background="#FFFFFF"
+        android:orientation="vertical">
+        <TextView
+            android:id="@+id/textview1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingTop="4dp"
+            android:paddingLeft="4dp"
+            android:paddingBottom="2dp"
+            android:text="TextView"
+            android:textSize="20sp"
+            android:textColor="#000000"/>
+        <TextView
+            android:id="@+id/textview2"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:padding="4dp"
+            android:gravity="center_vertical"
+            android:text="TextView"
+            android:textSize="16sp"
+            android:textColor="#595959"/>
+    </LinearLayout>
+</androidx.cardview.widget.CardView>
