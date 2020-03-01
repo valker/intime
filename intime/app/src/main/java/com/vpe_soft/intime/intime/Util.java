@@ -26,6 +26,8 @@ class Util {
 
     private static final String TAG = "Util";
 
+    static final String SKELETON = "jjmm ddMMyyyy";
+
     static final String TASK_TABLE = "main.tasks";
     static final String TASK_OVERDUE_ACTION = "com.vpe_soft.intime.intime.TaskOverdue";
     static final String NOTIFICATION_TAG = "com.vpe_soft.intime.intime.NotificationTag";

@@ -194,6 +194,7 @@ public class MainActivity extends AppCompatActivity{
     public boolean onContextItemSelected(MenuItem item) {
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
         int menuItemIndex = item.getItemId();
+
         switch (menuItemIndex) {
             case 0:
                 acknowledgeTask(info.id);

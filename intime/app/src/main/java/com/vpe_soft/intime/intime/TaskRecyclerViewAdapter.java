@@ -23,23 +23,21 @@ import android.graphics.Typeface;
 import android.widget.LinearLayout;
 
 public class TaskRecyclerViewAdapter extends RecyclerView.Adapter<TaskRecyclerViewAdapter.TaskRVViewHolder> {
-    //    private Locale locale;
-//    private static final String SKELETON = "jjmm ddMMyyyy";
-//    private String taskdescription;
-//    private String taskdate;
-//    private Cursor tasksCursor;
-    private String[] titles;
-    private String[] dates;
-    private String[] types;
+
     private Context context;
 
-    public TaskRecyclerViewAdapter(Context context, String[] titles, String[] dates, String[] types){
+    private Locale locale;
+    private Cursor cursor;
+//    private String taskdescription;
+//    private String taskdate;
+    private Cursor tasksCursor;
+    private Context context;
+
+    public TaskRecyclerViewAdapter(Context context, Locale locale){
         this.context = context;
-        this.titles = titles;
-        this.dates = dates;
-        this.types = types;
+        this.locale = locale;
+
 //        this.locale = locale;
-//        this.context = activity.getApplicationContext();
 //        InTimeOpenHelper openHelper = new InTimeOpenHelper(activity);
 //        SQLiteDatabase database = openHelper.getReadableDatabase();
 //        this.tasksCursor = database.query(
@@ -63,28 +61,18 @@ public class TaskRecyclerViewAdapter extends RecyclerView.Adapter<TaskRecyclerVi
 
     @Override
     public void onBindViewHolder(TaskRVViewHolder viewHolder, int i) {
-//        taskdescription = tasksCursor.getString(tasksCursor.getColumnIndexOrThrow("description"));
-//        long next_alarm = tasksCursor.getLong(tasksCursor.getColumnIndexOrThrow("next_alarm"));
-//        long next_caution = tasksCursor.getLong(tasksCursor.getColumnIndexOrThrow("next_caution"));
-//        final long currentTimeMillis = System.currentTimeMillis();
-//        Date date = new Date(next_alarm);
-//        final String pattern = DateFormat.getBestDateTimePattern(locale, SKELETON);
-//        SimpleDateFormat format = new SimpleDateFormat(pattern, locale);
-//        format.setTimeZone(TimeZone.getDefault());
-//        taskdate = format.format(date);
-//        final int type = currentTimeMillis > next_caution ? currentTimeMillis > next_alarm?2:0:0;
-//		switch(type){
-//			case 0://white
-//				myViewHolder.foreground.setBackground(new PaintDrawable(Color.WHITE));
-//				break;
-//			case 2://red
-//				myViewHolder.foreground.setBackground(new PaintDrawable(Color.RED));
-//				break;
-//			case 1://yellow
-//				myViewHolder.foreground.setBackground(new PaintDrawable(Color.YELLOW));
-//				break;
-//		}
-        setPhase(null, viewHolder, i, Integer.parseInt(types[i]));
+        taskdescription = tasksCursor.getString(tasksCursor.getColumnIndexOrThrow("description"));
+        long next_alarm = tasksCursor.getLong(tasksCursor.getColumnIndexOrThrow("next_alarm"));
+        long next_caution = tasksCursor.getLong(tasksCursor.getColumnIndexOrThrow("next_caution"));
+        final long currentTimeMillis = System.currentTimeMillis();
+        Date date = new Date(next_alarm);
+        final String pattern = DateFormat.getBestDateTimePattern(locale, SKELETON);
+        SimpleDateFormat format = new SimpleDateFormat(pattern, locale);
+        format.setTimeZone(TimeZone.getDefault());
+        taskdate = format.format(date);
+        final int type = currentTimeMillis > next_caution ? currentTimeMillis > next_alarm?2:0:0;
+        // 0 - not ready, 1 - almost, 2 - ready
+        setPhase(this, viewHolder, i, Integer.parseInt(types[i]));
     }
 
     @Override
