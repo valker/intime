@@ -67,7 +67,6 @@ public class TaskRecyclerViewAdapter extends RecyclerView.Adapter<TaskRecyclerVi
         viewHolder.date.setText(Util.getDateFromNextAlarm(locale, taskInfo.getNextAlarm()));
         viewHolder.title.setTypeface(Typeface.createFromAsset(context.getAssets(),"font/font.ttf"), Typeface.BOLD);
         viewHolder.date.setTypeface(Typeface.createFromAsset(context.getAssets(),"font/font.ttf"), Typeface.BOLD);
-        notifyItemChanged(pos);
     }
 
     public class TaskRVViewHolder extends  RecyclerView.ViewHolder{

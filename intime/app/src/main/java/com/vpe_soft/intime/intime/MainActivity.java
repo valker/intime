@@ -34,8 +34,6 @@ public class MainActivity extends AppCompatActivity{
     private TaskRecyclerViewAdapter adapter;
     public static boolean isOnScreen;
 
-    private Cursor tasksCursor;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
@@ -64,7 +62,7 @@ public class MainActivity extends AppCompatActivity{
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
                 int pos = viewHolder.getAdapterPosition();
                 acknowledgeTask(pos + 1);
-                adapter.updateCard((TaskRecyclerViewAdapter.TaskRVViewHolder) viewHolder, Util.findTaskById(getApplicationContext(), pos + 1), pos, 0);
+                adapter.updateCard((TaskRecyclerViewAdapter.TaskRVViewHolder) viewHolder, Util.findTaskById(getContext(), pos + 1), pos, 0);
             }
         };
         new ItemTouchHelper(simpleItemTouchCallback).attachToRecyclerView(recyclerView);
@@ -106,7 +104,7 @@ public class MainActivity extends AppCompatActivity{
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v,
                                     ContextMenu.ContextMenuInfo menuInfo) {
-        if (v.getId() == android.R.id.list) {
+            if (v.getId() == android.R.id.list) {
             String[] menuItems = new String[]{
                     getString(R.string.context_menu_acknowledge),
                     getString(R.string.context_menu_edit),
@@ -117,6 +115,8 @@ public class MainActivity extends AppCompatActivity{
             }
         }
     }
+
+    //TODO: rewrite onContextItemSelected because ContextMenu was deleted
     @Override
     public boolean onContextItemSelected(MenuItem item) {
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
@@ -150,6 +150,7 @@ public class MainActivity extends AppCompatActivity{
         startActivity(intent);
     }
 
+    //TODO: create timer for task status updating on screen
     private void acknowledgeTask(long id) {
         Log.d(TAG, "AcknowledgeTask id = " + id);
         final long currentTimeMillis = System.currentTimeMillis();
@@ -161,7 +162,6 @@ public class MainActivity extends AppCompatActivity{
         }
         final long nextAlarmMoment = taskInfo.getNextAlarm();
         final long cautionPeriod = (long) ((nextAlarmMoment - currentTimeMillis) * 0.95);
-        //TODO: create timer for task status updating on screen
         //createTimer(cautionPeriod);
         final long nextCautionMoment = currentTimeMillis + cautionPeriod;
         ContentValues values = new ContentValues();
@@ -215,11 +215,16 @@ public class MainActivity extends AppCompatActivity{
             if (result != 1) {
                 throw new RuntimeException("wrong removing of the task");
             }
+            database.close();
         } catch (Exception ex) {
             Log.e(TAG, "deleteTask: cannot delete task", ex);
         }
 
         createAlarm();
+    }
+
+    private Context getContext(){
+        return this;
     }
 
 /*    private void notifyAboutAppStandby(boolean ifRequired){

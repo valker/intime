@@ -110,7 +110,7 @@ public class NewTaskActivity extends AppCompatActivity{
                 _id = id;
                 InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
                 try (SQLiteDatabase database = openHelper.getReadableDatabase()) {
-                    _taskInfo = Util.findTaskById(database, id);
+                    _taskInfo = Util.findTaskById(this, id);
                 }
                 EditText description = findViewById(R.id.description);
                 description.setText(_taskInfo.getDescription());
