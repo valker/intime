@@ -4,7 +4,7 @@ package com.vpe_soft.intime.intime;
  * Created by Valentin on 23.08.2015.
  */
 
-public class TaskInfo {
+public class Task {
 
     private final long id;
     private final String description;
@@ -14,7 +14,7 @@ public class TaskInfo {
     private final long nextCaution;
     private final long lastAck;
 
-    TaskInfo(long id,  String description, int interval, int amount, long nextAlarm, long nextCaution, long lastAck) {
+    Task(long id, String description, int interval, int amount, long nextAlarm, long nextCaution, long lastAck) {
         this.id = id;
         this.description = description;
         this.interval = interval;

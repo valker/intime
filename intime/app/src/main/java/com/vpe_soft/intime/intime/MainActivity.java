@@ -6,9 +6,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -58,11 +58,13 @@ public class MainActivity extends AppCompatActivity{
             public int getSwipeDirs(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
                 return super.getSwipeDirs(recyclerView, viewHolder);
             }
+            //TODO: delete and restore to change background color
             @Override
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
                 int pos = viewHolder.getAdapterPosition();
                 acknowledgeTask(pos + 1);
                 adapter.updateCard((TaskRecyclerViewAdapter.TaskRVViewHolder) viewHolder, Util.findTaskById(getContext(), pos + 1), pos, 0);
+                adapter.notifyItemChanged(pos);
             }
         };
         new ItemTouchHelper(simpleItemTouchCallback).attachToRecyclerView(recyclerView);
@@ -155,12 +157,12 @@ public class MainActivity extends AppCompatActivity{
         Log.d(TAG, "AcknowledgeTask id = " + id);
         final long currentTimeMillis = System.currentTimeMillis();
         SQLiteDatabase database = Util.getWritableDatabaseFromContext(this);
-        TaskInfo taskInfo = Util.findTaskById(this, id);
-        if (taskInfo == null) {
+        Task task = Util.findTaskById(this, id);
+        if (task == null) {
             Log.w("VP", "Can't find task with id = " + id);
             return;
         }
-        final long nextAlarmMoment = taskInfo.getNextAlarm();
+        final long nextAlarmMoment = task.getNextAlarm();
         final long cautionPeriod = (long) ((nextAlarmMoment - currentTimeMillis) * 0.95);
         //createTimer(cautionPeriod);
         final long nextCautionMoment = currentTimeMillis + cautionPeriod;

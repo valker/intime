@@ -79,7 +79,7 @@ public class NewTaskActivity extends AppCompatActivity{
     private static final String TAG = "NewTaskActivity";
 
     private long _id;
-    private TaskInfo _taskInfo;
+    private Task _task;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,19 +110,19 @@ public class NewTaskActivity extends AppCompatActivity{
                 _id = id;
                 InTimeOpenHelper openHelper = new InTimeOpenHelper(this);
                 try (SQLiteDatabase database = openHelper.getReadableDatabase()) {
-                    _taskInfo = Util.findTaskById(this, id);
+                    _task = Util.findTaskById(this, id);
                 }
                 EditText description = findViewById(R.id.description);
-                description.setText(_taskInfo.getDescription());
+                description.setText(_task.getDescription());
                 final Spinner spinner = findViewById(R.id.spinner);
-                spinner.setSelection(_taskInfo.getInterval());
+                spinner.setSelection(_task.getInterval());
 
                 final NumberPicker numberPicker = findViewById(R.id.numberPicker);
                 //TODO:add sounds for views using playSoundEffect
                 //numberPicker.playSoundEffect(android.view.SoundEffectConstants.CLICK);
                 numberPicker.setMaxValue(10);
                 numberPicker.setMinValue(1);
-                numberPicker.setValue(_taskInfo.getAmount());
+                numberPicker.setValue(_task.getAmount());
                 final Button createTaskButton = findViewById(R.id.button_create_task);
                 final Button updateTaskButton = findViewById(R.id.button_update_task);
                 createTaskButton.setVisibility(View.INVISIBLE);
@@ -221,6 +221,6 @@ public class NewTaskActivity extends AppCompatActivity{
     }
 
     private boolean WasIntervalOrAmountChanged(int interval, int amount) {
-        return _taskInfo.getInterval() != interval || _taskInfo.getAmount() != amount;
+        return _task.getInterval() != interval || _task.getAmount() != amount;
     }
 }

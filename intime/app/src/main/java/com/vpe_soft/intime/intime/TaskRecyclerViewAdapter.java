@@ -18,9 +18,12 @@ public class TaskRecyclerViewAdapter extends RecyclerView.Adapter<TaskRecyclerVi
 
     private Locale locale;
 
+    private Task[] tasks;
+
     public TaskRecyclerViewAdapter(Context context, Locale locale){
         this.context = context;
         this.locale = locale;
+        this.tasks = Util.getTasksFromDatabase(context);
     }
     @Override
     public TaskRVViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
@@ -31,19 +34,19 @@ public class TaskRecyclerViewAdapter extends RecyclerView.Adapter<TaskRecyclerVi
 
     @Override
     public void onBindViewHolder(TaskRVViewHolder viewHolder, int i) {
-        TaskInfo taskInfo = Util.findTaskById(context, i + 1);
+        Task task = tasks[i];
         long currentTimeMillis = System.currentTimeMillis();
-        // 0 - not ready, 1 - almost, 2 - ready
-        int phase = currentTimeMillis > taskInfo.getNextCaution() ? currentTimeMillis > taskInfo.getNextAlarm() ? 2 : 0 : 0;
-        updateCard(viewHolder, taskInfo, i, phase);
+        // 0 - not ready (white), 1 - almost (yellow), 2 - ready (red)
+        int phase = currentTimeMillis > task.getNextCaution() ? currentTimeMillis > task.getNextAlarm() ? 2 : 0 : 0;
+        updateCard(viewHolder, task, i, phase);
     }
 
     @Override
     public int getItemCount() {
-        return Util.getDatabaseLength(context);
+        return Util.getDatabaseLengthFromContext(context);
     }
 
-    public void updateCard(TaskRVViewHolder viewHolder, TaskInfo taskInfo, int pos, int phase){
+    public void updateCard(TaskRVViewHolder viewHolder, Task task, int pos, int phase){
         viewHolder.card.setCardElevation(12f);
         viewHolder.card.setRadius(40f);
         switch(phase){
@@ -63,8 +66,8 @@ public class TaskRecyclerViewAdapter extends RecyclerView.Adapter<TaskRecyclerVi
                 viewHolder.date.setTextColor(Color.parseColor("#FFFFFF"));
                 break;
         }
-        viewHolder.title.setText(taskInfo.getDescription());
-        viewHolder.date.setText(Util.getDateFromNextAlarm(locale, taskInfo.getNextAlarm()));
+        viewHolder.title.setText(task.getDescription());
+        viewHolder.date.setText(Util.getDateFromNextAlarm(locale, task.getNextAlarm()));
         viewHolder.title.setTypeface(Typeface.createFromAsset(context.getAssets(),"font/font.ttf"), Typeface.BOLD);
         viewHolder.date.setTypeface(Typeface.createFromAsset(context.getAssets(),"font/font.ttf"), Typeface.BOLD);
     }
