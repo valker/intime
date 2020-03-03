@@ -37,8 +37,8 @@ public class TaskRecyclerViewAdapter extends RecyclerView.Adapter<TaskRecyclerVi
         Task task = tasks[i];
         long currentTimeMillis = System.currentTimeMillis();
         // 0 - not ready (white), 1 - almost (yellow), 2 - ready (red)
-        int phase = currentTimeMillis > task.getNextCaution() ? currentTimeMillis > task.getNextAlarm() ? 2 : 0 : 0;
-        updateCard(viewHolder, task, i, phase);
+        int phase = currentTimeMillis > task.getNextCaution() ? currentTimeMillis > task.getNextAlarm() ? 2 : 1 : 0;
+        updateCard(viewHolder, task, phase);
     }
 
     @Override
@@ -46,7 +46,7 @@ public class TaskRecyclerViewAdapter extends RecyclerView.Adapter<TaskRecyclerVi
         return Util.getDatabaseLengthFromContext(context);
     }
 
-    public void updateCard(TaskRVViewHolder viewHolder, Task task, int pos, int phase){
+    public void updateCard(TaskRVViewHolder viewHolder, Task task, int phase){
         viewHolder.card.setCardElevation(12f);
         viewHolder.card.setRadius(40f);
         switch(phase){
@@ -57,13 +57,13 @@ public class TaskRecyclerViewAdapter extends RecyclerView.Adapter<TaskRecyclerVi
                 break;
             case 1:
                 viewHolder.linear.setBackgroundColor(Color.parseColor("#FFC627"));
-                viewHolder.title.setTextColor(Color.parseColor("#FFFFFF"));
-                viewHolder.date.setTextColor(Color.parseColor("#FFFFFF"));
+                viewHolder.title.setTextColor(Color.parseColor("#F7F7F7"));
+                viewHolder.date.setTextColor(Color.parseColor("#F7F7F7"));
                 break;
             case 2:
                 viewHolder.linear.setBackgroundColor(Color.parseColor("#D8232A"));
-                viewHolder.title.setTextColor(Color.parseColor("#FFFFFF"));
-                viewHolder.date.setTextColor(Color.parseColor("#FFFFFF"));
+                viewHolder.title.setTextColor(Color.parseColor("#F7F7F7"));
+                viewHolder.date.setTextColor(Color.parseColor("#F7F7F7"));
                 break;
         }
         viewHolder.title.setText(task.getDescription());

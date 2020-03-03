@@ -16,4 +16,5 @@
     <string name="boot_completed_overdue_tasks_notification">Пока устройство было выключено, задачи были просрочены</string>
     <string name="no_tasks_were_added_yet">Задачи не были добавлены</string>
     <string name="edit_task_activity_title">Редактировать задачу</string>
+    <string name="tasks">Задачи</string>
 </resources>

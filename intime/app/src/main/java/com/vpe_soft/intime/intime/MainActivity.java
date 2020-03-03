@@ -8,20 +8,24 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 
-import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.appcompat.app.AppCompatActivity;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.AdapterView;
-import androidx.appcompat.widget.Toolbar;
+import android.widget.TextView;
+
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -29,25 +33,34 @@ public class MainActivity extends AppCompatActivity{
 
     private static final String TAG = "MainActivity";
 
+    public static boolean isOnScreen;
+
     private MyBroadcastReceiver receiver;
     private final Timer onScreenUpdate = new Timer();
+
+    private RecyclerView recyclerView;
     private TaskRecyclerViewAdapter adapter;
-    public static boolean isOnScreen;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        Window window = getWindow();
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.setStatusBarColor(Color.parseColor("#F7F7F7"));
+        TextView title = findViewById(R.id.title_text);
+        title.setTypeface(Typeface.createFromAsset(getAssets(),"font/font.ttf"), Typeface.BOLD);
+
         //TODO: create empty view after deleting old empty view
-        RecyclerView recyclerView = findViewById(R.id.recyclerView);
-        recyclerView.setBackgroundColor(Color.parseColor("#FFFFFF"));
+        recyclerView = findViewById(R.id.recyclerView);
+        recyclerView.setBackgroundColor(Color.parseColor("#F7F7F7"));
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
         adapter = new TaskRecyclerViewAdapter(this, getResources().getConfiguration().locale);
         recyclerView.setAdapter(adapter);
+        //TODO: fucking swipes
         ItemTouchHelper.SimpleCallback simpleItemTouchCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
             @Override
             public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
@@ -63,8 +76,9 @@ public class MainActivity extends AppCompatActivity{
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
                 int pos = viewHolder.getAdapterPosition();
                 acknowledgeTask(pos + 1);
-                adapter.updateCard((TaskRecyclerViewAdapter.TaskRVViewHolder) viewHolder, Util.findTaskById(getContext(), pos + 1), pos, 0);
-                adapter.notifyItemChanged(pos);
+
+                //adapter.updateCard((TaskRecyclerViewAdapter.TaskRVViewHolder) viewHolder, Util.findTaskById(getContext(), pos + 1),  0);
+                refreshRecyclerView();
             }
         };
         new ItemTouchHelper(simpleItemTouchCallback).attachToRecyclerView(recyclerView);
@@ -104,9 +118,8 @@ public class MainActivity extends AppCompatActivity{
     }
 
     @Override
-    public void onCreateContextMenu(ContextMenu menu, View v,
-                                    ContextMenu.ContextMenuInfo menuInfo) {
-            if (v.getId() == android.R.id.list) {
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+            /*if (v.getId() == android.R.id.list) {
             String[] menuItems = new String[]{
                     getString(R.string.context_menu_acknowledge),
                     getString(R.string.context_menu_edit),
@@ -115,7 +128,7 @@ public class MainActivity extends AppCompatActivity{
             for (int i = 0; i < menuItems.length; i++) {
                 menu.add(Menu.NONE, i, i, menuItems[i]);
             }
-        }
+        }*/
     }
 
     //TODO: rewrite onContextItemSelected because ContextMenu was deleted
@@ -205,6 +218,10 @@ public class MainActivity extends AppCompatActivity{
 
     private void refreshRecyclerView() {
         Log.d(TAG, "refreshListView");
+        recyclerView.setAdapter(null);
+        recyclerView.setLayoutManager(null);
+        recyclerView.setAdapter(adapter);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
         adapter.notifyDataSetChanged();
     }
 
@@ -246,7 +263,7 @@ public class MainActivity extends AppCompatActivity{
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        Log.d(TAG, "onOptionsItemSelected");
+        /*Log.d(TAG, "onOptionsItemSelected");
         int id = item.getItemId();
         if (id == R.id.action_new_task) {
             Log.d(TAG, "onOptionsItemSelected: 'new task' pressed");
@@ -254,7 +271,7 @@ public class MainActivity extends AppCompatActivity{
             intent.putExtra("action", "create");
             startActivity(intent);
             return true;
-        }
+        }*/
 
         return super.onOptionsItemSelected(item);
     }
