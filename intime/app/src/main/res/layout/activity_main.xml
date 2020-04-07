@@ -33,8 +33,8 @@
             android:gravity="end|bottom">
             <ImageView
                 android:id="@+id/add_task"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
+                android:layout_width="35dp"
+                android:layout_height="35dp"
                 android:src="@drawable/add_task"
                 android:scaleType="fitCenter"/>
         </LinearLayout>
