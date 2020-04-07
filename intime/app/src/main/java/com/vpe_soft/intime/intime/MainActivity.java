@@ -62,11 +62,6 @@ public class MainActivity extends AppCompatActivity{
                 startActivity(intent);
             }
         });
-
-
-
-
-
         //TODO: create empty view after deleting old empty view
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setBackgroundColor(Color.parseColor("#F7F7F7"));
@@ -75,24 +70,22 @@ public class MainActivity extends AppCompatActivity{
         adapter = new TaskRecyclerViewAdapter(this, getResources().getConfiguration().locale);
         recyclerView.setAdapter(adapter);
         //TODO: fucking swipes
-        ItemTouchHelper.SimpleCallback simpleItemTouchCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+        final ItemTouchHelper.SimpleCallback simpleItemTouchCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
             @Override
             public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
                 return false;
             }
-
             @Override
             public int getSwipeDirs(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
                 return super.getSwipeDirs(recyclerView, viewHolder);
             }
-            //TODO: delete and restore to change background color
             @Override
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
                 int pos = viewHolder.getAdapterPosition();
+                Log.d("tag", String.valueOf(pos));
                 acknowledgeTask(pos + 1);
-
-                //adapter.updateCard((TaskRecyclerViewAdapter.TaskRVViewHolder) viewHolder, Util.findTaskById(getContext(), pos + 1),  0);
-                refreshRecyclerView();
+                adapter.updateCard((TaskRecyclerViewAdapter.TaskRVViewHolder) viewHolder, 0);
+                adapter.notifyItemChanged(pos);
             }
         };
         new ItemTouchHelper(simpleItemTouchCallback).attachToRecyclerView(recyclerView);
@@ -181,7 +174,7 @@ public class MainActivity extends AppCompatActivity{
 
     //TODO: create timer for task status updating on screen
     private void acknowledgeTask(long id) {
-        Log.d(TAG, "AcknowledgeTask id = " + id);
+        Log.d("tag", "AcknowledgeTask id = " + id);
         final long currentTimeMillis = System.currentTimeMillis();
         SQLiteDatabase database = Util.getWritableDatabaseFromContext(this);
         Task task = Util.findTaskById(this, id);
