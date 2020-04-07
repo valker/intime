@@ -12,11 +12,11 @@
         android:padding="16dp"
         android:background="@color/colorPrimary">
         <LinearLayout
-            android:id="@+id/linear2"
             android:layout_height="wrap_content"
             android:layout_width="match_parent"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:gravity="bottom"
+            android:orientation="horizontal"
+            android:layout_weight="1">
             <TextView
                 android:id="@+id/title_text"
                 android:layout_width="wrap_content"
@@ -25,14 +25,27 @@
                 android:textSize="30sp"
                 android:textColor="#595959"/>
         </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="end|bottom">
+            <ImageView
+                android:id="@+id/add_task"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/add_task"
+                android:scaleType="fitCenter"/>
+        </LinearLayout>
     </LinearLayout>
     <androidx.recyclerview.widget.RecyclerView
-            app:layout_behavior="@string/appbar_scrolling_view_behavior"
-            android:layout_height="match_parent"
-            android:layout_width="match_parent"
-            android:layoutAnimation="@anim/recyclerview_item_animation"
-            android:clipToPadding="false"
-            android:paddingBottom="3.5dp"
-            android:paddingTop="3.5dp"
-            android:id="@+id/recyclerView"/>
+        android:id="@+id/recyclerView"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:layout_height="match_parent"
+        android:layout_width="match_parent"
+        android:layoutAnimation="@anim/recyclerview_item_animation"
+        android:clipToPadding="false"
+        android:paddingBottom="3.5dp"
+        android:paddingTop="3.5dp" />
 </LinearLayout>

@@ -14,7 +14,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.appcompat.app.AppCompatActivity;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.ContextMenu;
@@ -24,6 +23,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.util.Timer;
@@ -50,8 +50,22 @@ public class MainActivity extends AppCompatActivity{
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         window.setStatusBarColor(Color.parseColor("#F7F7F7"));
+        window.setNavigationBarColor(Color.parseColor("#F7F7F7"));
         TextView title = findViewById(R.id.title_text);
         title.setTypeface(Typeface.createFromAsset(getAssets(),"font/font.ttf"), Typeface.BOLD);
+        ImageView addTask = findViewById(R.id.add_task);
+        addTask.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this, NewTaskActivity.class);
+                intent.putExtra("action", "create");
+                startActivity(intent);
+            }
+        });
+
+
+
+
 
         //TODO: create empty view after deleting old empty view
         recyclerView = findViewById(R.id.recyclerView);
