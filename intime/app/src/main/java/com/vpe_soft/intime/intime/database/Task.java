@@ -6,7 +6,6 @@ package com.vpe_soft.intime.intime.database;
 
 public class Task {
 
-    private final long id;
     private final String description;
     private final int interval;
     private final int amount;
@@ -14,8 +13,7 @@ public class Task {
     private final long nextCaution;
     private final long lastAck;
 
-    public Task(long id, String description, int interval, int amount, long nextAlarm, long nextCaution, long lastAck) {
-        this.id = id;
+    public Task(String description, int interval, int amount, long nextAlarm, long nextCaution, long lastAck) {
         this.description = description;
         this.interval = interval;
         this.amount = amount;
@@ -23,8 +21,6 @@ public class Task {
         this.nextCaution = nextCaution;
         this.lastAck = lastAck;
     }
-
-    public long getId() { return id; }
 
     public int getInterval() {
         return interval;

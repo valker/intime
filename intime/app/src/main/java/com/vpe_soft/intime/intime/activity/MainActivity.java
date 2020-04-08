@@ -179,12 +179,14 @@ public class MainActivity extends AppCompatActivity{
     private void acknowledgeTask(long id) {
         Log.d("tag", "AcknowledgeTask id = " + id);
         final long currentTimeMillis = System.currentTimeMillis();
+        Log.d("tag", "millis " + currentTimeMillis);
         SQLiteDatabase database = Util.getWritableDatabaseFromContext(this);
         Task task = Util.findTaskById(this, id);
         if (task == null) {
             Log.w("VP", "Can't find task with id = " + id);
             return;
         }
+        Log.d("tag", "task_desc " + task.getDescription());
         final long nextAlarmMoment = task.getNextAlarm();
         final long cautionPeriod = (long) ((nextAlarmMoment - currentTimeMillis) * 0.95);
         //createTimer(cautionPeriod);

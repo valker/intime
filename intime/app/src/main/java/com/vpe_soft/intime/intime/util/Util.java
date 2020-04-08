@@ -11,6 +11,7 @@ import android.os.Build;
 import android.text.format.DateFormat;
 import android.util.Log;
 
+import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
 import com.vpe_soft.intime.intime.database.Task;
 import com.vpe_soft.intime.intime.receiver.AlarmReceiver;
 
@@ -97,7 +98,7 @@ public class Util {
                 long nextAlarm = query.getLong(query.getColumnIndexOrThrow("next_alarm"));
                 long nextCaution = query.getLong(query.getColumnIndexOrThrow("next_caution"));
                 long lastAck = query.getLong(query.getColumnIndexOrThrow("last_ack"));
-                return new Task(id, description, interval, amount, nextAlarm, nextCaution, lastAck);
+                return new Task(description, interval, amount, nextAlarm, nextCaution, lastAck);
             } else {
                 Log.d(TAG, "findTaskById: task not found");
             }
@@ -121,7 +122,7 @@ public class Util {
                         long nextAlarm = query.getLong(query.getColumnIndexOrThrow("next_alarm"));
                         long nextCaution = query.getLong(query.getColumnIndexOrThrow("next_caution"));
                         long lastAck = query.getLong(query.getColumnIndexOrThrow("last_ack"));
-                        tasks[a - 1] = new Task(a, description, interval, amount, nextAlarm, nextCaution, lastAck);
+                        tasks[a - 1] = new Task(description, interval, amount, nextAlarm, nextCaution, lastAck);
                     }
                 }
             }

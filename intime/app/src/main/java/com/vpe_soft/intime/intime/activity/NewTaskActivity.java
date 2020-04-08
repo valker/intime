@@ -19,7 +19,7 @@ import android.widget.Spinner;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.Task;
-import com.vpe_soft.intime.intime.util.InTimeOpenHelper;
+import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
 import com.vpe_soft.intime.intime.util.Util;
 
 import java.util.Objects;

@@ -1,4 +1,4 @@
-package com.vpe_soft.intime.intime.util;
+package com.vpe_soft.intime.intime.database;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;

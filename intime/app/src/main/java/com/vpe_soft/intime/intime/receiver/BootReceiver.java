@@ -14,7 +14,7 @@ import android.util.Log;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.activity.MainActivity;
-import com.vpe_soft.intime.intime.util.InTimeOpenHelper;
+import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
 import com.vpe_soft.intime.intime.util.Util;
 
 /**
