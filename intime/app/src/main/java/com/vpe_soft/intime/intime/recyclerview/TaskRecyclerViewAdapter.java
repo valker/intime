@@ -21,10 +21,8 @@ import java.util.Locale;
 
 public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyclerViewAdapter.TaskRecyclerViewVH>{
 
-    public TaskRecyclerViewAdapter(Context context, Locale locale) {
+    public TaskRecyclerViewAdapter(Context context, Cursor cursor, Locale locale) {
         super(context, locale);
-        SQLiteDatabase database = Util.getReadableDatabaseFromContext(context);
-        Cursor cursor = database.query(Util.TASK_TABLE,new String[]{"description", "id AS _id", "next_alarm", "next_caution"}, null, null, null, null, "next_alarm");
         setupCursorAdapter(cursor, 0, R.layout.task_item, false);
     }
 

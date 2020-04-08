@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import androidx.recyclerview.widget.ItemTouchHelper;
@@ -67,12 +68,15 @@ public class MainActivity extends AppCompatActivity{
                 startActivity(intent);
             }
         });
+        SQLiteDatabase database = Util.getReadableDatabaseFromContext(this);
+        Cursor cursor = database.query(Util.TASK_TABLE,new String[]{"description", "id AS _id", "next_alarm", "next_caution"}, null, null, null, null, "next_alarm");
+
         //TODO: create empty view after deleting old empty view
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setBackgroundColor(Color.parseColor("#F7F7F7"));
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
-        adapter = new TaskRecyclerViewAdapter(this, getResources().getConfiguration().locale);
+        adapter = new TaskRecyclerViewAdapter(this, cursor, getResources().getConfiguration().locale);
         recyclerView.setAdapter(adapter);
         //TODO: fucking swipes
         final ItemTouchHelper.SimpleCallback simpleItemTouchCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
