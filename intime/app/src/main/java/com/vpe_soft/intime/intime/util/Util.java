@@ -1,4 +1,4 @@
-package com.vpe_soft.intime.intime;
+package com.vpe_soft.intime.intime.util;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
@@ -10,6 +10,9 @@ import android.database.sqlite.SQLiteDatabase;
 import android.os.Build;
 import android.text.format.DateFormat;
 import android.util.Log;
+
+import com.vpe_soft.intime.intime.database.Task;
+import com.vpe_soft.intime.intime.receiver.AlarmReceiver;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -26,15 +29,15 @@ import java.util.TimeZone;
  * Modified by kylichist on 9.12.2019.
  */
 
-class Util {
+public class Util {
 
     private static final String TAG = "Util";
 
-    static final String SKELETON = "jjmm ddMMyyyy";
+    public static final String SKELETON = "jjmm ddMMyyyy";
 
-    static final String TASK_TABLE = "main.tasks";
-    static final String TASK_OVERDUE_ACTION = "com.vpe_soft.intime.intime.TaskOverdue";
-    static final String NOTIFICATION_TAG = "com.vpe_soft.intime.intime.NotificationTag";
+    public static final String TASK_TABLE = "main.tasks";
+    public static final String TASK_OVERDUE_ACTION = "com.vpe_soft.intime.intime.TaskOverdue";
+    public static final String NOTIFICATION_TAG = "com.vpe_soft.intime.intime.NotificationTag";
 
     private static final int[] fields= new int[]{
         Calendar.MINUTE,
@@ -45,7 +48,7 @@ class Util {
         Calendar.FIELD_COUNT //substitute for YEAR
     };
 
-    static long getNextAlarm(int interval, int amount, long currentTimeMillis, Locale locale) {
+    public static long getNextAlarm(int interval, int amount, long currentTimeMillis, Locale locale) {
         Log.d(TAG, "getNextAlarm");
         Date date = new Date(currentTimeMillis);
         Calendar calendar = new GregorianCalendar(locale);
@@ -62,7 +65,7 @@ class Util {
         return date.getTime();
     }
 
-    static String getDateFromNextAlarm(Locale locale, long nextAlarm){
+    public static String getDateFromNextAlarm(Locale locale, long nextAlarm){
         Date date = new Date(nextAlarm);
         String pattern = DateFormat.getBestDateTimePattern(locale, SKELETON);
         SimpleDateFormat format = new SimpleDateFormat(pattern, locale);
@@ -70,19 +73,19 @@ class Util {
         return format.format(date);
     }
 
-    static int getDatabaseLengthFromContext(Context context){
+    public static int getDatabaseLengthFromContext(Context context){
         SQLiteDatabase database = getReadableDatabaseFromContext(context);
         long length = DatabaseUtils.queryNumEntries(database, TASK_TABLE);
         database.close();
         return (int) length;
     }
 
-    static int getDatabaseLength(SQLiteDatabase database){
+    public static int getDatabaseLength(SQLiteDatabase database){
         long length = DatabaseUtils.queryNumEntries(database, TASK_TABLE);
         return (int) length;
     }
 
-    static Task findTaskById(Context context, long id) {
+    public static Task findTaskById(Context context, long id) {
         Log.d(TAG, "findTaskById");
         //next line may cause an error (not checked yet)
         try (Cursor query = getReadableDatabaseFromContext(context).query(TASK_TABLE, new String[]{"description", "interval", "amount", "next_alarm", "next_caution", "last_ack"}, "id=" + id, null, null, null, null, "1")) {
@@ -103,7 +106,7 @@ class Util {
         return null;
     }
 
-    static Task[] getTasksFromDatabase(Context context){
+    public static Task[] getTasksFromDatabase(Context context){
         SQLiteDatabase database = getReadableDatabaseFromContext(context);
         int length = getDatabaseLength(database);
         Task[] tasks = new Task[length];
@@ -128,17 +131,17 @@ class Util {
         return tasks;
     }
 
-    static SQLiteDatabase getReadableDatabaseFromContext(Context context){
+    public static SQLiteDatabase getReadableDatabaseFromContext(Context context){
         InTimeOpenHelper helper = new InTimeOpenHelper(context);
         return helper.getReadableDatabase();
     }
 
-    static SQLiteDatabase getWritableDatabaseFromContext(Context context){
+    public static SQLiteDatabase getWritableDatabaseFromContext(Context context){
         InTimeOpenHelper helper = new InTimeOpenHelper(context);
         return helper.getWritableDatabase();
     }
 
-    static void setupAlarmIfRequired(Context context) {
+    public static void setupAlarmIfRequired(Context context) {
         Log.d(TAG, "setupAlarmIfRequired");
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         InTimeOpenHelper openHelper = new InTimeOpenHelper(context);

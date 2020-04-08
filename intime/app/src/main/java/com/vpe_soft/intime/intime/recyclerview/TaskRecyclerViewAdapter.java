@@ -1,10 +1,9 @@
-package com.vpe_soft.intime.intime;
+package com.vpe_soft.intime.intime.recyclerview;
 
 import android.content.Context;
 import android.graphics.Color;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +12,10 @@ import java.util.Locale;
 import androidx.cardview.widget.CardView;
 import android.graphics.Typeface;
 import android.widget.LinearLayout;
+
+import com.vpe_soft.intime.intime.R;
+import com.vpe_soft.intime.intime.database.Task;
+import com.vpe_soft.intime.intime.util.Util;
 
 public class TaskRecyclerViewAdapter extends RecyclerView.Adapter<TaskRecyclerViewAdapter.TaskRVViewHolder> {
 
@@ -36,7 +39,6 @@ public class TaskRecyclerViewAdapter extends RecyclerView.Adapter<TaskRecyclerVi
 
     @Override
     public void onBindViewHolder(TaskRVViewHolder viewHolder, int i) {
-        Log.d("tag", "AAAAAAAAAAAA");
         Task task = tasks[i];
         long currentTimeMillis = System.currentTimeMillis();
         // 0 - not ready (white), 1 - almost (yellow), 2 - ready (red)
@@ -50,12 +52,10 @@ public class TaskRecyclerViewAdapter extends RecyclerView.Adapter<TaskRecyclerVi
     }
 
     public void initCard(TaskRVViewHolder viewHolder, Task task, int phase){
-        Log.d("tag", String.valueOf(phase));
         viewHolder.card.setCardElevation(12f);
         viewHolder.card.setRadius(40f);
         switch(phase){
             case 0:
-                Log.d("tag", viewHolder.linear.toString());
                 viewHolder.linear.setBackgroundColor(Color.parseColor("#FFFFFF"));
                 viewHolder.title.setTextColor(Color.parseColor("#000000"));
                 viewHolder.date.setTextColor(Color.parseColor("#757575"));
@@ -66,7 +66,6 @@ public class TaskRecyclerViewAdapter extends RecyclerView.Adapter<TaskRecyclerVi
                 viewHolder.date.setTextColor(Color.parseColor("#F7F7F7"));
                 break;
             case 2:
-                Log.d("tag", "kakogo hera");
                 viewHolder.linear.setBackgroundColor(Color.parseColor("#D8232A"));
                 viewHolder.title.setTextColor(Color.parseColor("#F7F7F7"));
                 viewHolder.date.setTextColor(Color.parseColor("#F7F7F7"));
@@ -76,33 +75,6 @@ public class TaskRecyclerViewAdapter extends RecyclerView.Adapter<TaskRecyclerVi
         viewHolder.date.setText(Util.getDateFromNextAlarm(locale, task.getNextAlarm()));
         viewHolder.title.setTypeface(Typeface.createFromAsset(context.getAssets(),"font/font.ttf"), Typeface.BOLD);
         viewHolder.date.setTypeface(Typeface.createFromAsset(context.getAssets(),"font/font.ttf"), Typeface.BOLD);
-    }
-
-    public void updateCard(TaskRVViewHolder viewHolder, int phase) {
-        switch(phase) {
-            case 0:
-                Log.d("tag", "case-open");
-                Log.d("tag", viewHolder.linear.toString());
-                Log.d("tag", viewHolder.title.toString());
-                Log.d("tag", viewHolder.date.toString());
-                Log.d("tag", String.valueOf(phase));
-                Log.d("tag", viewHolder.toString());
-                viewHolder.linear.setBackgroundColor(Color.parseColor("#FFFFFF"));
-                viewHolder.title.setTextColor(Color.parseColor("#000000"));
-                viewHolder.date.setTextColor(Color.parseColor("#757575"));
-                Log.d("tag", "case-close");
-                break;
-            case 1:
-                viewHolder.linear.setBackgroundColor(Color.parseColor("#FFC627"));
-                viewHolder.title.setTextColor(Color.parseColor("#F7F7F7"));
-                viewHolder.date.setTextColor(Color.parseColor("#F7F7F7"));
-                break;
-            case 2:
-                viewHolder.linear.setBackgroundColor(Color.parseColor("#D8232A"));
-                viewHolder.title.setTextColor(Color.parseColor("#F7F7F7"));
-                viewHolder.date.setTextColor(Color.parseColor("#F7F7F7"));
-                break;
-        }
     }
 
     public class TaskRVViewHolder extends  RecyclerView.ViewHolder {

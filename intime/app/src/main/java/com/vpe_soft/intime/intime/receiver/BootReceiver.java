@@ -1,4 +1,4 @@
-package com.vpe_soft.intime.intime;
+package com.vpe_soft.intime.intime.receiver;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -11,6 +11,11 @@ import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import androidx.core.app.NotificationCompat;
 import android.util.Log;
+
+import com.vpe_soft.intime.intime.R;
+import com.vpe_soft.intime.intime.activity.MainActivity;
+import com.vpe_soft.intime.intime.util.InTimeOpenHelper;
+import com.vpe_soft.intime.intime.util.Util;
 
 /**
  * Created by Valentin on 26.08.2015.

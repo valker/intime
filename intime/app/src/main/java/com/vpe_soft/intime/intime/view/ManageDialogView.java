@@ -1,4 +1,4 @@
-package com.vpe_soft.intime.intime;
+package com.vpe_soft.intime.intime.view;
 
 import android.content.Context;
 import android.content.DialogInterface;

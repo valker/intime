@@ -1,4 +1,4 @@
-package com.vpe_soft.intime.intime;
+package com.vpe_soft.intime.intime.database;
 
 /**
  * Created by Valentin on 23.08.2015.
@@ -14,7 +14,7 @@ public class Task {
     private final long nextCaution;
     private final long lastAck;
 
-    Task(long id, String description, int interval, int amount, long nextAlarm, long nextCaution, long lastAck) {
+    public Task(long id, String description, int interval, int amount, long nextAlarm, long nextCaution, long lastAck) {
         this.id = id;
         this.description = description;
         this.interval = interval;
@@ -24,29 +24,29 @@ public class Task {
         this.lastAck = lastAck;
     }
 
-    long getId() { return id; }
+    public long getId() { return id; }
 
-    int getInterval() {
+    public int getInterval() {
         return interval;
     }
 
-    int getAmount() {
+    public int getAmount() {
         return amount;
     }
 
-    String getDescription() {
+    public String getDescription() {
         return description;
     }
 
-    long getNextAlarm() {
+    public long getNextAlarm() {
         return nextAlarm;
     }
 
-    long getNextCaution() {
+    public long getNextCaution() {
         return nextCaution;
     }
 
-    long getLastAcknowledge() {
+    public long getLastAcknowledge() {
         return lastAck;
     }
 }

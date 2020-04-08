@@ -1,4 +1,4 @@
-package com.vpe_soft.intime.intime;
+package com.vpe_soft.intime.intime.activity;
 
 import android.app.NotificationManager;
 import android.content.ContentValues;
@@ -25,6 +25,11 @@ import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.vpe_soft.intime.intime.R;
+import com.vpe_soft.intime.intime.database.Task;
+import com.vpe_soft.intime.intime.recyclerview.TaskRecyclerViewAdapter;
+import com.vpe_soft.intime.intime.util.Util;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -82,9 +87,7 @@ public class MainActivity extends AppCompatActivity{
             @Override
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
                 int pos = viewHolder.getAdapterPosition();
-                Log.d("tag", String.valueOf(pos));
                 acknowledgeTask(pos + 1);
-                adapter.updateCard((TaskRecyclerViewAdapter.TaskRVViewHolder) viewHolder, 0);
                 adapter.notifyItemChanged(pos);
             }
         };

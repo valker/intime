@@ -1,4 +1,4 @@
-package com.vpe_soft.intime.intime;
+package com.vpe_soft.intime.intime.activity;
 
 import android.content.ContentValues;
 import android.content.Intent;
@@ -16,6 +16,11 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.NumberPicker;
 import android.widget.Spinner;
+
+import com.vpe_soft.intime.intime.R;
+import com.vpe_soft.intime.intime.database.Task;
+import com.vpe_soft.intime.intime.util.InTimeOpenHelper;
+import com.vpe_soft.intime.intime.util.Util;
 
 import java.util.Objects;
 
