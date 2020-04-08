@@ -187,7 +187,7 @@ public class MainActivity extends AppCompatActivity{
             return;
         }
         Log.d("tag", "task_desc " + task.getDescription());
-        final long nextAlarmMoment = task.getNextAlarm();
+        final long nextAlarmMoment = Util.getNextAlarm(task.getInterval(), task.getAmount(), currentTimeMillis, getResources().getConfiguration().locale);
         final long cautionPeriod = (long) ((nextAlarmMoment - currentTimeMillis) * 0.95);
         //createTimer(cautionPeriod);
         final long nextCautionMoment = currentTimeMillis + cautionPeriod;
