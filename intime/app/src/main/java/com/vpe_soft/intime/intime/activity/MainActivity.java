@@ -47,6 +47,8 @@ public class MainActivity extends AppCompatActivity{
     private RecyclerView recyclerView;
     private TaskRecyclerViewAdapter adapter;
 
+    private Cursor cursor;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
@@ -68,9 +70,7 @@ public class MainActivity extends AppCompatActivity{
                 startActivity(intent);
             }
         });
-        SQLiteDatabase database = Util.getReadableDatabaseFromContext(this);
-        Cursor cursor = database.query(Util.TASK_TABLE,new String[]{"description", "id AS _id", "next_alarm", "next_caution"}, null, null, null, null, "next_alarm");
-
+        cursor = Util.createCursor(this);
         //TODO: create empty view after deleting old empty view
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setBackgroundColor(Color.parseColor("#F7F7F7"));
@@ -91,7 +91,8 @@ public class MainActivity extends AppCompatActivity{
             @Override
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
                 int pos = viewHolder.getAdapterPosition();
-                acknowledgeTask(pos + 1);
+                acknowledgeTask(Util.getId(getCursor(), pos));
+                adapter.swapCursor(Util.createCursor(getContext()));
                 adapter.notifyItemChanged(pos);
             }
         };
@@ -181,16 +182,16 @@ public class MainActivity extends AppCompatActivity{
 
     //TODO: create timer for task status updating on screen
     private void acknowledgeTask(long id) {
-        Log.d("tag", "AcknowledgeTask id = " + id);
         final long currentTimeMillis = System.currentTimeMillis();
-        Log.d("tag", "millis " + currentTimeMillis);
         SQLiteDatabase database = Util.getWritableDatabaseFromContext(this);
         Task task = Util.findTaskById(this, id);
         if (task == null) {
             Log.w("VP", "Can't find task with id = " + id);
             return;
         }
+        Log.d("tag", "id " + id);
         Log.d("tag", "task_desc " + task.getDescription());
+        Log.d("tag", "millis " + currentTimeMillis);
         final long nextAlarmMoment = Util.getNextAlarm(task.getInterval(), task.getAmount(), currentTimeMillis, getResources().getConfiguration().locale);
         final long cautionPeriod = (long) ((nextAlarmMoment - currentTimeMillis) * 0.95);
         //createTimer(cautionPeriod);
@@ -262,13 +263,9 @@ public class MainActivity extends AppCompatActivity{
         return this;
     }
 
-/*    private void notifyAboutAppStandby(boolean ifRequired){
-        if(ifRequired){
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setTitle()
-        }
-
-    }*/
+    private Cursor getCursor() {
+        return cursor;
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

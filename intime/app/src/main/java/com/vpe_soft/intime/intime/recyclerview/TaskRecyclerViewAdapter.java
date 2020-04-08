@@ -57,12 +57,12 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             String description = cursor.getString(cursor.getColumnIndexOrThrow("description"));
             long nextAlarm = cursor.getLong(cursor.getColumnIndexOrThrow("next_alarm"));
             long nextCaution = cursor.getLong(cursor.getColumnIndexOrThrow("next_caution"));
-            Log.d("tag", description);
-            Log.d("tag", String.valueOf(nextAlarm));
-            Log.d("tag", String.valueOf(nextCaution));
+            Log.d("tag", "desc " + description);
+            Log.d("tag", "next_alarm " + nextAlarm);
+            Log.d("tag", "next_caution " + nextCaution);
             // 0 - not ready (white), 1 - almost (yellow), 2 - ready (red)
             int phase = System.currentTimeMillis() > nextCaution ? System.currentTimeMillis() > nextCaution ? 2 : 1 : 0;
-            Log.d("tag", String.valueOf(phase));
+            Log.d("tag", "phase " + phase);
             card.setCardElevation(12f);
             card.setRadius(40f);
             switch(phase){
@@ -83,7 +83,13 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
                     break;
             }
             title.setText(description);
-            date.setText(Util.getDateFromNextAlarm(locale, nextAlarm));
+            date.setText("date " + Util.getDateFromNextAlarm(locale, nextAlarm) + "\n"
+                    + "next_alarm " + nextAlarm + "\n"
+                    + "next_caution " + nextCaution + "\n"
+                    + "id " + cursor.getPosition() + "\n"
+                    + "phase " + phase + "\n"
+
+            );
             title.setTypeface(Typeface.createFromAsset(context.getAssets(),"font/font.ttf"), Typeface.BOLD);
             date.setTypeface(Typeface.createFromAsset(context.getAssets(),"font/font.ttf"), Typeface.BOLD);
         }

@@ -66,6 +66,11 @@ public class Util {
         return date.getTime();
     }
 
+    public static Cursor createCursor(Context context) {
+        SQLiteDatabase database = Util.getReadableDatabaseFromContext(context);
+        return database.query(Util.TASK_TABLE,new String[]{"description", "id AS _id", "next_alarm", "next_caution"}, null, null, null, null, "next_alarm");
+    }
+
     public static String getDateFromNextAlarm(Locale locale, long nextAlarm){
         Date date = new Date(nextAlarm);
         String pattern = DateFormat.getBestDateTimePattern(locale, SKELETON);
@@ -84,6 +89,11 @@ public class Util {
     public static int getDatabaseLength(SQLiteDatabase database){
         long length = DatabaseUtils.queryNumEntries(database, TASK_TABLE);
         return (int) length;
+    }
+
+    public static long getId(Cursor cursor, int position) {
+        cursor.moveToPosition(position);
+        return cursor.getLong(cursor.getColumnIndex("_id"));
     }
 
     public static Task findTaskById(Context context, long id) {

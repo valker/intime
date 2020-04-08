@@ -39,8 +39,12 @@ public abstract class RecyclerViewCursorAdapter<T extends RecyclerViewCursorView
 
     @Override
     public int getItemCount() {
-        Log.d("count", String.valueOf(cursorAdapter.getCount()));
         return cursorAdapter.getCount();
+    }
+
+    public void swapCursor(Cursor cursor) {
+        this.cursorAdapter.swapCursor(cursor);
+        notifyDataSetChanged();
     }
 
     protected void setViewHolder(T viewHolder) {
