@@ -27,7 +27,6 @@ import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.google.android.material.appbar.AppBarLayout;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.Task;
 import com.vpe_soft.intime.intime.recyclerview.TaskRecyclerViewAdapter;
@@ -71,9 +70,6 @@ public class MainActivity extends AppCompatActivity{
                 startActivity(intent);
             }
         });
-        AppBarLayout appbar = findViewById(R.id.appbar);
-        appbar.setDividerDrawable(null);
-        appbar.setOutlineProvider(null);
         cursor = Util.createCursor(this);
         //TODO: create empty view after deleting old empty view
         recyclerView = findViewById(R.id.recyclerView);
