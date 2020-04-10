@@ -60,6 +60,7 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             Log.d("tag", "desc " + description);
             Log.d("tag", "next_alarm " + nextAlarm);
             Log.d("tag", "next_caution " + nextCaution);
+            long id = cursor.getLong(cursor.getColumnIndexOrThrow("_id"));
             // 0 - not ready (white), 1 - almost (yellow), 2 - ready (red)
             int phase = System.currentTimeMillis() > nextCaution ? System.currentTimeMillis() > nextCaution ? 2 : 1 : 0;
             Log.d("tag", "phase " + phase);
@@ -86,7 +87,7 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             date.setText("date " + Util.getDateFromNextAlarm(locale, nextAlarm) + "\n"
                     + "next_alarm " + nextAlarm + "\n"
                     + "next_caution " + nextCaution + "\n"
-                    + "id " + cursor.getPosition() + "\n"
+                    + "id " + id + "\n"
                     + "phase " + phase + "\n"
 
             );
