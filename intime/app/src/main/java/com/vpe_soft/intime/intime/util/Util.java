@@ -68,7 +68,7 @@ public class Util {
 
     public static Cursor createCursor(Context context) {
         SQLiteDatabase database = Util.getReadableDatabaseFromContext(context);
-        return database.query(Util.TASK_TABLE,new String[]{"description", "id AS _id", "next_alarm", "next_caution"}, null, null, null, null, "_id");
+        return database.query(Util.TASK_TABLE,new String[]{"description", "id AS _id", "next_alarm", "next_caution"}, null, null, null, null, "next_alarm");
     }
 
     public static String getDateFromNextAlarm(Locale locale, long nextAlarm){
