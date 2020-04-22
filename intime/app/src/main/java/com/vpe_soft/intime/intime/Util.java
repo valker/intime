@@ -74,22 +74,51 @@ class Util {
 
     static void setupAlarmIfRequired(Context context) {
         Log.d(TAG, "setupAlarmIfRequired");
-        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        NextTaskInfo nextAlarm = getNextAlarmTask(context, System.currentTimeMillis());
+        if (nextAlarm != null) {
+            Log.d(TAG, "setupAlarmIfRequired: task was found. going to setup alarm");
+            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            alarmManager.set(
+                AlarmManager.RTC_WAKEUP,
+                nextAlarm.getNextAlarm(),
+                createPendingIntent(
+                    context,
+                    nextAlarm.getDescription()));
+        } else {
+            Log.d(TAG, "setupAlarmIfRequired: no task with alarm in future found");
+        }
+    }
+
+    static class NextTaskInfo {
+        private final long _nextAlarm;
+        private final String _description;
+
+        NextTaskInfo(long nextAlarm, String description) {
+            _nextAlarm = nextAlarm;
+            _description = description;
+        }
+
+        public long getNextAlarm() {
+            return _nextAlarm;
+        }
+
+        public String getDescription() {
+            return _description;
+        }
+    }
+
+    static NextTaskInfo getNextAlarmTask(Context context, long currentTimestamp) {
+        Log.d(TAG, "getNextAlarm");
         InTimeOpenHelper openHelper = new InTimeOpenHelper(context);
         try (SQLiteDatabase database = openHelper.getReadableDatabase()) {
-            final long currentTimestamp = System.currentTimeMillis();
-            try (Cursor next_alarm = database.query(TASK_TABLE, new String[]{"id", NEXT_ALARM_FIELD, "description"}, "next_alarm>?", new String[]{String.valueOf(currentTimestamp)}, null, null, NEXT_ALARM_FIELD, "1")) {
-                if (next_alarm.moveToNext()) {
-                    Log.d(TAG, "setupAlarmIfRequired: task was found. going to setup alarm");
-                    long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow(NEXT_ALARM_FIELD));
-                    alarmManager.set(
-                            AlarmManager.RTC_WAKEUP,
-                            nextAlarm,
-                            createPendingIntent(
-                                    context,
-                                    next_alarm.getString(next_alarm.getColumnIndexOrThrow("description"))));
+            try (Cursor cursor = database.query(TASK_TABLE, new String[]{"id", NEXT_ALARM_FIELD, "description"}, "next_alarm>?", new String[]{String.valueOf(currentTimestamp)}, null, null, NEXT_ALARM_FIELD, "1")) {
+                if (cursor.moveToNext()) {
+                    long nextAlarm = cursor.getLong(cursor.getColumnIndexOrThrow(NEXT_ALARM_FIELD));
+                    String description = cursor.getString(cursor.getColumnIndexOrThrow("description"));
+                    NextTaskInfo task = new NextTaskInfo(nextAlarm, description);
+                    return task;
                 } else {
-                    Log.d(TAG, "setupAlarmIfRequired: no task with alarm in future found");
+                    return null;
                 }
             }
         }
