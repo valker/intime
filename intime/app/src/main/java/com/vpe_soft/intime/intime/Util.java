@@ -112,4 +112,15 @@ class Util {
             return rowsCount;
         }
     }
+
+    public static long getNumberOfSkippedTasks(Context context, long lastUsageTimestamp, long currentTimestamp) {
+        try (SQLiteDatabase database = new InTimeOpenHelper(context).getReadableDatabase()) {
+            long tasksCount = DatabaseUtils.queryNumEntries(
+                    database,
+                    "tasks",
+                    NEXT_ALARM_FIELD + ">?" + " AND " + NEXT_ALARM_FIELD + "<?",
+                    new String[]{Long.toString(lastUsageTimestamp), Long.toString(currentTimestamp)});
+            return tasksCount;
+        }
+    }
 }
