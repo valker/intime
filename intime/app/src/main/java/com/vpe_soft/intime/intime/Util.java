@@ -23,6 +23,11 @@ class Util {
 
     static final String TASK_TABLE = "main.tasks";
     static final String NEXT_ALARM_FIELD = "next_alarm";
+    static final String DESCRIPTION_FIELD = "description";
+    static final String INTERVAL_FIELD = "interval";
+    static final String AMOUNT_FIELD = "amount";
+    static final String NEXT_CAUTION_FIELD = "next_caution";
+    static final String LAST_ACK_FIELD = "last_ack";
     static final String TASK_OVERDUE_ACTION = "com.vpe_soft.intime.intime.TaskOverdue";
     static final String NOTIFICATION_TAG = "com.vpe_soft.intime.intime.NotificationTag";
 
@@ -54,15 +59,20 @@ class Util {
 
     public static TaskInfo findTaskById(SQLiteDatabase database, long id) {
         Log.d(TAG, "findTaskById");
-        try (Cursor query = database.query(TASK_TABLE, new String[]{"description", "interval", "amount", NEXT_ALARM_FIELD, "next_caution", "last_ack"}, "id=" + id, null, null, null, null, "1")) {
+        try (Cursor query = database.query(
+                TASK_TABLE,
+                new String[]{DESCRIPTION_FIELD, INTERVAL_FIELD, AMOUNT_FIELD, NEXT_ALARM_FIELD, NEXT_CAUTION_FIELD, LAST_ACK_FIELD},
+                "id=?",
+                new String[]{Long.toString(id)},
+                null, null, null, "1")) {
             if (query.moveToNext()) {
                 Log.d(TAG, "findTaskById: task was found");
-                String description = query.getString(query.getColumnIndexOrThrow("description"));
-                int interval = query.getInt(query.getColumnIndexOrThrow("interval"));
-                int amount = query.getInt(query.getColumnIndexOrThrow("amount"));
+                String description = query.getString(query.getColumnIndexOrThrow(DESCRIPTION_FIELD));
+                int interval = query.getInt(query.getColumnIndexOrThrow(INTERVAL_FIELD));
+                int amount = query.getInt(query.getColumnIndexOrThrow(AMOUNT_FIELD));
                 long nextAlarm = query.getLong(query.getColumnIndexOrThrow(NEXT_ALARM_FIELD));
-                long nextCaution = query.getLong(query.getColumnIndexOrThrow("next_caution"));
-                long lastAck = query.getLong(query.getColumnIndexOrThrow("last_ack"));
+                long nextCaution = query.getLong(query.getColumnIndexOrThrow(NEXT_CAUTION_FIELD));
+                long lastAck = query.getLong(query.getColumnIndexOrThrow(LAST_ACK_FIELD));
                 return new TaskInfo(id, description, interval, amount, nextAlarm, nextCaution, lastAck);
             } else {
                 Log.d(TAG, "findTaskById: task not found");
@@ -111,10 +121,10 @@ class Util {
         Log.d(TAG, "getNextAlarm");
         InTimeOpenHelper openHelper = new InTimeOpenHelper(context);
         try (SQLiteDatabase database = openHelper.getReadableDatabase()) {
-            try (Cursor cursor = database.query(TASK_TABLE, new String[]{"id", NEXT_ALARM_FIELD, "description"}, "next_alarm>?", new String[]{String.valueOf(currentTimestamp)}, null, null, NEXT_ALARM_FIELD, "1")) {
+            try (Cursor cursor = database.query(TASK_TABLE, new String[]{ NEXT_ALARM_FIELD, DESCRIPTION_FIELD}, NEXT_ALARM_FIELD + ">?", new String[]{Long.toString(currentTimestamp)}, null, null, NEXT_ALARM_FIELD, "1")) {
                 if (cursor.moveToNext()) {
                     long nextAlarm = cursor.getLong(cursor.getColumnIndexOrThrow(NEXT_ALARM_FIELD));
-                    String description = cursor.getString(cursor.getColumnIndexOrThrow("description"));
+                    String description = cursor.getString(cursor.getColumnIndexOrThrow(DESCRIPTION_FIELD));
                     NextTaskInfo task = new NextTaskInfo(nextAlarm, description);
                     return task;
                 } else {
@@ -137,7 +147,7 @@ class Util {
                     database,
                     TASK_TABLE,
                     NEXT_ALARM_FIELD+"<?",
-                    new String[]{String.valueOf(currentTimeMillis)});
+                    new String[]{Long.toString(currentTimeMillis)});
             return rowsCount;
         }
     }
@@ -146,7 +156,7 @@ class Util {
         try (SQLiteDatabase database = new InTimeOpenHelper(context).getReadableDatabase()) {
             long tasksCount = DatabaseUtils.queryNumEntries(
                     database,
-                    "tasks",
+                    TASK_TABLE,
                     NEXT_ALARM_FIELD + ">?" + " AND " + NEXT_ALARM_FIELD + "<?",
                     new String[]{Long.toString(lastUsageTimestamp), Long.toString(currentTimestamp)});
             return tasksCount;
