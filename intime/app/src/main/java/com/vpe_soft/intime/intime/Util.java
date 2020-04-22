@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
@@ -21,6 +22,7 @@ class Util {
     private static final String TAG = "Util";
 
     static final String TASK_TABLE = "main.tasks";
+    static final String NEXT_ALARM_FIELD = "next_alarm";
     static final String TASK_OVERDUE_ACTION = "com.vpe_soft.intime.intime.TaskOverdue";
     static final String NOTIFICATION_TAG = "com.vpe_soft.intime.intime.NotificationTag";
 
@@ -52,13 +54,13 @@ class Util {
 
     public static TaskInfo findTaskById(SQLiteDatabase database, long id) {
         Log.d(TAG, "findTaskById");
-        try (Cursor query = database.query(TASK_TABLE, new String[]{"description", "interval", "amount", "next_alarm", "next_caution", "last_ack"}, "id=" + id, null, null, null, null, "1")) {
+        try (Cursor query = database.query(TASK_TABLE, new String[]{"description", "interval", "amount", NEXT_ALARM_FIELD, "next_caution", "last_ack"}, "id=" + id, null, null, null, null, "1")) {
             if (query.moveToNext()) {
                 Log.d(TAG, "findTaskById: task was found");
                 String description = query.getString(query.getColumnIndexOrThrow("description"));
                 int interval = query.getInt(query.getColumnIndexOrThrow("interval"));
                 int amount = query.getInt(query.getColumnIndexOrThrow("amount"));
-                long nextAlarm = query.getLong(query.getColumnIndexOrThrow("next_alarm"));
+                long nextAlarm = query.getLong(query.getColumnIndexOrThrow(NEXT_ALARM_FIELD));
                 long nextCaution = query.getLong(query.getColumnIndexOrThrow("next_caution"));
                 long lastAck = query.getLong(query.getColumnIndexOrThrow("last_ack"));
                 return new TaskInfo(id, description, interval, amount, nextAlarm, nextCaution, lastAck);
@@ -76,10 +78,10 @@ class Util {
         InTimeOpenHelper openHelper = new InTimeOpenHelper(context);
         try (SQLiteDatabase database = openHelper.getReadableDatabase()) {
             final long currentTimestamp = System.currentTimeMillis();
-            try (Cursor next_alarm = database.query(TASK_TABLE, new String[]{"id", "next_alarm", "description"}, "next_alarm>" + currentTimestamp, null, null, null, "next_alarm", "1")) {
+            try (Cursor next_alarm = database.query(TASK_TABLE, new String[]{"id", NEXT_ALARM_FIELD, "description"}, "next_alarm>?", new String[]{String.valueOf(currentTimestamp)}, null, null, NEXT_ALARM_FIELD, "1")) {
                 if (next_alarm.moveToNext()) {
                     Log.d(TAG, "setupAlarmIfRequired: task was found. going to setup alarm");
-                    long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm"));
+                    long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow(NEXT_ALARM_FIELD));
                     alarmManager.set(
                             AlarmManager.RTC_WAKEUP,
                             nextAlarm,
@@ -98,5 +100,16 @@ class Util {
         final Intent intent = new Intent(context, AlarmReceiver.class);
         intent.putExtra("task_description", taskDescription);
         return PendingIntent.getBroadcast(context, 199709, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+    }
+
+    public static long getNumberOfOverDueTasks(Context context, long currentTimeMillis) {
+        try (SQLiteDatabase database = new InTimeOpenHelper(context).getReadableDatabase()) {
+            long rowsCount = DatabaseUtils.queryNumEntries(
+                    database,
+                    TASK_TABLE,
+                    NEXT_ALARM_FIELD+"<?",
+                    new String[]{String.valueOf(currentTimeMillis)});
+            return rowsCount;
+        }
     }
 }

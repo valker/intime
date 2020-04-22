@@ -19,4 +19,5 @@
     <string name="boot_completed_overdue_tasks_notification">During device was off a number of tasks were overdue</string>
     <string name="no_tasks_were_added_yet">No tasks were added</string>
     <string name="edit_task_activity_title">Edit task</string>
+    <string name="notification_format">%s and %d more task(s)</string>
 </resources>

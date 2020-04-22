@@ -27,7 +27,23 @@ public class AlarmReceiver extends BroadcastReceiver {
             Log.e(TAG, "onReceive: unexpected error", e);
         }
 
-        s = s == null ? "unknown" : s;
+
+        // prevent empty description
+        s = s == null || s.length() == 0
+                ? "unknown"
+                : s;
+
+        final long currentTimeMillis = System.currentTimeMillis();
+        long overdueCount = Util.getNumberOfOverDueTasks(context, currentTimeMillis);
+
+        // if there are other overdue tasks, modify notification text to let user know about that
+        if(overdueCount > 1) {
+            s = String.format(
+                    context.getResources().getConfiguration().locale,
+                    context.getString(R.string.notification_format),
+                    s,
+                    overdueCount-1);
+        }
 
         Intent broadcastIntent = new Intent(Util.TASK_OVERDUE_ACTION);
         broadcastIntent.putExtra("task_description", s);
