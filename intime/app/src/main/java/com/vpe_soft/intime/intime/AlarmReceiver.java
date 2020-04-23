@@ -55,6 +55,8 @@ public class AlarmReceiver extends BroadcastReceiver {
         } else {
             Log.d(TAG, "onReceive: won't show notification");
         }
+
+        Util.setupAlarmIfRequired(context);
     }
 
     private static void showNotification(Context context, String s) {
