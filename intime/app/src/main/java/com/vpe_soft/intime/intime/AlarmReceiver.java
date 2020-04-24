@@ -38,11 +38,7 @@ public class AlarmReceiver extends BroadcastReceiver {
 
         // if there are other overdue tasks, modify notification text to let user know about that
         if(overdueCount > 1) {
-            s = String.format(
-                    context.getResources().getConfiguration().locale,
-                    context.getString(R.string.notification_format),
-                    s,
-                    overdueCount-1);
+            s = Util.getNotificationString(context, s, overdueCount);
         }
 
         Intent broadcastIntent = new Intent(Util.TASK_OVERDUE_ACTION);

@@ -9,6 +9,8 @@ import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
+import java.text.ChoiceFormat;
+import java.text.MessageFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -96,6 +98,31 @@ class Util {
                     nextAlarm.getDescription()));
         } else {
             Log.d(TAG, "setupAlarmIfRequired: no task with alarm in future found");
+        }
+    }
+
+    public static String getNotificationString(Context context, String taskDescription, long overdueTasksCount) {
+        String formatString = context.getString(R.string.notification_format);
+        Locale locale = context.getResources().getConfiguration().locale;
+        MessageFormat format = new MessageFormat(formatString, locale);
+        ChoiceFormat cfn = getTaskChoiceFormat(locale.getISO3Language());
+        format.setFormatByArgumentIndex(2, cfn);
+        Object[] args = {taskDescription, overdueTasksCount - 1, overdueTasksCount - 1};
+        taskDescription = format.format(args);
+        return taskDescription;
+    }
+
+    public static ChoiceFormat getTaskChoiceFormat(String iso3Language) {
+        if(iso3Language.equals("rus")) {
+            double[] limits = {1,2,5,21,22,25};
+            String[] texts = {"задача","задачи", "задач", "задача", "задачи", "задач"};
+            return new ChoiceFormat(limits, texts);
+        }
+        else {
+            // other language - english by default
+            double[] limits = {1,2};
+            String[] texts = {"task", "tasks"};
+            return new ChoiceFormat(limits, texts);
         }
     }
 
