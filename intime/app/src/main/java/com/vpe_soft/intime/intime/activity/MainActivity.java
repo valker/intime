@@ -78,7 +78,6 @@ public class MainActivity extends AppCompatActivity{
         recyclerView.setLayoutManager(layoutManager);
         adapter = new TaskRecyclerViewAdapter(this, cursor, getResources().getConfiguration().locale);
         recyclerView.setAdapter(adapter);
-        //TODO: fucking swipes
         final ItemTouchHelper.SimpleCallback simpleItemTouchCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
             @Override
             public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
@@ -91,7 +90,7 @@ public class MainActivity extends AppCompatActivity{
             @Override
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
                 int pos = viewHolder.getAdapterPosition();
-                acknowledgeTask(Util.getId(getCursor(), pos));
+                acknowledgeTask(Util.getId(cursor, pos));
                 adapter.swapCursor(Util.createCursor(getContext()));
                 adapter.notifyItemChanged(pos);
             }
@@ -132,46 +131,6 @@ public class MainActivity extends AppCompatActivity{
         super.onResume();
     }
 
-    @Override
-    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
-            /*if (v.getId() == android.R.id.list) {
-            String[] menuItems = new String[]{
-                    getString(R.string.context_menu_acknowledge),
-                    getString(R.string.context_menu_edit),
-                    getString(R.string.context_menu_delete)
-            };
-            for (int i = 0; i < menuItems.length; i++) {
-                menu.add(Menu.NONE, i, i, menuItems[i]);
-            }
-        }*/
-    }
-
-    //TODO: rewrite onContextItemSelected because ContextMenu was deleted
-    @Override
-    public boolean onContextItemSelected(MenuItem item) {
-        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
-        int menuItemIndex = item.getItemId();
-
-        switch (menuItemIndex) {
-            case 0:
-                acknowledgeTask(info.id);
-                refreshRecyclerView();
-                break;
-            case 1:
-                editTask(info.id);
-                refreshRecyclerView();
-                break;
-            case 2:
-                deleteTask(info.id);
-                refreshRecyclerView();
-                break;
-            default:
-                throw new RuntimeException("wrong menu item");
-        }
-
-        return true;
-    }
-
     private void editTask(long id) {
         Log.d(TAG, "editTask");
         Intent intent = new Intent(this, NewTaskActivity.class);
@@ -180,7 +139,6 @@ public class MainActivity extends AppCompatActivity{
         startActivity(intent);
     }
 
-    //TODO: create timer for task status updating on screen
     private void acknowledgeTask(long id) {
         final long currentTimeMillis = System.currentTimeMillis();
         SQLiteDatabase database = Util.getWritableDatabaseFromContext(this);
@@ -261,32 +219,6 @@ public class MainActivity extends AppCompatActivity{
 
     private Context getContext(){
         return this;
-    }
-
-    private Cursor getCursor() {
-        return cursor;
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        Log.d(TAG, "onCreateOptionsMenu");
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        /*Log.d(TAG, "onOptionsItemSelected");
-        int id = item.getItemId();
-        if (id == R.id.action_new_task) {
-            Log.d(TAG, "onOptionsItemSelected: 'new task' pressed");
-            Intent intent = new Intent(this, NewTaskActivity.class);
-            intent.putExtra("action", "create");
-            startActivity(intent);
-            return true;
-        }*/
-
-        return super.onOptionsItemSelected(item);
     }
 
     private MyBroadcastReceiver getReceiver() {

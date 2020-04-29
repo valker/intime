@@ -2,15 +2,14 @@ package com.vpe_soft.intime.intime.recyclerview;
 
 import android.content.Context;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.util.Log;
 
 import androidx.cardview.widget.CardView;
 
@@ -43,13 +42,13 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
         public TextView title;
         public TextView date;
         public CardView card;
-        public LinearLayout linear;
+        public LinearLayout indicator;
         public TaskRecyclerViewVH(View itemView) {
             super(itemView);
             title = itemView.findViewById(R.id.textview1);
             date = itemView.findViewById(R.id.textview2);
             card = itemView.findViewById(R.id.linear1);
-            linear = itemView.findViewById(R.id.linear2);
+            indicator = itemView.findViewById(R.id.indicator);
         }
 
         @Override
@@ -57,39 +56,31 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             String description = cursor.getString(cursor.getColumnIndexOrThrow("description"));
             long nextAlarm = cursor.getLong(cursor.getColumnIndexOrThrow("next_alarm"));
             long nextCaution = cursor.getLong(cursor.getColumnIndexOrThrow("next_caution"));
-            Log.d("tag", "desc " + description);
-            Log.d("tag", "next_alarm " + nextAlarm);
-            Log.d("tag", "next_caution " + nextCaution);
             // 0 - not ready (white), 1 - almost (yellow), 2 - ready (red)
             int phase = System.currentTimeMillis() > nextCaution ? System.currentTimeMillis() > nextCaution ? 2 : 1 : 0;
-            Log.d("tag", "phase " + phase);
             card.setCardElevation(12f);
             card.setRadius(40f);
+            GradientDrawable gradientDrawable = new GradientDrawable();
+            gradientDrawable.setCornerRadius(40f);
             switch(phase){
                 case 0:
-                    linear.setBackgroundColor(Color.parseColor("#FFFFFF"));
-                    title.setTextColor(Color.parseColor("#000000"));
-                    date.setTextColor(Color.parseColor("#757575"));
+                    gradientDrawable.setColor(Color.parseColor("#FFFFFF"));
                     break;
                 case 1:
-                    linear.setBackgroundColor(Color.parseColor("#FFC627"));
-                    title.setTextColor(Color.parseColor("#F7F7F7"));
-                    date.setTextColor(Color.parseColor("#F7F7F7"));
+                    gradientDrawable.setColor(Color.parseColor("#FFC627"));
                     break;
                 case 2:
-                    linear.setBackgroundColor(Color.parseColor("#D8232A"));
-                    title.setTextColor(Color.parseColor("#F7F7F7"));
-                    date.setTextColor(Color.parseColor("#F7F7F7"));
+                    gradientDrawable.setColor(Color.parseColor("#D8232A"));
                     break;
             }
+            indicator.setBackground(gradientDrawable);
             title.setText(description);
-            date.setText("date " + Util.getDateFromNextAlarm(locale, nextAlarm) + "\n"
+            date.setText(Util.getDateFromNextAlarm(locale, nextAlarm));
+                /* + "\n"
                     + "next_alarm " + nextAlarm + "\n"
                     + "next_caution " + nextCaution + "\n"
                     + "id " + cursor.getPosition() + "\n"
-                    + "phase " + phase + "\n"
-
-            );
+                    + "phase " + phase + "\n"*/
             title.setTypeface(Typeface.createFromAsset(context.getAssets(),"font/font.ttf"), Typeface.BOLD);
             date.setTypeface(Typeface.createFromAsset(context.getAssets(),"font/font.ttf"), Typeface.BOLD);
         }

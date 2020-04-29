@@ -31,7 +31,7 @@ public class ManageDialogView {
         });*/
         dialog.create().show();
     }
-    private class TextViewWithFont extends AppCompatTextView {
+    public class TextViewWithFont extends AppCompatTextView {
         public TextViewWithFont(Context context, AttributeSet attrs, int defStyle) {
             super(context, attrs, defStyle);
             init(context);

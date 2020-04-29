@@ -4,7 +4,6 @@ import android.content.ContentValues;
 import android.content.Intent;
 import androidx.appcompat.widget.Toolbar;
 import android.database.sqlite.SQLiteDatabase;
-import androidx.annotation.NonNull;
 import androidx.core.app.NavUtils;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
@@ -175,7 +174,6 @@ public class NewTaskActivity extends AppCompatActivity{
         }
     }
 
-    @NonNull
     private ContentValues getContentValuesForNewTask(String description, int interval, int amount, long nextAlarm, long nextCaution) {
         Log.d(TAG, "getContentValuesForNewTask(long)");
         ContentValues contentValues = new ContentValues();
@@ -187,7 +185,6 @@ public class NewTaskActivity extends AppCompatActivity{
         return contentValues;
     }
 
-    @NonNull
     private ContentValues getContentValuesForNewTask(String description, int interval, int amount) {
         Log.d(TAG, "getContentValuesForNewTask(short)");
         ContentValues contentValues = new ContentValues();
