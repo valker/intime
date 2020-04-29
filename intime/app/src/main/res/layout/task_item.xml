@@ -4,10 +4,9 @@
     android:id="@+id/linear1"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginLeft="2dp"
-    android:layout_marginRight="2dp"
-    android:layout_marginBottom="2dp"
-    android:orientation="horizontal">
+    android:layout_marginLeft="5dp"
+    android:layout_marginRight="5dp"
+    android:layout_marginBottom="2dp">
     <LinearLayout
         android:padding="10dp"
         android:layout_width="match_parent"
@@ -15,9 +14,16 @@
         android:orientation="horizontal">
         <LinearLayout
             android:id="@+id/indicator"
-            android:orientation="horizontal"
+            android:orientation="vertical"
             android:layout_width="25dp"
-            android:layout_height="25dp"/>
+            android:padding="2dp"
+            android:layout_height="match_parent">
+            <LinearLayout
+                android:id="@+id/help"
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"/>
+        </LinearLayout>
         <LinearLayout
             android:id="@+id/linear2"
             android:layout_width="match_parent"
@@ -44,6 +50,6 @@
                 android:text="Description"
                 android:textSize="16sp"
                 android:textColor="#595959"/>
-    </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

@@ -23,7 +23,6 @@ import com.vpe_soft.intime.intime.util.Util;
 
 import java.util.Objects;
 
-
 abstract class TaskViewModel {
     final NewTaskActivity _parent;
 
@@ -57,6 +56,7 @@ abstract class TaskViewModel {
 
     protected abstract void OnHandleTask(String description, int interval, int amount, long currentTimeMillis);
 }
+
 class CreateTaskViewModel extends TaskViewModel {
     CreateTaskViewModel(NewTaskActivity parent) {
         super(parent);
@@ -67,6 +67,7 @@ class CreateTaskViewModel extends TaskViewModel {
         _parent.createNewTask(description, interval, amount, currentTimeMillis);
     }
 }
+
 class UpdateTaskViewModel extends TaskViewModel {
     UpdateTaskViewModel(NewTaskActivity parent) {
         super(parent);

@@ -17,13 +17,9 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.ContextMenu;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -31,11 +27,12 @@ import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.Task;
 import com.vpe_soft.intime.intime.recyclerview.TaskRecyclerViewAdapter;
 import com.vpe_soft.intime.intime.util.Util;
+import com.vpe_soft.intime.intime.view.ManageDialogView;
 
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class MainActivity extends AppCompatActivity{
+public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
 
@@ -58,9 +55,8 @@ public class MainActivity extends AppCompatActivity{
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         window.setStatusBarColor(Color.parseColor("#F7F7F7"));
-        window.setNavigationBarColor(Color.parseColor("#F7F7F7"));
         TextView title = findViewById(R.id.title_text);
-        title.setTypeface(Typeface.createFromAsset(getAssets(),"font/font.ttf"), Typeface.BOLD);
+        title.setTypeface(Util.getTypeface(this), Typeface.NORMAL);
         ImageView addTask = findViewById(R.id.add_task);
         addTask.setOnClickListener(new View.OnClickListener(){
             @Override
@@ -90,7 +86,7 @@ public class MainActivity extends AppCompatActivity{
             @Override
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
                 int pos = viewHolder.getAdapterPosition();
-                acknowledgeTask(Util.getId(cursor, pos));
+                acknowledgeTask(Util.getId(getContext(), pos));
                 adapter.swapCursor(Util.createCursor(getContext()));
                 adapter.notifyItemChanged(pos);
             }
@@ -168,14 +164,14 @@ public class MainActivity extends AppCompatActivity{
         createAlarm();
     }
 
-    private void createAlarm(){
+    private void createAlarm() {
         Log.d(TAG, "createAlarm");
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(Util.NOTIFICATION_TAG, 1);
         Util.setupAlarmIfRequired(this);
     }
 
-    private void createTimer(final long timeInterval){
+    private void createTimer(final long timeInterval) {
         Log.d(TAG, "createTimer");
         TimerTask timertask = new TimerTask() {
             @Override
@@ -205,7 +201,8 @@ public class MainActivity extends AppCompatActivity{
         try {
 			SQLiteDatabase database = Util.getWritableDatabaseFromContext(this);
             final String identifier = "" + id;
-            int result = database.delete(Util.TASK_TABLE, "id=?", new String[]{identifier});
+            int result = database.delete(Util.TASK_TABLE, "id=" + id, null);
+            Log.d("tag", String.valueOf(result));
             if (result != 1) {
                 throw new RuntimeException("wrong removing of the task");
             }
@@ -213,7 +210,6 @@ public class MainActivity extends AppCompatActivity{
         } catch (Exception ex) {
             Log.e(TAG, "deleteTask: cannot delete task", ex);
         }
-
         createAlarm();
     }
 
@@ -226,6 +222,35 @@ public class MainActivity extends AppCompatActivity{
             receiver = new MyBroadcastReceiver();
         }
         return receiver;
+    }
+
+    public void onItemLongClicked(long id, int pos) {
+        ManageDialogView dialog = new ManageDialogView(this, new ManageDialogView.Actions() {
+            @Override
+            public void acknowledge(long id, int pos) {
+                Log.d("tag","id " + id);
+                Log.d("tag","pos " + pos);
+                acknowledgeTask(id);
+                adapter.swapCursor(Util.createCursor(getContext()));
+                adapter.notifyItemChanged(pos);
+            }
+
+            @Override
+            public void edit(long id, int pos) {
+                Log.d("tag","id " + id);
+                Log.d("tag","pos " + pos);
+                editTask(id);
+            }
+
+            @Override
+            public void delete(long id, int pos) {
+                Log.d("tag","id " + id);
+                Log.d("tag","pos " + pos);
+                deleteTask(id);
+                adapter.notifyItemRemoved(pos);
+            }
+        }, id, pos);
+        dialog.show();
     }
 
     class MyBroadcastReceiver extends android.content.BroadcastReceiver {

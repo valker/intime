@@ -2,12 +2,19 @@ package com.vpe_soft.intime.intime.util;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.database.CharArrayBuffer;
+import android.database.ContentObserver;
 import android.database.Cursor;
+import android.database.DataSetObserver;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.text.format.DateFormat;
 import android.util.Log;
 
@@ -68,7 +75,7 @@ public class Util {
 
     public static Cursor createCursor(Context context) {
         SQLiteDatabase database = Util.getReadableDatabaseFromContext(context);
-        return database.query(Util.TASK_TABLE,new String[]{"description", "id AS _id", "next_alarm", "next_caution"}, null, null, null, null, "_id");
+        return database.query(Util.TASK_TABLE,new String[]{"description", "id AS _id", "next_alarm", "next_caution"}, null, null, null, null, "next_alarm");
     }
 
     public static String getDateFromNextAlarm(Locale locale, long nextAlarm){
@@ -77,6 +84,10 @@ public class Util {
         SimpleDateFormat format = new SimpleDateFormat(pattern, locale);
         format.setTimeZone(TimeZone.getDefault());
         return format.format(date);
+    }
+
+    public static Typeface getTypeface(Context context){
+        return Typeface.createFromAsset(context.getAssets(),"font/font.ttf");
     }
 
     public static int getDatabaseLengthFromContext(Context context){
@@ -91,7 +102,8 @@ public class Util {
         return (int) length;
     }
 
-    public static long getId(Cursor cursor, int position) {
+    public static long getId(Context context, int position) {
+        Cursor cursor = createCursor(context);
         cursor.moveToPosition(position);
         return cursor.getLong(cursor.getColumnIndex("_id"));
     }
