@@ -18,10 +18,13 @@ import android.os.Bundle;
 import android.text.format.DateFormat;
 import android.util.Log;
 
+import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
 import com.vpe_soft.intime.intime.database.Task;
 import com.vpe_soft.intime.intime.receiver.AlarmReceiver;
 
+import java.text.ChoiceFormat;
+import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -44,6 +47,12 @@ public class Util {
     public static final String SKELETON = "jjmm ddMMyyyy";
 
     public static final String TASK_TABLE = "main.tasks";
+    static final String NEXT_ALARM_FIELD = "next_alarm";
+    static final String DESCRIPTION_FIELD = "description";
+    static final String INTERVAL_FIELD = "interval";
+    static final String AMOUNT_FIELD = "amount";
+    static final String NEXT_CAUTION_FIELD = "next_caution";
+    static final String LAST_ACK_FIELD = "last_ack";
     public static final String TASK_OVERDUE_ACTION = "com.vpe_soft.intime.intime.TaskOverdue";
     public static final String NOTIFICATION_TAG = "com.vpe_soft.intime.intime.NotificationTag";
 
@@ -196,10 +205,75 @@ public class Util {
         }
     }
 
+    public static String getNotificationString(Context context, String taskDescription, long overdueTasksCount) {
+        String formatString = context.getString(R.string.notification_format);
+        Locale locale = context.getResources().getConfiguration().locale;
+        MessageFormat format = new MessageFormat(formatString, locale);
+        ChoiceFormat cfn = getTaskChoiceFormat(locale.getISO3Language());
+        format.setFormatByArgumentIndex(2, cfn);
+        Object[] args = {taskDescription, overdueTasksCount - 1, overdueTasksCount - 1};
+        taskDescription = format.format(args);
+        return taskDescription;
+    }
+
+    public static ChoiceFormat getTaskChoiceFormat(String iso3Language) {
+        if(iso3Language.equals("rus")) {
+            double[] limits = {1,2,5,21,22,25};
+            String[] texts = {"задача","задачи", "задач", "задача", "задачи", "задач"};
+            return new ChoiceFormat(limits, texts);
+        }
+        else {
+            // other language - english by default
+            double[] limits = {1,2};
+            String[] texts = {"task", "tasks"};
+            return new ChoiceFormat(limits, texts);
+        }
+    }
+
+    static class NextTaskInfo {
+        private final long _nextAlarm;
+        private final String _description;
+
+        NextTaskInfo(long nextAlarm, String description) {
+            _nextAlarm = nextAlarm;
+            _description = description;
+        }
+
+        public long getNextAlarm() {
+            return _nextAlarm;
+        }
+
+        public String getDescription() {
+            return _description;
+        }
+    }
+
     private static PendingIntent createPendingIntent(Context context, String taskDescription) {
         Log.d(TAG, "createPendingIntent");
         final Intent intent = new Intent(context, AlarmReceiver.class);
         intent.putExtra("task_description", taskDescription);
         return PendingIntent.getBroadcast(context, 199709, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+    }
+
+    public static long getNumberOfOverDueTasks(Context context, long currentTimeMillis) {
+        try (SQLiteDatabase database = new InTimeOpenHelper(context).getReadableDatabase()) {
+            long rowsCount = DatabaseUtils.queryNumEntries(
+                    database,
+                    TASK_TABLE,
+                    NEXT_ALARM_FIELD+"<?",
+                    new String[]{Long.toString(currentTimeMillis)});
+            return rowsCount;
+        }
+    }
+
+    public static long getNumberOfSkippedTasks(Context context, long lastUsageTimestamp, long currentTimestamp) {
+        try (SQLiteDatabase database = new InTimeOpenHelper(context).getReadableDatabase()) {
+            long tasksCount = DatabaseUtils.queryNumEntries(
+                    database,
+                    TASK_TABLE,
+                    NEXT_ALARM_FIELD + ">?" + " AND " + NEXT_ALARM_FIELD + "<?",
+                    new String[]{Long.toString(lastUsageTimestamp), Long.toString(currentTimestamp)});
+            return tasksCount;
+        }
     }
 }
