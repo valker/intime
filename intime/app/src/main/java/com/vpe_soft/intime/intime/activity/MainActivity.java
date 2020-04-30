@@ -199,8 +199,7 @@ public class MainActivity extends AppCompatActivity {
     private void deleteTask(long id) {
         Log.d(TAG, "deleteTask");
         try {
-			SQLiteDatabase database = Util.getWritableDatabaseFromContext(this);
-            final String identifier = "" + id;
+            SQLiteDatabase database = Util.getWritableDatabaseFromContext(this);
             int result = database.delete(Util.TASK_TABLE, "id=" + id, null);
             Log.d("tag", String.valueOf(result));
             if (result != 1) {
@@ -224,10 +223,10 @@ public class MainActivity extends AppCompatActivity {
         return receiver;
     }
 
-    public void onItemLongClicked(long id, int pos) {
+    public void onItemLongClicked(final long id, final int pos) {
         ManageDialogView dialog = new ManageDialogView(this, new ManageDialogView.Actions() {
             @Override
-            public void acknowledge(long id, int pos) {
+            public void acknowledge() {
                 Log.d("tag","id " + id);
                 Log.d("tag","pos " + pos);
                 acknowledgeTask(id);
@@ -236,20 +235,22 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void edit(long id, int pos) {
+            public void edit() {
                 Log.d("tag","id " + id);
                 Log.d("tag","pos " + pos);
                 editTask(id);
             }
 
             @Override
-            public void delete(long id, int pos) {
+            public void delete() {
                 Log.d("tag","id " + id);
                 Log.d("tag","pos " + pos);
                 deleteTask(id);
+                adapter.swapCursor(Util.createCursor(getContext()));
                 adapter.notifyItemRemoved(pos);
+                adapter.notifyItemRangeChanged(pos, Util.getDatabaseLengthFromContext(getContext()));
             }
-        }, id, pos);
+        });
         dialog.show();
     }
 

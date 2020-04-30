@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -57,6 +58,7 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
 
         @Override
         public void bindCursor(Cursor cursor) {
+            Log.d("tag", "redraw");
             String description = cursor.getString(cursor.getColumnIndexOrThrow("description"));
             long nextAlarm = cursor.getLong(cursor.getColumnIndexOrThrow("next_alarm"));
             long nextCaution = cursor.getLong(cursor.getColumnIndexOrThrow("next_caution"));
@@ -86,10 +88,12 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             help.setBackground(gradientDrawable2);
             title.setText(description);
             date.setText(Util.getDateFromNextAlarm(locale, nextAlarm));
-                /* + "\n"
+                 /*+ "\n"
                     + "next_alarm " + nextAlarm + "\n"
                     + "next_caution " + nextCaution + "\n"
-                    + "phase " + phase + "\n"*/
+                    + "id " + id + "\n"
+                    + "pos " + pos + "\n"
+                    + "phase " + phase + "\n");*/
             title.setTypeface(Util.getTypeface(context), Typeface.NORMAL);
             date.setTypeface(Util.getTypeface(context), Typeface.NORMAL);
             card.setOnLongClickListener(new View.OnLongClickListener() {

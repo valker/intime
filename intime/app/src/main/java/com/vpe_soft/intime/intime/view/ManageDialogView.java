@@ -14,14 +14,10 @@ public class ManageDialogView {
 
     private Context context;
     private Actions actions;
-    private int showAtTask;
-    private long taskId;
 
-    public ManageDialogView(Context context, Actions actions, long taskId, int showAtTask){
+    public ManageDialogView(Context context, Actions actions){
         this.context = context;
         this.actions = actions;
-        this.showAtTask = showAtTask;
-        this.taskId = taskId;
     }
 
     public void show(){
@@ -35,13 +31,13 @@ public class ManageDialogView {
             @Override public void onClick(DialogInterface dia, int pos) {
                 switch (pos) {
                     case 0:
-                        actions.acknowledge(taskId, showAtTask);
+                        actions.acknowledge();
                         break;
                     case 1:
-                        actions.edit(taskId, showAtTask);
+                        actions.edit();
                         break;
                     case 2:
-                        actions.delete(taskId, showAtTask);
+                        actions.delete();
                         break;
                 }
             }
@@ -49,8 +45,8 @@ public class ManageDialogView {
         dialog.create().show();
     }
     public interface Actions {
-        void acknowledge(long id, int pos);
-        void edit(long id, int pos);
-        void delete(long id, int pos);
+        void acknowledge();
+        void edit();
+        void delete();
     }
 }
