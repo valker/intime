@@ -122,6 +122,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         Log.d(TAG, "onResume");
         isOnScreen = true;
+        adapter.swapCursor(Util.createCursor(this));
         refreshRecyclerView();
         createAlarm();
         super.onResume();
@@ -189,10 +190,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void refreshRecyclerView() {
         Log.d(TAG, "refreshListView");
-        recyclerView.setAdapter(null);
-        recyclerView.setLayoutManager(null);
-        recyclerView.setAdapter(adapter);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
         adapter.notifyDataSetChanged();
     }
 
@@ -201,9 +198,8 @@ public class MainActivity extends AppCompatActivity {
         try {
             SQLiteDatabase database = Util.getWritableDatabaseFromContext(this);
             int result = database.delete(Util.TASK_TABLE, "id=" + id, null);
-            Log.d("tag", String.valueOf(result));
             if (result != 1) {
-                throw new RuntimeException("wrong removing of the task");
+                throw new RuntimeException();
             }
             database.close();
         } catch (Exception ex) {
