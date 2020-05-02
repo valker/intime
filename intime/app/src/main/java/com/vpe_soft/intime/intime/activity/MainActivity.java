@@ -41,10 +41,7 @@ public class MainActivity extends AppCompatActivity {
     private MyBroadcastReceiver receiver;
     private final Timer onScreenUpdate = new Timer();
 
-    private RecyclerView recyclerView;
     private TaskRecyclerViewAdapter adapter;
-
-    private Cursor cursor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,9 +63,9 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-        cursor = Util.createCursor(this);
+        Cursor cursor = Util.createCursor(this);
         //TODO: create empty view after deleting old empty view
-        recyclerView = findViewById(R.id.recyclerView);
+        RecyclerView recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setBackgroundColor(Color.parseColor("#F7F7F7"));
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
