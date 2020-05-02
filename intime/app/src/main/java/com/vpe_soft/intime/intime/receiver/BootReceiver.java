@@ -7,14 +7,12 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.DatabaseUtils;
-import android.database.sqlite.SQLiteDatabase;
-import androidx.core.app.NotificationCompat;
 import android.util.Log;
+
+import androidx.core.app.NotificationCompat;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.activity.MainActivity;
-import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
 import com.vpe_soft.intime.intime.util.Util;
 
 /**

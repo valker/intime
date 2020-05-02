@@ -2,19 +2,14 @@ package com.vpe_soft.intime.intime.util;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
-import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.database.CharArrayBuffer;
-import android.database.ContentObserver;
 import android.database.Cursor;
-import android.database.DataSetObserver;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Typeface;
-import android.net.Uri;
 import android.os.Build;
-import android.os.Bundle;
 import android.text.format.DateFormat;
 import android.util.Log;
 
@@ -44,15 +39,15 @@ public class Util {
 
     private static final String TAG = "Util";
 
-    public static final String SKELETON = "jjmm ddMMyyyy";
+    private static final String SKELETON = "jjmm ddMMyyyy";
 
-    public static final String TASK_TABLE = "main.tasks";
-    static final String NEXT_ALARM_FIELD = "next_alarm";
-    static final String DESCRIPTION_FIELD = "description";
-    static final String INTERVAL_FIELD = "interval";
-    static final String AMOUNT_FIELD = "amount";
-    static final String NEXT_CAUTION_FIELD = "next_caution";
-    static final String LAST_ACK_FIELD = "last_ack";
+    private static final String TASK_TABLE = "main.tasks";
+    private static final String NEXT_ALARM_FIELD = "next_alarm";
+    private static final String DESCRIPTION_FIELD = "description";
+    private static final String INTERVAL_FIELD = "interval";
+    private static final String AMOUNT_FIELD = "amount";
+    private static final String NEXT_CAUTION_FIELD = "next_caution";
+    private static final String LAST_ACK_FIELD = "last_ack";
     public static final String TASK_OVERDUE_ACTION = "com.vpe_soft.intime.intime.TaskOverdue";
     public static final String NOTIFICATION_TAG = "com.vpe_soft.intime.intime.NotificationTag";
 
@@ -84,7 +79,7 @@ public class Util {
 
     public static Cursor createCursor(Context context) {
         SQLiteDatabase database = Util.getReadableDatabaseFromContext(context);
-        return database.query(Util.TASK_TABLE,new String[]{"description", "id AS _id", "next_alarm", "next_caution"}, null, null, null, null, "next_alarm");
+        return database.query(Util.TASK_TABLE,new String[]{DESCRIPTION_FIELD, "id AS _id", NEXT_ALARM_FIELD, NEXT_CAUTION_FIELD}, null, null, null, null, NEXT_ALARM_FIELD);
     }
 
     public static String getDateFromNextAlarm(Locale locale, long nextAlarm){
@@ -100,15 +95,11 @@ public class Util {
     }
 
     public static int getDatabaseLengthFromContext(Context context){
-        SQLiteDatabase database = getReadableDatabaseFromContext(context);
-        long length = DatabaseUtils.queryNumEntries(database, TASK_TABLE);
-        database.close();
-        return (int) length;
-    }
-
-    public static int getDatabaseLength(SQLiteDatabase database){
-        long length = DatabaseUtils.queryNumEntries(database, TASK_TABLE);
-        return (int) length;
+        try (SQLiteDatabase database = getReadableDatabaseFromContext(context)) {
+            long length;
+            length = DatabaseUtils.queryNumEntries(database, TASK_TABLE);
+            return (int) length;
+        }
     }
 
     public static long getId(Context context, int position) {
@@ -120,50 +111,27 @@ public class Util {
     public static Task findTaskById(Context context, long id) {
         Log.d(TAG, "findTaskById");
         //next line may cause an error (not checked yet)
-        try (Cursor query = getReadableDatabaseFromContext(context).query(TASK_TABLE, new String[]{"description", "interval", "amount", "next_alarm", "next_caution", "last_ack"}, "id=" + id, null, null, null, null, "1")) {
-            if (query.moveToNext()) {
-                Log.d(TAG, "findTaskById: task was found");
-                String description = query.getString(query.getColumnIndexOrThrow("description"));
-                int interval = query.getInt(query.getColumnIndexOrThrow("interval"));
-                int amount = query.getInt(query.getColumnIndexOrThrow("amount"));
-                long nextAlarm = query.getLong(query.getColumnIndexOrThrow("next_alarm"));
-                long nextCaution = query.getLong(query.getColumnIndexOrThrow("next_caution"));
-                long lastAck = query.getLong(query.getColumnIndexOrThrow("last_ack"));
-                return new Task(description, interval, amount, nextAlarm, nextCaution, lastAck);
-            } else {
-                Log.d(TAG, "findTaskById: task not found");
+        try (SQLiteDatabase database = getReadableDatabaseFromContext(context)) {
+            try (Cursor cursor = database.query(TASK_TABLE, new String[]{DESCRIPTION_FIELD, INTERVAL_FIELD, AMOUNT_FIELD, NEXT_ALARM_FIELD, NEXT_CAUTION_FIELD, LAST_ACK_FIELD}, "id=?", withId(id), null, null, null, "1")) {
+                if (cursor.moveToNext()) {
+                    Log.d(TAG, "findTaskById: task was found");
+                    String description = cursor.getString(cursor.getColumnIndexOrThrow(DESCRIPTION_FIELD));
+                    int interval = cursor.getInt(cursor.getColumnIndexOrThrow(INTERVAL_FIELD));
+                    int amount = cursor.getInt(cursor.getColumnIndexOrThrow(AMOUNT_FIELD));
+                    long nextAlarm = cursor.getLong(cursor.getColumnIndexOrThrow(NEXT_ALARM_FIELD));
+                    long nextCaution = cursor.getLong(cursor.getColumnIndexOrThrow(NEXT_CAUTION_FIELD));
+                    long lastAck = cursor.getLong(cursor.getColumnIndexOrThrow(LAST_ACK_FIELD));
+                    return new Task(description, interval, amount, nextAlarm, nextCaution, lastAck);
+                } else {
+                    Log.d(TAG, "findTaskById: task not found");
+                }
             }
         }
 
         return null;
     }
 
-    public static Task[] getTasksFromDatabase(Context context){
-        SQLiteDatabase database = getReadableDatabaseFromContext(context);
-        int length = getDatabaseLength(database);
-        Task[] tasks = new Task[length];
-        if(length != 0){
-            for(int a = 1; a <= length; a++){
-                try (Cursor query = database.query(TASK_TABLE, new String[]{"description", "interval", "amount", "next_alarm", "next_caution", "last_ack"}, "id=" + a, null, null, null, null, "1")) {
-                    if (query.moveToNext()) {
-                        Log.d(TAG, "findTaskById: task was found");
-                        String description = query.getString(query.getColumnIndexOrThrow("description"));
-                        int interval = query.getInt(query.getColumnIndexOrThrow("interval"));
-                        int amount = query.getInt(query.getColumnIndexOrThrow("amount"));
-                        long nextAlarm = query.getLong(query.getColumnIndexOrThrow("next_alarm"));
-                        long nextCaution = query.getLong(query.getColumnIndexOrThrow("next_caution"));
-                        long lastAck = query.getLong(query.getColumnIndexOrThrow("last_ack"));
-                        tasks[a - 1] = new Task(description, interval, amount, nextAlarm, nextCaution, lastAck);
-                    }
-                }
-            }
-        } else {
-            Log.d(TAG, "findTaskById: task not found");
-        }
-        return tasks;
-    }
-
-    public static SQLiteDatabase getReadableDatabaseFromContext(Context context){
+    private static SQLiteDatabase getReadableDatabaseFromContext(Context context){
         InTimeOpenHelper helper = new InTimeOpenHelper(context);
         return helper.getReadableDatabase();
     }
@@ -176,27 +144,25 @@ public class Util {
     public static void setupAlarmIfRequired(Context context) {
         Log.d(TAG, "setupAlarmIfRequired");
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        InTimeOpenHelper openHelper = new InTimeOpenHelper(context);
-        try (SQLiteDatabase database = openHelper.getReadableDatabase()) {
+        try (SQLiteDatabase database = getReadableDatabaseFromContext(context)) {
             final long currentTimestamp = System.currentTimeMillis();
-            try (Cursor next_alarm = database.query(TASK_TABLE, new String[]{"id", "next_alarm", "description"}, "next_alarm>" + currentTimestamp, null, null, null, "next_alarm", "1")) {
+            try (Cursor next_alarm = database.query(TASK_TABLE, new String[]{"id", NEXT_ALARM_FIELD, DESCRIPTION_FIELD}, "next_alarm>?", new String[]{Long.toString(currentTimestamp)}, null, null, NEXT_ALARM_FIELD, "1")) {
                 if (next_alarm.moveToNext()) {
                     Log.d(TAG, "setupAlarmIfRequired: task was found. going to setup alarm");
-                    long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow("next_alarm"));
+                    long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow(NEXT_ALARM_FIELD));
+                    final PendingIntent pendingIntent = createPendingIntent(
+                            context,
+                            next_alarm.getString(next_alarm.getColumnIndexOrThrow(DESCRIPTION_FIELD)));
                     if(Build.VERSION.SDK_INT>=23) {
                         alarmManager.setAndAllowWhileIdle(
                                 AlarmManager.RTC_WAKEUP,
                                 nextAlarm,
-                                createPendingIntent(
-                                        context,
-                                        next_alarm.getString(next_alarm.getColumnIndexOrThrow("description"))));
+                                pendingIntent);
                     }else {
                         alarmManager.set(
                                 AlarmManager.RTC_WAKEUP,
                                 nextAlarm,
-                                createPendingIntent(
-                                        context,
-                                        next_alarm.getString(next_alarm.getColumnIndexOrThrow("description"))));
+                                pendingIntent);
                     }
                 } else {
                     Log.d(TAG, "setupAlarmIfRequired: no task with alarm in future found");
@@ -230,22 +196,33 @@ public class Util {
         }
     }
 
-    static class NextTaskInfo {
-        private final long _nextAlarm;
-        private final String _description;
-
-        NextTaskInfo(long nextAlarm, String description) {
-            _nextAlarm = nextAlarm;
-            _description = description;
+    public static boolean acknowledgeTask(long id, long currentTimeMillis, Context context) {
+        Task task = findTaskById(context, id);
+        if (task == null) {
+            Log.w("VP", "Can't find task with id = " + id);
+            return true;
+        }
+        Log.d("tag", "id " + id);
+        Log.d("tag", "task_desc " + task.getDescription());
+        Log.d("tag", "millis " + currentTimeMillis);
+        final long nextAlarmMoment = getNextAlarm(task.getInterval(), task.getAmount(), currentTimeMillis, context.getResources().getConfiguration().locale);
+        final long cautionPeriod = (long) ((nextAlarmMoment - currentTimeMillis) * 0.95);
+        //createTimer(cautionPeriod);
+        final long nextCautionMoment = currentTimeMillis + cautionPeriod;
+        ContentValues values = new ContentValues();
+        values.put(NEXT_ALARM_FIELD, nextAlarmMoment);
+        values.put(NEXT_CAUTION_FIELD, nextCautionMoment);
+        values.put(LAST_ACK_FIELD, currentTimeMillis);
+        String whereClause = "id=?";
+        try (SQLiteDatabase database = getWritableDatabaseFromContext(context)) {
+            final int result = database.update(TASK_TABLE, values, whereClause, withId(id));
+            if (result != 1) {
+                Log.w(TAG, "acknowledgeTask: Cannot update task with id=" + id);
+                throw new RuntimeException("cannot update task with id=" + id);
+            }
         }
 
-        public long getNextAlarm() {
-            return _nextAlarm;
-        }
-
-        public String getDescription() {
-            return _description;
-        }
+        return false;
     }
 
     private static PendingIntent createPendingIntent(Context context, String taskDescription) {
@@ -256,24 +233,119 @@ public class Util {
     }
 
     public static long getNumberOfOverDueTasks(Context context, long currentTimeMillis) {
-        try (SQLiteDatabase database = new InTimeOpenHelper(context).getReadableDatabase()) {
+        return countTasks(
+                context,
+                NEXT_ALARM_FIELD + "<?",
+                new String[]{Long.toString(currentTimeMillis)});
+    }
+
+    public static long getNumberOfSkippedTasks(Context context, long lastUsageTimestamp, long currentTimestamp) {
+        return countTasks(
+                context,
+                NEXT_ALARM_FIELD + ">?" + " AND " + NEXT_ALARM_FIELD + "<?",
+                new String[]{Long.toString(lastUsageTimestamp), Long.toString(currentTimestamp)});
+    }
+
+    /**
+     * Count tasks by given selection
+     * @param context
+     * @param selection
+     * @param selectionArgs
+     * @return
+     */
+    private static long countTasks(Context context, String selection, String[] selectionArgs) {
+        try (SQLiteDatabase database = getReadableDatabaseFromContext(context)) {
             long rowsCount = DatabaseUtils.queryNumEntries(
                     database,
                     TASK_TABLE,
-                    NEXT_ALARM_FIELD+"<?",
-                    new String[]{Long.toString(currentTimeMillis)});
+                    selection,
+                    selectionArgs);
             return rowsCount;
         }
     }
 
-    public static long getNumberOfSkippedTasks(Context context, long lastUsageTimestamp, long currentTimestamp) {
-        try (SQLiteDatabase database = new InTimeOpenHelper(context).getReadableDatabase()) {
-            long tasksCount = DatabaseUtils.queryNumEntries(
-                    database,
-                    TASK_TABLE,
-                    NEXT_ALARM_FIELD + ">?" + " AND " + NEXT_ALARM_FIELD + "<?",
-                    new String[]{Long.toString(lastUsageTimestamp), Long.toString(currentTimestamp)});
-            return tasksCount;
+    /**
+     * Delete task with given id from DB
+     * @param id
+     * @param context
+     */
+    public static void deleteTask(long id, Context context) {
+        try (SQLiteDatabase database = getWritableDatabaseFromContext(context)) {
+            int result = database.delete(TASK_TABLE, "id=?", withId(id));
+            if (result != 1) {
+                throw new RuntimeException();
+            }
         }
+    }
+
+    /**
+     * Create new task in the DB with given attributes
+     * @param task
+     * @param context
+     */
+    public static void createNewTask(Task task, Context context) {
+        Log.d(TAG, "createNewTask");
+
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(DESCRIPTION_FIELD, task.getDescription());
+        contentValues.put(INTERVAL_FIELD, task.getInterval());
+        contentValues.put(AMOUNT_FIELD, task.getAmount());
+        contentValues.put(NEXT_ALARM_FIELD, task.getNextAlarm());
+        contentValues.put(NEXT_CAUTION_FIELD, task.getNextCaution());
+
+        try (SQLiteDatabase db = getWritableDatabaseFromContext(context)) {
+            db.insert(TASK_TABLE, null, contentValues);
+        }
+    }
+
+    /**
+     * Update only description of task (in the DB)
+     * @param id
+     * @param task
+     * @param context
+     */
+    public static void updateTaskDescription(long id, Task task, Context context)
+    {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(DESCRIPTION_FIELD, task.getDescription());
+        updateTaskImpl(id, context, contentValues);
+    }
+
+    /**
+     * Update all attributes of task (int the DB)
+     * @param id
+     * @param task
+     * @param context
+     */
+    public static void updateTask(long id, Task task, Context context)
+    {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(DESCRIPTION_FIELD, task.getDescription());
+        contentValues.put(INTERVAL_FIELD, task.getInterval());
+        contentValues.put(AMOUNT_FIELD, task.getAmount());
+        contentValues.put(NEXT_ALARM_FIELD, task.getNextAlarm());
+        contentValues.put(NEXT_CAUTION_FIELD, task.getNextCaution());
+        updateTaskImpl(id, context, contentValues);
+    }
+
+    /**
+     * Update task in the DB with given id and content values
+     * @param id
+     * @param context
+     * @param contentValues
+     */
+    private static void updateTaskImpl(long id, Context context, ContentValues contentValues) {
+        try (SQLiteDatabase db = Util.getWritableDatabaseFromContext(context)) {
+            db.update(Util.TASK_TABLE, contentValues, "id=?", withId(id));
+        }
+    }
+
+    /**
+     * Returns a WHERE arguments with given id
+     * @param id identifier of a task
+     * @return where arguments for database query/update/delete
+     */
+    private static String[] withId(long id) {
+        return new String[]{Long.toString(id)};
     }
 }

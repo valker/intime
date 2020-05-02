@@ -1,13 +1,11 @@
 package com.vpe_soft.intime.intime.activity;
 
 import android.app.NotificationManager;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -24,7 +22,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.vpe_soft.intime.intime.R;
-import com.vpe_soft.intime.intime.database.Task;
 import com.vpe_soft.intime.intime.recyclerview.TaskRecyclerViewAdapter;
 import com.vpe_soft.intime.intime.util.Util;
 import com.vpe_soft.intime.intime.view.ManageDialogView;
@@ -132,30 +129,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void acknowledgeTask(long id) {
         final long currentTimeMillis = System.currentTimeMillis();
-        SQLiteDatabase database = Util.getWritableDatabaseFromContext(this);
-        Task task = Util.findTaskById(this, id);
-        if (task == null) {
-            Log.w("VP", "Can't find task with id = " + id);
-            return;
-        }
-        Log.d("tag", "id " + id);
-        Log.d("tag", "task_desc " + task.getDescription());
-        Log.d("tag", "millis " + currentTimeMillis);
-        final long nextAlarmMoment = Util.getNextAlarm(task.getInterval(), task.getAmount(), currentTimeMillis, getResources().getConfiguration().locale);
-        final long cautionPeriod = (long) ((nextAlarmMoment - currentTimeMillis) * 0.95);
-        //createTimer(cautionPeriod);
-        final long nextCautionMoment = currentTimeMillis + cautionPeriod;
-        ContentValues values = new ContentValues();
-        values.put("next_alarm", nextAlarmMoment);
-        values.put("next_caution", nextCautionMoment);
-        values.put("last_ack", currentTimeMillis);
-        String whereClause = "id=" + id;
-        final int result = database.update(Util.TASK_TABLE, values, whereClause, null);
-        if (result != 1) {
-            Log.w(TAG, "acknowledgeTask: Cannot update task with id=" + id);
-            throw new RuntimeException("cannot update task with id=" + id);
-        }
-        database.close();
+        if (Util.acknowledgeTask(id, currentTimeMillis, this)) return;
         createAlarm();
     }
 
@@ -190,12 +164,7 @@ public class MainActivity extends AppCompatActivity {
     private void deleteTask(long id) {
         Log.d(TAG, "deleteTask");
         try {
-            SQLiteDatabase database = Util.getWritableDatabaseFromContext(this);
-            int result = database.delete(Util.TASK_TABLE, "id=" + id, null);
-            if (result != 1) {
-                throw new RuntimeException();
-            }
-            database.close();
+            Util.deleteTask(id, this);
         } catch (Exception ex) {
             Log.e(TAG, "deleteTask: cannot delete task", ex);
         }

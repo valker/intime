@@ -1,9 +1,7 @@
 package com.vpe_soft.intime.intime.activity;
 
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.database.sqlite.SQLiteDatabase;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.graphics.Typeface;
@@ -59,7 +57,7 @@ public class NewTaskActivity extends AppCompatActivity{
                         if(description.getText().toString().equals("")) {
                             Toast.makeText(getContext(), R.string.new_task_description_hint, Toast.LENGTH_SHORT).show();
                         } else {
-                            createNewTask(connectInfo());
+                            Util.createNewTask(connectInfo(), getContext());
                             finish();
                         }
                     }
@@ -95,26 +93,6 @@ public class NewTaskActivity extends AppCompatActivity{
         }
     }
 
-    private ContentValues getContentValuesForNewTask(String description, int interval, int amount, long nextAlarm, long nextCaution) {
-        Log.d(TAG, "getContentValuesForNewTask(long)");
-        ContentValues contentValues = new ContentValues();
-        contentValues.put("description", description);
-        contentValues.put("interval", interval);
-        contentValues.put("amount", amount);
-        contentValues.put("next_alarm", nextAlarm);
-        contentValues.put("next_caution", nextCaution);
-        return contentValues;
-    }
-
-    private ContentValues getContentValuesForNewTask(String description, int interval, int amount) {
-        Log.d(TAG, "getContentValuesForNewTask(short)");
-        ContentValues contentValues = new ContentValues();
-        contentValues.put("description", description);
-        contentValues.put("interval", interval);
-        contentValues.put("amount", amount);
-        return contentValues;
-    }
-
     private Task connectInfo() {
         int amount = numberPicker.getValue();
         String value = spinner.getSelectedItem().toString();
@@ -130,45 +108,14 @@ public class NewTaskActivity extends AppCompatActivity{
         return new Task(this, taskDescription, interval, amount, 0);
     }
 
-    private void createNewTask(Task task) {
-        Log.d(TAG, "createNewTask");
-
-        String description = task.getDescription();
-        int interval = task.getInterval();
-        int amount = task.getAmount();
-        long nextAlarm = task.getNextAlarm();
-        long nextCaution  = task.getNextCaution();
-
-        ContentValues contentValues = getContentValuesForNewTask(
-                description,
-                interval,
-                amount,
-                nextAlarm,
-                nextCaution);
-
-        SQLiteDatabase db = Util.getWritableDatabaseFromContext(this);
-        db.insert(Util.TASK_TABLE, null, contentValues);
-        db.close();
-    }
-
     private void updateTask(Task task) {
         Log.d(TAG, "updateTask");
 
-        String description = task.getDescription();
-        int interval = task.getInterval();
-        int amount = task.getAmount();
-        long nextAlarm = task.getNextAlarm();
-        long nextCaution  = task.getNextCaution();
-
-        ContentValues contentValues;
-        contentValues = wasIntervalOrAmountChanged(interval, amount)
-                ? getContentValuesForNewTask(description, interval, amount, nextAlarm, nextCaution)
-                : getContentValuesForNewTask(description, interval, amount);
-
-        SQLiteDatabase db = Util.getWritableDatabaseFromContext(this);
-        db.update(Util.TASK_TABLE, contentValues, "id=" + _id, null);
-        db.close();
-
+        if(wasIntervalOrAmountChanged(task.getInterval(), task.getAmount())) {
+            Util.updateTask(_id, task, this);
+        } else {
+            Util.updateTaskDescription(_id, task, this);
+        }
     }
 
     private Context getContext() {
