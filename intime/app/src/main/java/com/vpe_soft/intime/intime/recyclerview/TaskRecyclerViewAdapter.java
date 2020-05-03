@@ -12,7 +12,6 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
 import com.vpe_soft.intime.intime.R;
@@ -47,6 +46,8 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
         public CardView card;
         public LinearLayout indicator;
         public LinearLayout help;
+        private String TAG = "TaskRecyclerViewVH";
+
         public TaskRecyclerViewVH(View itemView) {
             super(itemView);
             title = itemView.findViewById(R.id.textview1);
@@ -58,7 +59,7 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
 
         @Override
         public void bindCursor(Cursor cursor) {
-            Log.d("tag", "redraw");
+            Log.d(TAG, "bindCursor");
             String description = cursor.getString(cursor.getColumnIndexOrThrow("description"));
             long nextAlarm = cursor.getLong(cursor.getColumnIndexOrThrow("next_alarm"));
             long nextCaution = cursor.getLong(cursor.getColumnIndexOrThrow("next_caution"));

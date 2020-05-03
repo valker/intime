@@ -184,10 +184,11 @@ public class MainActivity extends AppCompatActivity {
 
     public void onItemLongClicked(final long id, final int pos) {
         ManageDialogView dialog = new ManageDialogView(this, new ManageDialogView.Actions() {
+            private final static String TAG = "ManageViewDialog";
             @Override
             public void acknowledge() {
-                Log.d("tag","id " + id);
-                Log.d("tag","pos " + pos);
+                Log.d(TAG,"id " + id);
+                Log.d(TAG,"pos " + pos);
                 acknowledgeTask(id);
                 adapter.swapCursor(Util.createCursor(getContext()));
                 adapter.notifyItemChanged(pos);
@@ -195,15 +196,15 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void edit() {
-                Log.d("tag","id " + id);
-                Log.d("tag","pos " + pos);
+                Log.d(TAG,"id " + id);
+                Log.d(TAG,"pos " + pos);
                 editTask(id);
             }
 
             @Override
             public void delete() {
-                Log.d("tag","id " + id);
-                Log.d("tag","pos " + pos);
+                Log.d(TAG,"id " + id);
+                Log.d(TAG,"pos " + pos);
                 deleteTask(id);
                 adapter.swapCursor(Util.createCursor(getContext()));
                 adapter.notifyItemRemoved(pos);

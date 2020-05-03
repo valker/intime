@@ -199,12 +199,12 @@ public class Util {
     public static boolean acknowledgeTask(long id, long currentTimeMillis, Context context) {
         Task task = findTaskById(context, id);
         if (task == null) {
-            Log.w("VP", "Can't find task with id = " + id);
+            Log.w(TAG, "Can't find task with id = " + id);
             return true;
         }
-        Log.d("tag", "id " + id);
-        Log.d("tag", "task_desc " + task.getDescription());
-        Log.d("tag", "millis " + currentTimeMillis);
+        Log.d(TAG, "id " + id);
+        Log.d(TAG, "task_desc " + task.getDescription());
+        Log.d(TAG, "millis " + currentTimeMillis);
         final long nextAlarmMoment = getNextAlarm(task.getInterval(), task.getAmount(), currentTimeMillis, context.getResources().getConfiguration().locale);
         final long cautionPeriod = (long) ((nextAlarmMoment - currentTimeMillis) * 0.95);
         //createTimer(cautionPeriod);
