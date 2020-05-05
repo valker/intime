@@ -26,17 +26,6 @@ public class Task {
         this.lastAck = lastAck;
     }
 
-    public Task(Context context, String description, int interval, int amount, long lastAck) {
-        this.description = description;
-        this.interval = interval;
-        this.amount = amount;
-        this.lastAck = lastAck;
-        long currentTimeMillis = System.currentTimeMillis();
-        nextAlarm = Util.getNextAlarm(interval, amount, currentTimeMillis, context.getResources().getConfiguration().locale);
-        long cautionPeriod = (long) ((nextAlarm - currentTimeMillis) * 0.95);
-        nextCaution  = currentTimeMillis + cautionPeriod;
-    }
-
     public int getInterval() {
         return interval;
     }

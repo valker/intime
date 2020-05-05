@@ -60,9 +60,9 @@ public class Util {
         Calendar.FIELD_COUNT //substitute for YEAR
     };
 
-    public static long getNextAlarm(int interval, int amount, long currentTimeMillis, Locale locale) {
+    public static long getNextAlarm(int interval, int amount, long lastAck, Locale locale) {
         Log.d(TAG, "getNextAlarm");
-        Date date = new Date(currentTimeMillis);
+        Date date = new Date(lastAck);
         Calendar calendar = new GregorianCalendar(locale);
         calendar.setTime(date);
         int field = fields[interval];

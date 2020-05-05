@@ -19,8 +19,6 @@ import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.Task;
 import com.vpe_soft.intime.intime.util.Util;
 
-import java.util.Objects;
-
 public class NewTaskActivity extends AppCompatActivity{
 
     private static final String TAG = "NewTaskActivity";
@@ -57,7 +55,7 @@ public class NewTaskActivity extends AppCompatActivity{
                         if(description.getText().toString().equals("")) {
                             Toast.makeText(getContext(), R.string.new_task_description_hint, Toast.LENGTH_SHORT).show();
                         } else {
-                            Util.createNewTask(connectInfo(), getContext());
+                            Util.createNewTask(connectInfo(System.currentTimeMillis()), getContext());
                             finish();
                         }
                     }
@@ -80,7 +78,7 @@ public class NewTaskActivity extends AppCompatActivity{
                         if(description.getText().toString().equals("")) {
                             Toast.makeText(getContext(), R.string.new_task_description_hint, Toast.LENGTH_SHORT).show();
                         } else {
-                            updateTask(connectInfo());
+                            updateTask(connectInfo(_task.getLastAcknowledge()));
                             finish();
                         }
                     }
@@ -93,11 +91,15 @@ public class NewTaskActivity extends AppCompatActivity{
         }
     }
 
-    private Task connectInfo() {
+    private Task connectInfo(long lastAck) {
         int amount = numberPicker.getValue();
         int interval = spinner.getSelectedItemPosition();
         String taskDescription = description.getText().toString();
-        return new Task(this, taskDescription, interval, amount, 0);
+        long nextAlarm = Util.getNextAlarm(interval, amount, lastAck, getResources().getConfiguration().locale);
+        long cautionPeriod = (long) ((nextAlarm - lastAck) * 0.95);
+        long nextCaution  = lastAck + cautionPeriod;
+        final Task task = new Task(taskDescription, interval, amount, nextAlarm, nextCaution, lastAck);
+        return task;
     }
 
     private void updateTask(Task task) {
