@@ -95,15 +95,7 @@ public class NewTaskActivity extends AppCompatActivity{
 
     private Task connectInfo() {
         int amount = numberPicker.getValue();
-        String value = spinner.getSelectedItem().toString();
-        String[] spinnerItems = getResources().getStringArray(R.array.spinnerItems);
-        int interval = -1;
-        for(int i = 0; i < spinnerItems.length; ++i) {
-            if(Objects.equals(value, spinnerItems[i])) {
-                interval = i;
-                break;
-            }
-        }
+        int interval = spinner.getSelectedItemPosition();
         String taskDescription = description.getText().toString();
         return new Task(this, taskDescription, interval, amount, 0);
     }
