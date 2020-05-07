@@ -11,9 +11,14 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.text.TextPaint;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
@@ -64,6 +69,41 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
                 return false;
+            }
+
+            @Override
+            public void onChildDraw(Canvas canvas, RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
+                if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+                    int dx = (int) dX;
+                    int cardLeft = viewHolder.itemView.getLeft();
+                    int cardRight = viewHolder.itemView.getRight();
+                    int cardTop = viewHolder.itemView.getTop();
+                    int cardBottom = viewHolder.itemView.getBottom();
+                    int newCardLeft = 0;
+                    int newCardRight = 0;
+                    float textSize = Util.toPx(getContext(), 14);
+                    if (dx > 0) {
+                        //right
+                        newCardRight = cardLeft + dx;
+                        newCardLeft = cardLeft;
+                    } else if (dx < 0) {
+                        //left
+                        newCardLeft = cardRight + dx;
+                        newCardRight = cardRight;
+                    }
+                    ColorDrawable background = new ColorDrawable(Color.parseColor("#188038"));
+                    background.setBounds(newCardLeft, cardTop, newCardRight, cardBottom);
+                    background.draw(canvas);
+                    TextPaint textPaint = new TextPaint();
+                    textPaint.setAntiAlias(true);
+                    textPaint.setTextSize(textSize);
+                    textPaint.setColor(Color.parseColor("#FFFFFF"));
+                    //right
+                    int textTop = cardTop + ((cardBottom - cardTop) / 2) + (int) (textSize / 2);
+                    canvas.drawText("✔", cardLeft, textTop, textPaint);
+
+                }
+                super.onChildDraw(canvas, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
             }
 
             @Override

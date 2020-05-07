@@ -68,13 +68,14 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             final int pos = cursor.getPosition();
             // 0 - not ready (white), 1 - almost (yellow), 2 - ready (red)
             int phase = System.currentTimeMillis() > nextCaution ? System.currentTimeMillis() > nextCaution ? 2 : 1 : 0;
-            float cornerRadius = Util.toPx(context, 40);
-            card.setRadius(cornerRadius);
+            float cornerRadiusMain = Util.toPx(context, 10);
+            float cornerRadiusSecond = Util.toPx(context, 40);
+            card.setRadius(cornerRadiusMain);
             card.setOutlineProvider(null);
             GradientDrawable gradientDrawable1 = new GradientDrawable();
-            gradientDrawable1.setCornerRadius(cornerRadius);
+            gradientDrawable1.setCornerRadius(cornerRadiusSecond);
             GradientDrawable gradientDrawable2 = new GradientDrawable();
-            gradientDrawable2.setCornerRadius(cornerRadius);
+            gradientDrawable2.setCornerRadius(cornerRadiusSecond);
             gradientDrawable2.setColor(Color.parseColor("#FFFFFF"));
             switch(phase){
                 case 0:
