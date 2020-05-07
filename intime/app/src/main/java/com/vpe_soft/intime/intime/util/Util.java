@@ -12,6 +12,7 @@ import android.graphics.Typeface;
 import android.os.Build;
 import android.text.format.DateFormat;
 import android.util.Log;
+import android.util.TypedValue;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
@@ -59,6 +60,10 @@ public class Util {
         Calendar.MONTH,
         Calendar.FIELD_COUNT //substitute for YEAR
     };
+
+    public static float toPx (Context context, float dp) {
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, context.getResources().getDisplayMetrics());
+    }
 
     public static long getNextAlarm(int interval, int amount, long lastAck, Locale locale) {
         Log.d(TAG, "getNextAlarm");

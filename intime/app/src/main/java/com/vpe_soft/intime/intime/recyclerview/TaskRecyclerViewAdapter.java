@@ -41,6 +41,7 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
     }
 
     public class TaskRecyclerViewVH extends RecyclerViewCursorViewHolder {
+
         public TextView title;
         public TextView date;
         public CardView card;
@@ -67,12 +68,13 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             final int pos = cursor.getPosition();
             // 0 - not ready (white), 1 - almost (yellow), 2 - ready (red)
             int phase = System.currentTimeMillis() > nextCaution ? System.currentTimeMillis() > nextCaution ? 2 : 1 : 0;
-            card.setCardElevation(12f);
-            card.setRadius(40f);
+            float cornerRadius = Util.toPx(context, 40);
+            card.setRadius(cornerRadius);
+            card.setOutlineProvider(null);
             GradientDrawable gradientDrawable1 = new GradientDrawable();
-            gradientDrawable1.setCornerRadius(40f);
+            gradientDrawable1.setCornerRadius(cornerRadius);
             GradientDrawable gradientDrawable2 = new GradientDrawable();
-            gradientDrawable2.setCornerRadius(40f);
+            gradientDrawable2.setCornerRadius(cornerRadius);
             gradientDrawable2.setColor(Color.parseColor("#FFFFFF"));
             switch(phase){
                 case 0:

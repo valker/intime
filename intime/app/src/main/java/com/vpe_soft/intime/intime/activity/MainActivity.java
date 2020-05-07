@@ -51,7 +51,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         Cursor cursor = Util.createCursor(this);
+
         //TODO: create empty view after deleting old empty view
+
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setBackgroundColor(Color.parseColor("#FFFFFF"));
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
