@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" group="intime/app" />
       <module fileurl="file://$PROJECT_DIR$/intime.iml" filepath="$PROJECT_DIR$/intime.iml" group="intime" />
+      <module fileurl="file://$PROJECT_DIR$/app/intime-app.iml" filepath="$PROJECT_DIR$/app/intime-app.iml" group="intime/app" />
     </modules>
   </component>
 </project>

@@ -16,8 +16,6 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -26,9 +24,6 @@ import com.vpe_soft.intime.intime.recyclerview.TaskRecyclerViewAdapter;
 import com.vpe_soft.intime.intime.util.Util;
 import com.vpe_soft.intime.intime.view.ManageDialogView;
 
-import java.util.Timer;
-import java.util.TimerTask;
-
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
@@ -36,7 +31,6 @@ public class MainActivity extends AppCompatActivity {
     public static boolean isOnScreen;
 
     private MyBroadcastReceiver receiver;
-    private final Timer onScreenUpdate = new Timer();
 
     private TaskRecyclerViewAdapter adapter;
 
@@ -45,10 +39,6 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Window window = getWindow();
-        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-        window.setStatusBarColor(Color.parseColor("#F7F7F7"));
         TextView title = findViewById(R.id.title_text);
         title.setTypeface(Util.getTypeface(this), Typeface.NORMAL);
         ImageView addTask = findViewById(R.id.add_task);
@@ -63,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
         Cursor cursor = Util.createCursor(this);
         //TODO: create empty view after deleting old empty view
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
-        recyclerView.setBackgroundColor(Color.parseColor("#F7F7F7"));
+        recyclerView.setBackgroundColor(Color.parseColor("#FFFFFF"));
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
         adapter = new TaskRecyclerViewAdapter(this, cursor, getResources().getConfiguration().locale);
@@ -139,22 +129,6 @@ public class MainActivity extends AppCompatActivity {
         notificationManager.cancel(Util.NOTIFICATION_TAG, 1);
         Util.setupAlarmIfRequired(this);
     }
-
-    private void createTimer(final long timeInterval) {
-        Log.d(TAG, "createTimer");
-        TimerTask timertask = new TimerTask() {
-            @Override
-            public void run() {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        refreshRecyclerView();
-                    }
-                });
-            }
-        };
-		onScreenUpdate.schedule(timertask, timeInterval);
-	}
 
     private void refreshRecyclerView() {
         Log.d(TAG, "refreshListView");
