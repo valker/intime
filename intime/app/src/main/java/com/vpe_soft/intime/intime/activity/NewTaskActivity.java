@@ -1,19 +1,21 @@
 package com.vpe_soft.intime.intime.activity;
 
 import android.content.Context;
-import android.content.Intent;
+
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatSpinner;
 
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.EditText;
 import android.widget.NumberPicker;
-import android.widget.Spinner;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.Task;
@@ -27,7 +29,7 @@ public class NewTaskActivity extends AppCompatActivity{
     private Task _task;
 
     private NumberPicker numberPicker;
-    private Spinner spinner;
+    private AppCompatSpinner spinner;
     private EditText description;
 
     @Override
@@ -35,15 +37,22 @@ public class NewTaskActivity extends AppCompatActivity{
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_new_task);
-        Intent intent = getIntent();
-        String action = intent.getExtras().getString("action");
         TextView title = findViewById(R.id.newtask_title);
+        TextView description_text = findViewById(R.id.textView4);
+        TextView intervals_text = findViewById(R.id.textView5);
+        TextView amount_text = findViewById(R.id.textView6);
+        ImageView next = findViewById(R.id.newtask_action);
+        description = findViewById(R.id.description);
         numberPicker = findViewById(R.id.numberPicker);
         spinner = findViewById(R.id.spinner);
-        description = findViewById(R.id.description);
         title.setTypeface(Util.getTypeface(this), Typeface.NORMAL);
-        ImageView next = findViewById(R.id.newtask_action);
-        switch (action) {
+        description_text.setTypeface(Util.getTypeface(this), Typeface.NORMAL);
+        intervals_text.setTypeface(Util.getTypeface(this), Typeface.NORMAL);
+        amount_text.setTypeface(Util.getTypeface(this), Typeface.NORMAL);
+        description_text.setTypeface(Util.getTypeface(this), Typeface.NORMAL);
+        description.setTypeface(Util.getTypeface(this), Typeface.NORMAL);
+        spinner.setAdapter(new SpinnerAdapter(this, R.layout.spinner_item, getResources().getStringArray(R.array.spinnerItems)));
+        switch (getIntent().getExtras().getString("action")) {
             case "create": {
                 title.setText(R.string.title_activity_new_task);
                 numberPicker.setMaxValue(10);
@@ -64,7 +73,7 @@ public class NewTaskActivity extends AppCompatActivity{
             }
             case "edit": {
                 title.setText(R.string.edit_task_activity_title);
-                long id = intent.getExtras().getLong("id");
+                long id = getIntent().getExtras().getLong("id");
                 _id = id;
                 _task = Util.findTaskById(this, id);
                 description.setText(_task.getDescription());
@@ -86,7 +95,7 @@ public class NewTaskActivity extends AppCompatActivity{
                 break;
             }
             default:
-                Log.e(TAG, "onCreate: unknown action: " + action);
+                finish();
                 break;
         }
     }
@@ -118,5 +127,26 @@ public class NewTaskActivity extends AppCompatActivity{
 
     private boolean wasIntervalOrAmountChanged(int interval, int amount) {
         return _task.getInterval() != interval || _task.getAmount() != amount;
+    }
+
+    private class SpinnerAdapter extends ArrayAdapter<String> {
+
+        private SpinnerAdapter(Context context, int resource, String[] items) {
+            super(context, resource, items);
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            TextView textView = (TextView) super.getView(position, convertView, parent);
+            textView.setTypeface(Util.getTypeface(getContext()));
+            return textView;
+        }
+
+        @Override
+        public View getDropDownView(int position, View convertView, ViewGroup parent) {
+            TextView textView = (TextView) super.getDropDownView(position, convertView, parent);
+            textView.setTypeface(Util.getTypeface(getContext()));
+            return textView;
+        }
     }
 }

@@ -78,7 +78,7 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             gradientDrawable2.setColor(Color.parseColor("#FFFFFF"));
             switch(phase){
                 case 0:
-                    gradientDrawable1.setColor(Color.parseColor("#FFFFFF"));
+                    gradientDrawable1.setColor(Color.parseColor("#595959"));
                     break;
                 case 1:
                     gradientDrawable1.setColor(Color.parseColor("#FFC627"));

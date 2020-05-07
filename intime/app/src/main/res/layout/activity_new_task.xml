@@ -54,6 +54,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
+            android:textSize="18sp"
             android:text="@string/label_description_text"
             app:layout_constraintBaseline_toBaselineOf="@+id/description"
             app:layout_constraintEnd_toStartOf="@+id/guideline" />
@@ -62,13 +63,14 @@
             android:id="@+id/description"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="15dp"
             android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
+            android:textSize="18sp"
             android:hint="@string/new_task_description_hint"
             android:inputType="text"
             android:minHeight="48dp"
-            android:textColorHint="#9E9E9E"
+            android:textColorHint="#757575"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="@+id/guideline"
             app:layout_constraintTop_toTopOf="parent" />
@@ -78,18 +80,18 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
+            android:textSize="18sp"
             android:text="@string/label_intervals_text"
             app:layout_constraintBaseline_toBaselineOf="@+id/spinner"
             app:layout_constraintEnd_toStartOf="@+id/guideline" />
 
-        <Spinner
+        <androidx.appcompat.widget.AppCompatSpinner
             android:id="@+id/spinner"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
-            android:entries="@array/spinnerItems"
             android:minHeight="48dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="@+id/guideline"
@@ -100,6 +102,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
+            android:textSize="18sp"
             android:text="@string/label_amount_text"
             app:layout_constraintBottom_toBottomOf="@+id/numberPicker"
             app:layout_constraintEnd_toStartOf="@+id/guideline"
@@ -125,21 +128,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            app:layout_constraintGuide_percent="0.28" />
+            app:layout_constraintGuide_percent="0.32" />
 
-        <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/guideline4"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            app:layout_constraintGuide_percent="0.6" />
-
-        <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/guideline6"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            app:layout_constraintGuide_percent="0.85" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 </LinearLayout>
 
