@@ -4,9 +4,14 @@ import android.content.Context;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatSpinner;
+import androidx.core.graphics.drawable.DrawableCompat;
 
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,6 +32,8 @@ public class NewTaskActivity extends AppCompatActivity{
 
     private long _id;
     private Task _task;
+
+    private boolean editTextError = false;
 
     private NumberPicker numberPicker;
     private AppCompatSpinner spinner;
@@ -52,6 +59,24 @@ public class NewTaskActivity extends AppCompatActivity{
         description_text.setTypeface(Util.getTypeface(this), Typeface.NORMAL);
         description.setTypeface(Util.getTypeface(this), Typeface.NORMAL);
         spinner.setAdapter(new SpinnerAdapter(this, R.layout.spinner_item, getResources().getStringArray(R.array.spinnerItems)));
+        description.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (editTextError) {
+                    setEditTextState(0);
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+
+            }
+        });
         switch (getIntent().getExtras().getString("action")) {
             case "create": {
                 title.setText(R.string.title_activity_new_task);
@@ -62,7 +87,7 @@ public class NewTaskActivity extends AppCompatActivity{
                     @Override
                     public void onClick(View view) {
                         if(description.getText().toString().equals("")) {
-                            Toast.makeText(getContext(), R.string.new_task_description_hint, Toast.LENGTH_SHORT).show();
+                            setEditTextState(1);
                         } else {
                             Util.createNewTask(connectInfo(System.currentTimeMillis()), getContext());
                             finish();
@@ -85,7 +110,7 @@ public class NewTaskActivity extends AppCompatActivity{
                     @Override
                     public void onClick(View view) {
                         if(description.getText().toString().equals("")) {
-                            Toast.makeText(getContext(), R.string.new_task_description_hint, Toast.LENGTH_SHORT).show();
+                            setEditTextState(1);
                         } else {
                             updateTask(connectInfo(_task.getLastAcknowledge()));
                             finish();
@@ -97,6 +122,19 @@ public class NewTaskActivity extends AppCompatActivity{
             default:
                 finish();
                 break;
+        }
+    }
+
+    private void setEditTextState (int state) {
+        if (state == 0) {
+            //normal state 757575
+            description.setHintTextColor(Color.parseColor("#757575"));
+            DrawableCompat.setTint(description.getBackground(), Color.parseColor("#757575"));
+        } else {
+            //error state
+            editTextError = true;
+            description.setHintTextColor(Color.parseColor("#DB4437"));
+            DrawableCompat.setTint(description.getBackground(), Color.parseColor("#DB4437"));
         }
     }
 
