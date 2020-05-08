@@ -177,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void refreshRecyclerView() {
         Log.d(TAG, "refreshListView");
-        adapter.notifyDataSetChanged();
+        adapter.notifyItemRangeChanged(0, Util.getDatabaseLengthFromContext(this));
     }
 
     private void deleteTask(long id) {

@@ -212,7 +212,6 @@ public class Util {
         Log.d(TAG, "millis " + currentTimeMillis);
         final long nextAlarmMoment = getNextAlarm(task.getInterval(), task.getAmount(), currentTimeMillis, context.getResources().getConfiguration().locale);
         final long cautionPeriod = (long) ((nextAlarmMoment - currentTimeMillis) * 0.95);
-        //createTimer(cautionPeriod);
         final long nextCautionMoment = currentTimeMillis + cautionPeriod;
         ContentValues values = new ContentValues();
         values.put(NEXT_ALARM_FIELD, nextAlarmMoment);
