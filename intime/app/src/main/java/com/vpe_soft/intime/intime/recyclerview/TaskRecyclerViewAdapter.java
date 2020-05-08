@@ -47,6 +47,7 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
         public CardView card;
         public LinearLayout indicator;
         public LinearLayout help;
+        public LinearLayout preCard;
         private String TAG = "TaskRecyclerViewVH";
 
         public TaskRecyclerViewVH(View itemView) {
@@ -56,6 +57,7 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             card = itemView.findViewById(R.id.linear1);
             indicator = itemView.findViewById(R.id.indicator);
             help = itemView.findViewById(R.id.help);
+            preCard = itemView.findViewById(R.id.precard);
         }
 
         @Override

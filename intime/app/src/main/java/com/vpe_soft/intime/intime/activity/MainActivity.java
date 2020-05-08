@@ -65,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(layoutManager);
         adapter = new TaskRecyclerViewAdapter(this, cursor, getResources().getConfiguration().locale);
         recyclerView.setAdapter(adapter);
-        final ItemTouchHelper.SimpleCallback simpleItemTouchCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+        ItemTouchHelper.SimpleCallback simpleItemTouchCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
             @Override
             public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
                 return false;
@@ -111,6 +111,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+                Log.d(TAG, viewHolder.itemView.toString());
                 int pos = viewHolder.getAdapterPosition();
                 acknowledgeTask(Util.getId(getContext(), pos));
                 adapter.swapCursor(Util.createCursor(getContext()));
