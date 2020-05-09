@@ -7,7 +7,6 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 
-import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -40,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
 
     private MyBroadcastReceiver receiver;
 
-    private CardViewOutlineHelper cardViewOutlineHelper = new CardViewOutlineHelper();
+    private CardViewOutlineHelper cardViewOutlineHelper = new CardViewOutlineHelper(this);
     public boolean isDefaultViewOutlineProviderSet = false;
 
     private TaskRecyclerViewAdapter adapter;
@@ -66,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
         //TODO: create empty view after deleting old empty view
 
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
-        recyclerView.setBackgroundColor(Color.parseColor("#FFFFFF"));
+        recyclerView.setBackgroundColor(Color.parseColor("#188038"));
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
         adapter = new TaskRecyclerViewAdapter(this, cursor, getResources().getConfiguration().locale);

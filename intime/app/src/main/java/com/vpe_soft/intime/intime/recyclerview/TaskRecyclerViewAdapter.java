@@ -13,6 +13,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.activity.MainActivity;
@@ -68,11 +69,11 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             final long id = cursor.getLong(cursor.getColumnIndexOrThrow("_id"));
             final int pos = cursor.getPosition();
             // 0 - not ready (white), 1 - almost (yellow), 2 - ready (red)
-            int phase = System.currentTimeMillis() > nextCaution ? System.currentTimeMillis() > nextCaution ? 2 : 1 : 0;
-            float cornerRadiusMain = Util.toPx(context, 10);
+            int phase = System.currentTimeMillis() > nextAlarm ? System.currentTimeMillis() > nextCaution ? 2 : 1 : 0;
             float cornerRadiusSecond = Util.toPx(context, 40);
-            card.setRadius(cornerRadiusMain);
-            card.setUseCompatPadding(true);
+            card.setRadius(0);
+            card.setCardBackgroundColor(Color.WHITE);
+            card.setCardElevation(0);
             if (!mainActivity.isDefaultViewOutlineProviderSet) {
                 mainActivity.isDefaultViewOutlineProviderSet = true;
                 mainActivity.setDefaultViewOutlineProvider(card.getOutlineProvider());

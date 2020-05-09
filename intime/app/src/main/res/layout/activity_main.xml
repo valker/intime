@@ -44,8 +44,5 @@
         android:id="@+id/recyclerView"
         android:layout_height="match_parent"
         android:layout_width="match_parent"
-        android:layoutAnimation="@anim/recyclerview_item_animation"
-        android:clipToPadding="false"
-        android:paddingTop="3.5dp"
-        android:paddingBottom="3.5dp"/>
+        android:clipToPadding="false" />
 </LinearLayout>

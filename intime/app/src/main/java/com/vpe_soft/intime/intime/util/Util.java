@@ -61,7 +61,11 @@ public class Util {
         Calendar.FIELD_COUNT //substitute for YEAR
     };
 
-    public static float toPx (Context context, float dp) {
+    public static float getCardCornerRadius(Context context) {
+        return Util.toPx(context, 10);
+    }
+
+    public static float toPx(Context context, float dp) {
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, context.getResources().getDisplayMetrics());
     }
 
