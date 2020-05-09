@@ -47,7 +47,6 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
         public CardView card;
         public LinearLayout indicator;
         public LinearLayout help;
-        public LinearLayout preCard;
         private String TAG = "TaskRecyclerViewVH";
 
         public TaskRecyclerViewVH(View itemView) {
@@ -57,12 +56,12 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             card = itemView.findViewById(R.id.linear1);
             indicator = itemView.findViewById(R.id.indicator);
             help = itemView.findViewById(R.id.help);
-            preCard = itemView.findViewById(R.id.precard);
         }
 
         @Override
         public void bindCursor(Cursor cursor) {
             Log.d(TAG, "bindCursor");
+            final MainActivity mainActivity = (MainActivity) context;
             String description = cursor.getString(cursor.getColumnIndexOrThrow("description"));
             long nextAlarm = cursor.getLong(cursor.getColumnIndexOrThrow("next_alarm"));
             long nextCaution = cursor.getLong(cursor.getColumnIndexOrThrow("next_caution"));
@@ -73,6 +72,11 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             float cornerRadiusMain = Util.toPx(context, 10);
             float cornerRadiusSecond = Util.toPx(context, 40);
             card.setRadius(cornerRadiusMain);
+            card.setUseCompatPadding(true);
+            if (!mainActivity.isDefaultViewOutlineProviderSet) {
+                mainActivity.isDefaultViewOutlineProviderSet = true;
+                mainActivity.setDefaultViewOutlineProvider(card.getOutlineProvider());
+            }
             card.setOutlineProvider(null);
             GradientDrawable gradientDrawable1 = new GradientDrawable();
             gradientDrawable1.setCornerRadius(cornerRadiusSecond);
@@ -105,10 +109,7 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             card.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View view) {
-                    if(context instanceof MainActivity) {
-                        MainActivity mainActivity = (MainActivity) context;
-                        mainActivity.onItemLongClicked(id, pos);
-                    }
+                    mainActivity.onItemLongClicked(id, pos);
                     return true;
                 }
             });

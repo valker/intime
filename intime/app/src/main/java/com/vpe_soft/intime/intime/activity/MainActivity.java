@@ -7,6 +7,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 
+import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -21,11 +22,13 @@ import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewOutlineProvider;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.recyclerview.TaskRecyclerViewAdapter;
+import com.vpe_soft.intime.intime.util.CardViewOutlineHelper;
 import com.vpe_soft.intime.intime.util.Util;
 import com.vpe_soft.intime.intime.view.ManageDialogView;
 
@@ -36,6 +39,9 @@ public class MainActivity extends AppCompatActivity {
     public static boolean isOnScreen;
 
     private MyBroadcastReceiver receiver;
+
+    private CardViewOutlineHelper cardViewOutlineHelper = new CardViewOutlineHelper();
+    public boolean isDefaultViewOutlineProviderSet = false;
 
     private TaskRecyclerViewAdapter adapter;
 
@@ -69,6 +75,20 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
                 return false;
+            }
+
+            @Override
+            public void onSelectedChanged (RecyclerView.ViewHolder viewHolder, int actionState) {
+                if(actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+                    cardViewOutlineHelper.setOnSwipeState((TaskRecyclerViewAdapter.TaskRecyclerViewVH) viewHolder);
+                }
+                super.onSelectedChanged(viewHolder, actionState);
+            }
+
+            @Override
+            public void clearView(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
+                cardViewOutlineHelper.setDefaultState((TaskRecyclerViewAdapter.TaskRecyclerViewVH) viewHolder);
+                super.clearView(recyclerView, viewHolder);
             }
 
             @Override
@@ -200,6 +220,10 @@ public class MainActivity extends AppCompatActivity {
             receiver = new MyBroadcastReceiver();
         }
         return receiver;
+    }
+
+    public void setDefaultViewOutlineProvider(ViewOutlineProvider viewOutlineProvider) {
+        cardViewOutlineHelper.setDefaultProvider(viewOutlineProvider);
     }
 
     public void onItemLongClicked(final long id, final int pos) {
