@@ -69,7 +69,7 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             final long id = cursor.getLong(cursor.getColumnIndexOrThrow("_id"));
             final int pos = cursor.getPosition();
             // 0 - not ready (white), 1 - almost (yellow), 2 - ready (red)
-            int phase = System.currentTimeMillis() > nextAlarm ? System.currentTimeMillis() > nextCaution ? 2 : 1 : 0;
+            int phase = System.currentTimeMillis() > nextCaution ? System.currentTimeMillis() > nextAlarm ? 2 : 1 : 0;
             float cornerRadiusSecond = Util.toPx(context, 40);
             card.setRadius(0);
             card.setCardBackgroundColor(Color.WHITE);
