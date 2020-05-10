@@ -62,7 +62,6 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
         @Override
         public void bindCursor(Cursor cursor) {
             Log.d(TAG, "bindCursor");
-            final MainActivity mainActivity = (MainActivity) context;
             String description = cursor.getString(cursor.getColumnIndexOrThrow("description"));
             long nextAlarm = cursor.getLong(cursor.getColumnIndexOrThrow("next_alarm"));
             long nextCaution = cursor.getLong(cursor.getColumnIndexOrThrow("next_caution"));

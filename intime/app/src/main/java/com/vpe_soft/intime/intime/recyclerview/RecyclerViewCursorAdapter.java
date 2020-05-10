@@ -9,17 +9,23 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.vpe_soft.intime.intime.activity.MainActivity;
+
 import java.util.Locale;
 
 public abstract class RecyclerViewCursorAdapter<T extends RecyclerViewCursorViewHolder> extends RecyclerView.Adapter<T> {
 
+    protected MainActivity mainActivity;
     protected final Context context;
+
     protected final Locale locale;
     protected CursorAdapter cursorAdapter;
+
     private T viewHolder;
     protected RecyclerViewCursorAdapter(Context context, Locale locale) {
         this.context = context;
         this.locale = locale;
+        mainActivity = (MainActivity) context;
     }
 
     protected void setupCursorAdapter(Cursor cursor, int flags, final int resource, final boolean attachToRoot) {
