@@ -74,7 +74,11 @@ public class NewTaskActivity extends AppCompatActivity{
 
             }
         });
-        switch (getIntent().getExtras().getString("action")) {
+        final Bundle extras = getIntent().getExtras();
+        final String action = extras != null
+                ? extras.getString("action")
+                : "create"; // default action if nothing provided via extras
+        switch (action) {
             case "create": {
                 title.setText(R.string.new_task_activity_title);
                 numberPicker.setMaxValue(10);
@@ -96,7 +100,7 @@ public class NewTaskActivity extends AppCompatActivity{
             }
             case "edit": {
                 title.setText(R.string.edit_task_activity_title);
-                long id = getIntent().getExtras().getLong("id");
+                long id = extras.getLong("id");
                 _id = id;
                 _task = Util.findTaskById(this, id);
                 description.setText(_task.getDescription());
