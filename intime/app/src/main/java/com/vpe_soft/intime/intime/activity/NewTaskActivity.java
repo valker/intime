@@ -16,7 +16,6 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.EditText;
@@ -48,7 +47,7 @@ public class NewTaskActivity extends AppCompatActivity{
         TextView description_text = findViewById(R.id.textView4);
         TextView intervals_text = findViewById(R.id.textView5);
         TextView amount_text = findViewById(R.id.textView6);
-        ImageView next = findViewById(R.id.newtask_action);
+        View next = findViewById(R.id.newtask_action);
         description = findViewById(R.id.description);
         numberPicker = findViewById(R.id.numberPicker);
         spinner = findViewById(R.id.spinner);

@@ -22,7 +22,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewOutlineProvider;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.vpe_soft.intime.intime.R;
@@ -51,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         TextView title = findViewById(R.id.title_text);
         title.setTypeface(Util.getTypeface(this), Typeface.NORMAL);
-        ImageView addTask = findViewById(R.id.add_task);
+        View addTask = findViewById(R.id.add_task);
         addTask.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View view) {
