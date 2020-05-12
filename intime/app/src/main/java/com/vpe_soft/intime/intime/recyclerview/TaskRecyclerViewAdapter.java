@@ -13,10 +13,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.cardview.widget.CardView;
-import androidx.core.content.ContextCompat;
 
 import com.vpe_soft.intime.intime.R;
-import com.vpe_soft.intime.intime.activity.MainActivity;
 import com.vpe_soft.intime.intime.util.Util;
 
 import java.util.Locale;

@@ -1,9 +1,5 @@
 package com.vpe_soft.intime.intime.database;
 
-import android.content.Context;
-
-import com.vpe_soft.intime.intime.util.Util;
-
 /**
  * Created by Valentin on 23.08.2015.
  */

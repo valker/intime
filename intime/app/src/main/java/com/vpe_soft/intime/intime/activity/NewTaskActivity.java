@@ -7,7 +7,6 @@ import androidx.appcompat.widget.AppCompatSpinner;
 import androidx.core.graphics.drawable.DrawableCompat;
 
 import android.graphics.Color;
-import android.graphics.PorterDuff;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.Editable;
@@ -17,7 +16,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.widget.EditText;
 import android.widget.NumberPicker;
 
