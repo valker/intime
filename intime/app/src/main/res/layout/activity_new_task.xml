@@ -1,6 +1,7 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -37,7 +38,8 @@
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:src="@drawable/next"
-                    android:scaleType="fitCenter"/>
+                    android:scaleType="fitCenter"
+                    tools:ignore="ContentDescription" />
             </LinearLayout>
         </LinearLayout>
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -72,7 +74,8 @@
             android:textColorHint="#757575"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="@+id/guideline"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            tools:ignore="Autofill" />
 
         <TextView
             android:id="@+id/textView5"
