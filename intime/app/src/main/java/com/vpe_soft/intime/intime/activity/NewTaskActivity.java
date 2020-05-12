@@ -83,6 +83,7 @@ public class NewTaskActivity extends AppCompatActivity{
                 numberPicker.setMaxValue(10);
                 numberPicker.setMinValue(1);
                 numberPicker.setValue(1);
+                next.setContentDescription(getString(R.string.content_description_add_task));
                 next.setOnClickListener(new View.OnClickListener(){
                     @Override
                     public void onClick(View view) {
@@ -106,6 +107,7 @@ public class NewTaskActivity extends AppCompatActivity{
                 numberPicker.setMaxValue(10);
                 numberPicker.setMinValue(1);
                 numberPicker.setValue(_task.getAmount());
+                next.setContentDescription(getString(R.string.content_description_update_task));
                 next.setOnClickListener(new View.OnClickListener(){
                     @Override
                     public void onClick(View view) {

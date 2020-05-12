@@ -21,4 +21,6 @@
     <string name="edit_task_activity_title">Edit task</string>
     <string name="tasks">Tasks</string>
     <string name="notification_format">{0} and {1,number} more {2,choice}</string>
+    <string name="content_description_update_task">Update task</string>
+    <string name="content_description_add_task">Add task</string>
 </resources>
