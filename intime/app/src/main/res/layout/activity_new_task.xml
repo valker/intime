@@ -32,7 +32,7 @@
                 android:layout_weight="0"
                 android:orientation="horizontal"
                 android:gravity="end|center_vertical">
-                <ImageView
+                <ImageButton
                     android:id="@+id/newtask_action"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
