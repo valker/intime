@@ -22,7 +22,6 @@
                 android:id="@+id/newtask_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/new_task_activity_title"
                 android:maxLines="1"
                 android:textSize="25sp"
                 android:textColor="#595959"/>
