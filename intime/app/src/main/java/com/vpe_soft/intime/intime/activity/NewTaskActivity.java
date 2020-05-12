@@ -79,7 +79,7 @@ public class NewTaskActivity extends AppCompatActivity{
         });
         switch (getIntent().getExtras().getString("action")) {
             case "create": {
-                title.setText(R.string.title_activity_new_task);
+                title.setText(R.string.new_task_activity_title);
                 numberPicker.setMaxValue(10);
                 numberPicker.setMinValue(1);
                 numberPicker.setValue(1);

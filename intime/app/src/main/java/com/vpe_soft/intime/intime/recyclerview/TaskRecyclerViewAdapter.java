@@ -52,8 +52,8 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
 
         public TaskRecyclerViewVH(View itemView) {
             super(itemView);
-            title = itemView.findViewById(R.id.textview1);
-            date = itemView.findViewById(R.id.textview2);
+            title = itemView.findViewById(R.id.title);
+            date = itemView.findViewById(R.id.description);
             card = itemView.findViewById(R.id.linear1);
             indicator = itemView.findViewById(R.id.indicator);
             help = itemView.findViewById(R.id.help);
