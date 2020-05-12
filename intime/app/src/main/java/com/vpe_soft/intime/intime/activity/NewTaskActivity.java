@@ -88,7 +88,7 @@ public class NewTaskActivity extends AppCompatActivity{
                 next.setOnClickListener(new View.OnClickListener(){
                     @Override
                     public void onClick(View view) {
-                        if(description.getText().toString().equals("")) {
+                        if(description.getText().length() == 0) {
                             setEditTextState(1);
                         } else {
                             Util.createNewTask(connectInfo(System.currentTimeMillis()), getContext());
@@ -112,7 +112,7 @@ public class NewTaskActivity extends AppCompatActivity{
                 next.setOnClickListener(new View.OnClickListener(){
                     @Override
                     public void onClick(View view) {
-                        if(description.getText().toString().equals("")) {
+                        if(description.getText().length() == 0) {
                             setEditTextState(1);
                         } else {
                             updateTask(connectInfo(_task.getLastAcknowledge()));
