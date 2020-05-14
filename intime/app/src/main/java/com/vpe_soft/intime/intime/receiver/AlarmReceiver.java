@@ -11,7 +11,7 @@ import android.util.Log;
 
 import com.vpe_soft.intime.intime.activity.MainActivity;
 import com.vpe_soft.intime.intime.R;
-import com.vpe_soft.intime.intime.util.Util;
+import com.vpe_soft.intime.intime.database.DatabaseUtil;
 
 /** 
  * Created by Valentin on 26.08.2015.
@@ -38,14 +38,14 @@ public class AlarmReceiver extends BroadcastReceiver {
                 : s;
 
         final long currentTimeMillis = System.currentTimeMillis();
-        long overdueCount = Util.getNumberOfOverDueTasks(context, currentTimeMillis);
+        long overdueCount = DatabaseUtil.getNumberOfOverDueTasks(context, currentTimeMillis);
 
         // if there are other overdue tasks, modify notification text to let user know about that
         if(overdueCount > 1) {
-            s = Util.getNotificationString(context, s, overdueCount);
+            s = AlarmUtil.getNotificationString(context, s, overdueCount);
         }
 
-        Intent broadcastIntent = new Intent(Util.TASK_OVERDUE_ACTION);
+        Intent broadcastIntent = new Intent(AlarmUtil.TASK_OVERDUE_ACTION);
         broadcastIntent.putExtra("task_description", s);
         context.sendOrderedBroadcast(broadcastIntent, null);
 
@@ -56,7 +56,7 @@ public class AlarmReceiver extends BroadcastReceiver {
             Log.d(TAG, "onReceive: won't show notification");
         }
 
-        Util.setupAlarmIfRequired(context);
+        AlarmUtil.setupAlarmIfRequired(context);
     }
 
     private static void showNotification(Context context, String s) {
@@ -73,6 +73,6 @@ public class AlarmReceiver extends BroadcastReceiver {
         PendingIntent mainActivityIntent = PendingIntent.getActivity(context, 0, mainActIntent, 0);
         builder.setContentIntent(mainActivityIntent);
         Notification notification = builder.build();
-        notificationManager.notify(Util.NOTIFICATION_TAG, 1, notification);
+        notificationManager.notify(AlarmUtil.NOTIFICATION_TAG, 1, notification);
     }
 }

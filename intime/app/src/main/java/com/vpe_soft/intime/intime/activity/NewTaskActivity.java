@@ -20,8 +20,10 @@ import android.widget.EditText;
 import android.widget.NumberPicker;
 
 import com.vpe_soft.intime.intime.R;
+import com.vpe_soft.intime.intime.database.DatabaseUtil;
 import com.vpe_soft.intime.intime.database.Task;
-import com.vpe_soft.intime.intime.util.Util;
+import com.vpe_soft.intime.intime.receiver.AlarmUtil;
+import com.vpe_soft.intime.intime.view.ViewUtil;
 
 public class NewTaskActivity extends AppCompatActivity{
 
@@ -49,12 +51,12 @@ public class NewTaskActivity extends AppCompatActivity{
         description = findViewById(R.id.description);
         numberPicker = findViewById(R.id.numberPicker);
         spinner = findViewById(R.id.spinner);
-        title.setTypeface(Util.getTypeface(this), Typeface.NORMAL);
-        description_text.setTypeface(Util.getTypeface(this), Typeface.NORMAL);
-        intervals_text.setTypeface(Util.getTypeface(this), Typeface.NORMAL);
-        amount_text.setTypeface(Util.getTypeface(this), Typeface.NORMAL);
-        description_text.setTypeface(Util.getTypeface(this), Typeface.NORMAL);
-        description.setTypeface(Util.getTypeface(this), Typeface.NORMAL);
+        title.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
+        description_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
+        intervals_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
+        amount_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
+        description_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
+        description.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
         spinner.setAdapter(new SpinnerAdapter(this, R.layout.spinner_item, getResources().getStringArray(R.array.spinnerItems)));
         description.addTextChangedListener(new TextWatcher() {
             @Override
@@ -91,7 +93,7 @@ public class NewTaskActivity extends AppCompatActivity{
                         if(description.getText().length() == 0) {
                             setEditTextState(1);
                         } else {
-                            Util.createNewTask(connectInfo(System.currentTimeMillis()), getContext());
+                            DatabaseUtil.createNewTask(connectInfo(System.currentTimeMillis()), getContext());
                             finish();
                         }
                     }
@@ -102,7 +104,7 @@ public class NewTaskActivity extends AppCompatActivity{
                 title.setText(R.string.edit_task_activity_title);
                 long id = extras.getLong("id");
                 _id = id;
-                _task = Util.findTaskById(this, id);
+                _task = DatabaseUtil.findTaskById(this, id);
                 description.setText(_task.getDescription());
                 spinner.setSelection(_task.getInterval());
                 numberPicker.setMaxValue(10);
@@ -145,7 +147,7 @@ public class NewTaskActivity extends AppCompatActivity{
         int amount = numberPicker.getValue();
         int interval = spinner.getSelectedItemPosition();
         String taskDescription = description.getText().toString();
-        long nextAlarm = Util.getNextAlarm(interval, amount, lastAck, getResources().getConfiguration().locale);
+        long nextAlarm = AlarmUtil.getNextAlarm(interval, amount, lastAck, getResources().getConfiguration().locale);
         long cautionPeriod = (long) ((nextAlarm - lastAck) * 0.95);
         long nextCaution  = lastAck + cautionPeriod;
         final Task task = new Task(taskDescription, interval, amount, nextAlarm, nextCaution, lastAck);
@@ -156,9 +158,9 @@ public class NewTaskActivity extends AppCompatActivity{
         Log.d(TAG, "updateTask");
 
         if(wasIntervalOrAmountChanged(task.getInterval(), task.getAmount())) {
-            Util.updateTask(_id, task, this);
+            DatabaseUtil.updateTask(_id, task, this);
         } else {
-            Util.updateTaskDescription(_id, task, this);
+            DatabaseUtil.updateTaskDescription(_id, task, this);
         }
     }
 
@@ -179,14 +181,14 @@ public class NewTaskActivity extends AppCompatActivity{
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             TextView textView = (TextView) super.getView(position, convertView, parent);
-            textView.setTypeface(Util.getTypeface(getContext()));
+            textView.setTypeface(ViewUtil.getTypeface(getContext()));
             return textView;
         }
 
         @Override
         public View getDropDownView(int position, View convertView, ViewGroup parent) {
             TextView textView = (TextView) super.getDropDownView(position, convertView, parent);
-            textView.setTypeface(Util.getTypeface(getContext()));
+            textView.setTypeface(ViewUtil.getTypeface(getContext()));
             return textView;
         }
     }

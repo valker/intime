@@ -24,10 +24,12 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.vpe_soft.intime.intime.R;
+import com.vpe_soft.intime.intime.database.DatabaseUtil;
+import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 import com.vpe_soft.intime.intime.recyclerview.TaskRecyclerViewAdapter;
-import com.vpe_soft.intime.intime.util.CardViewOutlineHelper;
-import com.vpe_soft.intime.intime.util.Util;
+import com.vpe_soft.intime.intime.view.CardViewStateHelper;
 import com.vpe_soft.intime.intime.view.ManageDialogView;
+import com.vpe_soft.intime.intime.view.ViewUtil;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -37,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
 
     private MyBroadcastReceiver receiver;
 
-    private CardViewOutlineHelper cardViewOutlineHelper = new CardViewOutlineHelper();
+    private CardViewStateHelper cardViewStateHelper = new CardViewStateHelper();
     public boolean isDefaultViewOutlineProviderSet = false;
 
     private TaskRecyclerViewAdapter adapter;
@@ -48,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         TextView title = findViewById(R.id.title_text);
-        title.setTypeface(Util.getTypeface(this), Typeface.NORMAL);
+        title.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
         View addTask = findViewById(R.id.add_task);
         addTask.setOnClickListener(new View.OnClickListener(){
             @Override
@@ -58,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-        Cursor cursor = Util.createCursor(this);
+        Cursor cursor = DatabaseUtil.createCursor(this);
 
         //TODO: create empty view after deleting old empty view
 
@@ -77,14 +79,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSelectedChanged (RecyclerView.ViewHolder viewHolder, int actionState) {
                 if(actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
-                    cardViewOutlineHelper.setOnSwipeState((TaskRecyclerViewAdapter.TaskRecyclerViewVH) viewHolder);
+                    cardViewStateHelper.setOnSwipeState((TaskRecyclerViewAdapter.TaskRecyclerViewVH) viewHolder);
                 }
                 super.onSelectedChanged(viewHolder, actionState);
             }
 
             @Override
             public void clearView(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
-                cardViewOutlineHelper.setDefaultState((TaskRecyclerViewAdapter.TaskRecyclerViewVH) viewHolder);
+                cardViewStateHelper.setDefaultState((TaskRecyclerViewAdapter.TaskRecyclerViewVH) viewHolder);
                 super.clearView(recyclerView, viewHolder);
             }
 
@@ -100,9 +102,9 @@ public class MainActivity extends AppCompatActivity {
                     int newCardRight = 0;
                     int imgLeft = 0;
                     int imgRight = 0;
-                    int imgMargin = (int) Util.toPx(24);
+                    int imgMargin = (int) ViewUtil.toPx(24);
                     Drawable img = ContextCompat.getDrawable(getContext(), R.drawable.acknowledge);
-                    int imgSize = (int) Util.toPx(24);
+                    int imgSize = (int) ViewUtil.toPx(24);
                     int imgTop = cardTop + ((cardBottom - cardTop) / 2) - (imgSize / 2);
                     if (dx > 0) {
                         //right
@@ -130,8 +132,8 @@ public class MainActivity extends AppCompatActivity {
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
                 Log.d(TAG, viewHolder.itemView.toString());
                 int pos = viewHolder.getAdapterPosition();
-                acknowledgeTask(Util.getId(getContext(), pos));
-                adapter.swapCursor(Util.createCursor(getContext()));
+                acknowledgeTask(DatabaseUtil.getId(getContext(), pos));
+                adapter.swapCursor(DatabaseUtil.createCursor(getContext()));
                 adapter.notifyItemChanged(pos);
             }
         };
@@ -140,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onStart() {
-        IntentFilter filter = new IntentFilter(Util.TASK_OVERDUE_ACTION);
+        IntentFilter filter = new IntentFilter(AlarmUtil.TASK_OVERDUE_ACTION);
         registerReceiver(getReceiver(), filter);
         super.onStart();
     }
@@ -166,7 +168,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         Log.d(TAG, "onResume");
         isOnScreen = true;
-        adapter.swapCursor(Util.createCursor(this));
+        adapter.swapCursor(DatabaseUtil.createCursor(this));
         refreshRecyclerView();
         createAlarm();
         super.onResume();
@@ -182,26 +184,26 @@ public class MainActivity extends AppCompatActivity {
 
     private void acknowledgeTask(long id) {
         final long currentTimeMillis = System.currentTimeMillis();
-        if (Util.acknowledgeTask(id, currentTimeMillis, this)) return;
+        if (DatabaseUtil.acknowledgeTask(id, currentTimeMillis, this)) return;
         createAlarm();
     }
 
     private void createAlarm() {
         Log.d(TAG, "createAlarm");
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.cancel(Util.NOTIFICATION_TAG, 1);
-        Util.setupAlarmIfRequired(this);
+        notificationManager.cancel(AlarmUtil.NOTIFICATION_TAG, 1);
+        AlarmUtil.setupAlarmIfRequired(this);
     }
 
     private void refreshRecyclerView() {
         Log.d(TAG, "refreshListView");
-        adapter.notifyItemRangeChanged(0, Util.getDatabaseLengthFromContext(this));
+        adapter.notifyItemRangeChanged(0, DatabaseUtil.getDatabaseLengthFromContext(this));
     }
 
     private void deleteTask(long id) {
         Log.d(TAG, "deleteTask");
         try {
-            Util.deleteTask(id, this);
+            DatabaseUtil.deleteTask(id, this);
         } catch (Exception ex) {
             Log.e(TAG, "deleteTask: cannot delete task", ex);
         }
@@ -220,7 +222,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void setDefaultViewOutlineProvider(ViewOutlineProvider viewOutlineProvider) {
-        cardViewOutlineHelper.setDefaultProvider(viewOutlineProvider);
+        cardViewStateHelper.setDefaultProvider(viewOutlineProvider);
     }
 
     public void onItemLongClicked(final long id, final int pos) {
@@ -231,7 +233,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG,"id " + id);
                 Log.d(TAG,"pos " + pos);
                 acknowledgeTask(id);
-                adapter.swapCursor(Util.createCursor(getContext()));
+                adapter.swapCursor(DatabaseUtil.createCursor(getContext()));
                 adapter.notifyItemChanged(pos);
             }
 
@@ -247,9 +249,9 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG,"id " + id);
                 Log.d(TAG,"pos " + pos);
                 deleteTask(id);
-                adapter.swapCursor(Util.createCursor(getContext()));
+                adapter.swapCursor(DatabaseUtil.createCursor(getContext()));
                 adapter.notifyItemRemoved(pos);
-                adapter.notifyItemRangeChanged(pos, Util.getDatabaseLengthFromContext(getContext()));
+                adapter.notifyItemRangeChanged(pos, DatabaseUtil.getDatabaseLengthFromContext(getContext()));
             }
         });
         dialog.show();

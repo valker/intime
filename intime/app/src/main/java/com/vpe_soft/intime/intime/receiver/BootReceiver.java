@@ -13,7 +13,7 @@ import androidx.core.app.NotificationCompat;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.activity.MainActivity;
-import com.vpe_soft.intime.intime.util.Util;
+import com.vpe_soft.intime.intime.database.DatabaseUtil;
 
 /**
  * Created by Valentin on 26.08.2015.
@@ -36,7 +36,7 @@ public class BootReceiver extends BroadcastReceiver {
             final long lastUsageTimestamp = sharedPreferences.getLong("LastUsageTimestamp", 0);
             final long currentTimestamp = System.currentTimeMillis();
             // number of tasks were overdue during phone was off
-            final long tasksCount = Util.getNumberOfSkippedTasks(context, lastUsageTimestamp, currentTimestamp);
+            final long tasksCount = DatabaseUtil.getNumberOfSkippedTasks(context, lastUsageTimestamp, currentTimestamp);
             //2. if this list is not empty, generate notification
             if(tasksCount > 0) {
                 Log.d(TAG, "onReceive: overdue tasks were found");
@@ -50,13 +50,13 @@ public class BootReceiver extends BroadcastReceiver {
                 PendingIntent mainActivityIntent = PendingIntent.getActivity(context, 0, mainActIntent, 0);
                 builder.setContentIntent(mainActivityIntent);
                 Notification notification = builder.build();
-                notificationManager.notify(Util.NOTIFICATION_TAG, 1, notification);
+                notificationManager.notify(AlarmUtil.NOTIFICATION_TAG, 1, notification);
             } else {
                 Log.d(TAG, "onReceive: not found overdue tasks");
             }
 
             //3. create alarm (if required for future task)
-            Util.setupAlarmIfRequired(context);
+            AlarmUtil.setupAlarmIfRequired(context);
         }
     }
 }

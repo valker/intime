@@ -15,7 +15,8 @@ import android.widget.TextView;
 import androidx.cardview.widget.CardView;
 
 import com.vpe_soft.intime.intime.R;
-import com.vpe_soft.intime.intime.util.Util;
+import com.vpe_soft.intime.intime.receiver.AlarmUtil;
+import com.vpe_soft.intime.intime.view.ViewUtil;
 
 import java.util.Locale;
 
@@ -67,7 +68,7 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             final int pos = cursor.getPosition();
             // 0 - not ready (white), 1 - almost (yellow), 2 - ready (red)
             int phase = System.currentTimeMillis() > nextCaution ? System.currentTimeMillis() > nextAlarm ? 2 : 1 : 0;
-            float cornerRadiusSecond = Util.toPx(40);
+            float cornerRadiusSecond = ViewUtil.toPx(40);
             card.setRadius(0);
             card.setCardBackgroundColor(Color.WHITE);
             card.setCardElevation(0);
@@ -95,15 +96,15 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             indicator.setBackground(gradientDrawable1);
             help.setBackground(gradientDrawable2);
             title.setText(description);
-            date.setText(Util.getDateFromNextAlarm(locale, nextAlarm));
+            date.setText(AlarmUtil.getDateFromNextAlarm(locale, nextAlarm));
                  /*+ "\n"
                     + "next_alarm " + nextAlarm + "\n"
                     + "next_caution " + nextCaution + "\n"
                     + "id " + id + "\n"
                     + "pos " + pos + "\n"
                     + "phase " + phase + "\n");*/
-            title.setTypeface(Util.getTypeface(context), Typeface.NORMAL);
-            date.setTypeface(Util.getTypeface(context), Typeface.NORMAL);
+            title.setTypeface(ViewUtil.getTypeface(context), Typeface.NORMAL);
+            date.setTypeface(ViewUtil.getTypeface(context), Typeface.NORMAL);
             card.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View view) {
