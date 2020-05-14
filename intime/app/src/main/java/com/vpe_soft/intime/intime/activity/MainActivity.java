@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
 
     private MyBroadcastReceiver receiver;
 
-    private CardViewOutlineHelper cardViewOutlineHelper = new CardViewOutlineHelper(this);
+    private CardViewOutlineHelper cardViewOutlineHelper = new CardViewOutlineHelper();
     public boolean isDefaultViewOutlineProviderSet = false;
 
     private TaskRecyclerViewAdapter adapter;
@@ -100,9 +100,9 @@ public class MainActivity extends AppCompatActivity {
                     int newCardRight = 0;
                     int imgLeft = 0;
                     int imgRight = 0;
-                    int imgMargin = (int) Util.toPx(getContext(), 24);
+                    int imgMargin = (int) Util.toPx(24);
                     Drawable img = ContextCompat.getDrawable(getContext(), R.drawable.acknowledge);
-                    int imgSize = (int) Util.toPx(getContext(), 24);
+                    int imgSize = (int) Util.toPx(24);
                     int imgTop = cardTop + ((cardBottom - cardTop) / 2) - (imgSize / 2);
                     if (dx > 0) {
                         //right

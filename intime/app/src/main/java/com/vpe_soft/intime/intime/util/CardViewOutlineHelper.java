@@ -1,6 +1,5 @@
 package com.vpe_soft.intime.intime.util;
 
-import android.content.Context;
 import android.view.ViewOutlineProvider;
 
 import com.vpe_soft.intime.intime.recyclerview.TaskRecyclerViewAdapter;
@@ -10,12 +9,6 @@ public class CardViewOutlineHelper {
     private ViewOutlineProvider defaultProvider;
 
     private boolean isIdle = true;
-
-    private Context context;
-
-    public CardViewOutlineHelper(Context context) {
-        this.context = context;
-    }
 
     public void setDefaultProvider(ViewOutlineProvider defaultProvider) {
         this.defaultProvider = defaultProvider;
@@ -31,7 +24,7 @@ public class CardViewOutlineHelper {
     public void setOnSwipeState(TaskRecyclerViewAdapter.TaskRecyclerViewVH holder) {
         if (isIdle) {
             isIdle = false;
-            holder.card.setRadius(Util.getCardCornerRadius(context));
+            holder.card.setRadius(Util.getCardCornerRadius());
             holder.card.setOutlineProvider(defaultProvider);
         }
     }

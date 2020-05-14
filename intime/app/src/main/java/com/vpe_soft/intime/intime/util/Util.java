@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
@@ -61,12 +62,12 @@ public class Util {
         Calendar.FIELD_COUNT //substitute for YEAR
     };
 
-    public static float getCardCornerRadius(Context context) {
-        return Util.toPx(context, 10);
+    public static float getCardCornerRadius() {
+        return Util.toPx(10);
     }
 
-    public static float toPx(Context context, float dp) {
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, context.getResources().getDisplayMetrics());
+    public static float toPx(float dp) {
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, Resources.getSystem().getDisplayMetrics());
     }
 
     public static long getNextAlarm(int interval, int amount, long lastAck, Locale locale) {
