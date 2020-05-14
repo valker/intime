@@ -2,18 +2,19 @@
 <resources>
     <string name="app_name">Вовремя!</string>
     <!--<string name="action_settings">Настройки</string>-->
-    <string name="action_new_task">Новая Задача</string>
-    <string name="title_activity_new_task">Добавить новую задачу</string>
-    <string name="button_create_text">Создать</string>
+    <string name="new_task_activity_title">Добавить новую задачу</string>
     <string name="label_amount_text">Количество:</string>
     <string name="label_description_text">Описание:</string>
     <string name="label_intervals_text">Интервалы:</string>
     <string name="context_menu_acknowledge">Подтвердить</string>
     <string name="context_menu_delete">Удалить</string>
     <string name="context_menu_edit">Редактировать</string>
-    <string name="button_update_text">Сохранить</string>
     <string name="new_task_description_hint">Введите описание задачи</string>
     <string name="boot_completed_overdue_tasks_notification">Пока устройство было выключено, задачи были просрочены</string>
     <string name="no_tasks_were_added_yet">Задачи не были добавлены</string>
     <string name="edit_task_activity_title">Редактировать задачу</string>
+    <string name="main_activity_title">Задачи</string>
+    <string name="notification_format">{0} и ещё {1,number} {2,choice}</string>
+    <string name="content_description_update_task">Обновить задачу</string>
+    <string name="content_description_add_task">Добавить задачу</string>
 </resources>

@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 29
     defaultConfig {
         applicationId "com.vpe_soft.intime.intime"
-        minSdkVersion 19
-        targetSdkVersion 28
-        versionCode 11
-        versionName "1.0.8"
+        minSdkVersion 23
+        targetSdkVersion 29
+        versionCode 13
+        versionName "1.1.0"
     }
     buildTypes {
         release {
@@ -15,18 +15,16 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    buildToolsVersion = '28.0.3'
     buildToolsVersion '28.0.3'
-    productFlavors {
-    }
 }
 
 dependencies {
-    implementation 'com.google.android.material:material:1.2.0-alpha03'
-    implementation 'androidx.coordinatorlayout:coordinatorlayout:1.1.0'
+    implementation 'com.google.android.material:material:1.1.0'
     implementation 'androidx.appcompat:appcompat:1.1.0'
-    implementation 'androidx.legacy:legacy-support-v13:1.0.0'
+    implementation 'androidx.recyclerview:recyclerview:1.1.0'
+    implementation 'androidx.cardview:cardview:1.0.0'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+    implementation 'androidx.legacy:legacy-support-v13:1.0.0'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
 
     implementation fileTree(include: ['*.jar'], dir: 'libs')

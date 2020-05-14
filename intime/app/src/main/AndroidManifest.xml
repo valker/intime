@@ -1,29 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.vpe_soft.intime.intime"
-    android:installLocation="internalOnly"> <!-- internalOnly location allows receiving boot-completed events -->
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    android:installLocation="internalOnly">
+
+    <!-- internalOnly location allows receiving boot-completed events -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/app_icon"
-		android:roundIcon="@drawable/app_icon_round"
         android:label="@string/app_name"
-        android:theme="@style/AppTheme" >
-        <receiver android:name=".AlarmReceiver" />
-        <receiver android:name=".BootReceiver"
-            android:enabled="true"
+        android:roundIcon="@drawable/app_icon_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+        <receiver android:name=".receiver.AlarmReceiver" />
+        <receiver
+            android:name=".receiver.BootReceiver"
             android:directBootAware="true"
-            >
+            android:enabled="true">
             <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
             <intent-filter>
-                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
         <activity
-            android:name=".MainActivity"
-            android:label="@string/app_name" >
+            android:name=".activity.MainActivity"
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -31,11 +36,11 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".NewTaskActivity"
-            android:parentActivityName=".MainActivity" >
+            android:name=".activity.NewTaskActivity"
+            android:parentActivityName=".activity.MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.vpe_soft.intime.intime.MainActivity" />
+                android:value="com.vpe_soft.intime.intime.activity.MainActivity" />
         </activity>
     </application>
 

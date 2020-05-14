@@ -1,4 +1,4 @@
-package com.vpe_soft.intime.intime;
+package com.vpe_soft.intime.intime.database;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
@@ -8,7 +8,7 @@ import android.util.Log;
 /**
  * Created by Valentin on 19.08.2015.
  */
-class InTimeOpenHelper extends SQLiteOpenHelper {
+public class InTimeOpenHelper extends SQLiteOpenHelper {
 
     private static final String TAG = "InTimeOpenHelper";
 

@@ -1,4 +1,4 @@
-package com.vpe_soft.intime.intime;
+package com.vpe_soft.intime.intime.receiver;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -8,6 +8,10 @@ import android.content.Context;
 import android.content.Intent;
 import androidx.core.app.NotificationCompat;
 import android.util.Log;
+
+import com.vpe_soft.intime.intime.activity.MainActivity;
+import com.vpe_soft.intime.intime.R;
+import com.vpe_soft.intime.intime.util.Util;
 
 /** 
  * Created by Valentin on 26.08.2015.
@@ -27,18 +31,32 @@ public class AlarmReceiver extends BroadcastReceiver {
             Log.e(TAG, "onReceive: unexpected error", e);
         }
 
-        s = s == null ? "unknown" : s;
+
+        // prevent empty description
+        s = s == null || s.length() == 0
+                ? "unknown"
+                : s;
+
+        final long currentTimeMillis = System.currentTimeMillis();
+        long overdueCount = Util.getNumberOfOverDueTasks(context, currentTimeMillis);
+
+        // if there are other overdue tasks, modify notification text to let user know about that
+        if(overdueCount > 1) {
+            s = Util.getNotificationString(context, s, overdueCount);
+        }
 
         Intent broadcastIntent = new Intent(Util.TASK_OVERDUE_ACTION);
         broadcastIntent.putExtra("task_description", s);
         context.sendOrderedBroadcast(broadcastIntent, null);
 
-        if(!MainActivity._isOnScreen) {
+        if(!MainActivity.isOnScreen) {
             Log.d(TAG, "onReceive: will show notification");
             showNotification(context, s);
         } else {
             Log.d(TAG, "onReceive: won't show notification");
         }
+
+        Util.setupAlarmIfRequired(context);
     }
 
     private static void showNotification(Context context, String s) {
