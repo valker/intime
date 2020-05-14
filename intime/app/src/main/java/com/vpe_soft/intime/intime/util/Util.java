@@ -162,17 +162,10 @@ public class Util {
                     final PendingIntent pendingIntent = createPendingIntent(
                             context,
                             next_alarm.getString(next_alarm.getColumnIndexOrThrow(DESCRIPTION_FIELD)));
-                    if(Build.VERSION.SDK_INT>=23) {
-                        alarmManager.setAndAllowWhileIdle(
+                    alarmManager.setAndAllowWhileIdle(
                                 AlarmManager.RTC_WAKEUP,
                                 nextAlarm,
                                 pendingIntent);
-                    }else {
-                        alarmManager.set(
-                                AlarmManager.RTC_WAKEUP,
-                                nextAlarm,
-                                pendingIntent);
-                    }
                 } else {
                     Log.d(TAG, "setupAlarmIfRequired: no task with alarm in future found");
                 }
