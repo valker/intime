@@ -24,6 +24,8 @@ public class Colors {
     public int editTextHint;
     public int editTextTint;
     public int spinnerItemColor;
+    public int snackbarActionColor;
+    public int snackbarBackgroundColor;
 
     public Colors(Context context) {
         activityBackground = getColor(context, R.color.activityBackground);
@@ -42,5 +44,7 @@ public class Colors {
         editTextHint = getColor(context, R.color.editTextHint);
         editTextTint = getColor(context, R.color.editTextTint);
         spinnerItemColor = getColor(context, R.color.spinnerItemColor);
+        snackbarActionColor = getColor(context, R.color.snackbarActionColor);
+        snackbarBackgroundColor = getColor(context, R.color.snackbarBackgroundColor);
     }
 }

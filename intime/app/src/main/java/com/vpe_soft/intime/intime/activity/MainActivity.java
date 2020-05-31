@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewOutlineProvider;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -23,12 +24,14 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.snackbar.Snackbar;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 import com.vpe_soft.intime.intime.recyclerview.TaskRecyclerViewAdapter;
 import com.vpe_soft.intime.intime.view.CardViewStateHelper;
 import com.vpe_soft.intime.intime.view.ManageDialogView;
+import com.vpe_soft.intime.intime.view.SnackbarHelper;
 import com.vpe_soft.intime.intime.view.ViewUtil;
 
 public class MainActivity extends AppCompatActivity {
@@ -36,6 +39,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
 
     public static boolean isOnScreen;
+
+    private RecyclerView recyclerView;
 
     private MyBroadcastReceiver receiver;
 
@@ -67,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
 
         //TODO: create empty view after deleting old empty view
 
-        RecyclerView recyclerView = findViewById(R.id.recyclerView);
+        recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setBackgroundColor(colors.cardSwipeBackground);
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
@@ -138,6 +143,12 @@ public class MainActivity extends AppCompatActivity {
                 acknowledgeTask(DatabaseUtil.getId(getContext(), pos));
                 adapter.swapCursor(DatabaseUtil.createCursor(getContext()));
                 adapter.notifyItemChanged(pos);
+                SnackbarHelper.showOnAcknowledged(getContext(), recyclerView, new SnackbarHelper.Listener() {
+                    @Override
+                    public void onCancelled() {
+                        //TODO: implement this method
+                    }
+                });
             }
         };
         new ItemTouchHelper(simpleItemTouchCallback).attachToRecyclerView(recyclerView);
@@ -238,6 +249,12 @@ public class MainActivity extends AppCompatActivity {
                 acknowledgeTask(id);
                 adapter.swapCursor(DatabaseUtil.createCursor(getContext()));
                 adapter.notifyItemChanged(pos);
+                SnackbarHelper.showOnAcknowledged(getContext(), recyclerView, new SnackbarHelper.Listener() {
+                    @Override
+                    public void onCancelled() {
+                        //TODO: implement this method
+                    }
+                });
             }
 
             @Override
@@ -255,6 +272,12 @@ public class MainActivity extends AppCompatActivity {
                 adapter.swapCursor(DatabaseUtil.createCursor(getContext()));
                 adapter.notifyItemRemoved(pos);
                 adapter.notifyItemRangeChanged(pos, DatabaseUtil.getDatabaseLengthFromContext(getContext()));
+                SnackbarHelper.showOnDeleted(getContext(), recyclerView, new SnackbarHelper.Listener() {
+                    @Override
+                    public void onCancelled() {
+                        //TODO: implement this method
+                    }
+                });
             }
         });
         dialog.show();

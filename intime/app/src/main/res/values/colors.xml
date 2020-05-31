@@ -21,4 +21,6 @@
     <color	name="editTextHint">#757575</color>
     <color	name="editTextTint">#757575</color>
     <color	name="spinnerItemColor">#000000</color>
+    <color  name="snackbarActionColor">#8AB4F8</color>
+    <color  name="snackbarBackgroundColor">#202124</color>
 </resources>

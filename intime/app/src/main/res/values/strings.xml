@@ -20,4 +20,7 @@
     <string name="notification_format">{0} and {1,number} more {2,choice}</string>
     <string name="content_description_update_task">Update task</string>
     <string name="content_description_add_task">Add task</string>
+    <string name="cancel">Cancel</string>
+    <string name="task_deleted">Task deleted</string>
+    <string name="task_acknowledged">Task acknowledged</string>
 </resources>

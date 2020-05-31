@@ -17,4 +17,7 @@
     <string name="notification_format">{0} и ещё {1,number} {2,choice}</string>
     <string name="content_description_update_task">Обновить задачу</string>
     <string name="content_description_add_task">Добавить задачу</string>
+    <string name="cancel">Отменить</string>
+    <string name="task_deleted">Задача удалена</string>
+    <string name="task_acknowledged">Задача подтверждена</string>
 </resources>
