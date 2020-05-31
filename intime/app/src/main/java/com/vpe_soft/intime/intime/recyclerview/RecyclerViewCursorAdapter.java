@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.vpe_soft.intime.intime.activity.Colors;
 import com.vpe_soft.intime.intime.activity.MainActivity;
 
 import java.util.Locale;
@@ -18,6 +19,8 @@ public abstract class RecyclerViewCursorAdapter<T extends RecyclerViewCursorView
     protected MainActivity mainActivity;
     protected final Context context;
 
+    protected Colors colors;
+
     protected final Locale locale;
     protected CursorAdapter cursorAdapter;
 
@@ -25,6 +28,7 @@ public abstract class RecyclerViewCursorAdapter<T extends RecyclerViewCursorView
     protected RecyclerViewCursorAdapter(Context context, Locale locale) {
         this.context = context;
         this.locale = locale;
+        colors = new Colors(context);
         mainActivity = (MainActivity) context;
     }
 

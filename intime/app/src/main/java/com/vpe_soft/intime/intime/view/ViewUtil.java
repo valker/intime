@@ -7,10 +7,6 @@ import android.util.TypedValue;
 
 public class ViewUtil {
 
-    public static float getCardCornerRadius() {
-        return toPx(10);
-    }
-
     public static float toPx(float dp) {
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, Resources.getSystem().getDisplayMetrics());
     }

@@ -2,6 +2,7 @@ package com.vpe_soft.intime.intime.view;
 
 import android.view.ViewOutlineProvider;
 
+import com.vpe_soft.intime.intime.activity.Dimensions;
 import com.vpe_soft.intime.intime.recyclerview.TaskRecyclerViewAdapter;
 
 public class CardViewStateHelper {
@@ -24,7 +25,7 @@ public class CardViewStateHelper {
     public void setOnSwipeState(TaskRecyclerViewAdapter.TaskRecyclerViewVH holder) {
         if (isIdle) {
             isIdle = false;
-            holder.card.setRadius(ViewUtil.getCardCornerRadius());
+            holder.card.setRadius(Dimensions.cardCornerRadius);
             holder.card.setOutlineProvider(defaultProvider);
         }
     }

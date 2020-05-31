@@ -12,7 +12,7 @@
     <com.vpe_soft.intime.intime.view.TextViewWithFont
         android:id="@+id/text"
         android:textSize="20sp"
-        android:textColor="#000000"
+        android:textColor="@color/contextMenuItem"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 </LinearLayout>

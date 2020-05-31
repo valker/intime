@@ -39,6 +39,8 @@ public class MainActivity extends AppCompatActivity {
 
     private MyBroadcastReceiver receiver;
 
+    private Colors colors;
+
     private CardViewStateHelper cardViewStateHelper = new CardViewStateHelper();
     public boolean isDefaultViewOutlineProviderSet = false;
 
@@ -47,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
+        colors = new Colors(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         TextView title = findViewById(R.id.title_text);
@@ -65,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
         //TODO: create empty view after deleting old empty view
 
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
-        recyclerView.setBackgroundColor(Color.parseColor("#188038"));
+        recyclerView.setBackgroundColor(colors.cardSwipeBackground);
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
         adapter = new TaskRecyclerViewAdapter(this, cursor, getResources().getConfiguration().locale);
@@ -119,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
                         imgLeft = cardRight - imgMargin - imgSize;
                         imgRight = cardRight - imgMargin;
                     }
-                    ColorDrawable background = new ColorDrawable(Color.parseColor("#188038"));
+                    ColorDrawable background = new ColorDrawable(colors.cardSwipeBackground);
                     background.setBounds(newCardLeft, cardTop, newCardRight, cardBottom);
                     background.draw(canvas);
                     img.setBounds(imgLeft, imgTop, imgRight, imgTop + imgSize);

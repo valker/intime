@@ -6,7 +6,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatSpinner;
 import androidx.core.graphics.drawable.DrawableCompat;
 
-import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.Editable;
@@ -32,6 +31,8 @@ public class NewTaskActivity extends AppCompatActivity{
     private long _id;
     private Task _task;
 
+    private Colors colors;
+
     private boolean editTextError = false;
 
     private NumberPicker numberPicker;
@@ -41,6 +42,7 @@ public class NewTaskActivity extends AppCompatActivity{
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        colors = new Colors(this);
         Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_new_task);
         TextView title = findViewById(R.id.newtask_title);
@@ -133,13 +135,13 @@ public class NewTaskActivity extends AppCompatActivity{
     private void setEditTextState (int state) {
         if (state == 0) {
             //normal state 757575
-            description.setHintTextColor(Color.parseColor("#757575"));
-            DrawableCompat.setTint(description.getBackground(), Color.parseColor("#757575"));
+            description.setHintTextColor(colors.editTextHint);
+            DrawableCompat.setTint(description.getBackground(), colors.editTextTint);
         } else {
             //error state
             editTextError = true;
-            description.setHintTextColor(Color.parseColor("#DB4437"));
-            DrawableCompat.setTint(description.getBackground(), Color.parseColor("#DB4437"));
+            description.setHintTextColor(colors.editTextErrorHint);
+            DrawableCompat.setTint(description.getBackground(), colors.editTextErrorTint);
         }
     }
 

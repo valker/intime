@@ -5,4 +5,20 @@
     <color	name="colorAccent">#595959</color>
     <color	name="colorControlHighlight">#595959</color>
     <color	name="colorControlNormal">#595959</color>
+    <color	name="activityBackground">#FFFFFF</color>
+    <color	name="contextMenuItem">#000000</color>
+    <color	name="titleText">#595959</color>
+    <color	name="cardBackground">#FFFFFF</color>
+    <color	name="cardTitleText">#000000</color>
+    <color	name="cardDateText">#595959</color>
+    <color	name="cardIndicatorReady">#D8232A</color>
+    <color	name="cardIndicatorAlmost">#FFC627</color>
+    <color	name="cardIndicatorNeutral">#595959</color>
+    <color	name="cardSwipeBackground">#188038</color>
+    <color	name="staticText">#757575</color>
+    <color	name="editTextErrorHint">#DB4437</color>
+    <color	name="editTextErrorTint">#DB4437</color>
+    <color	name="editTextHint">#757575</color>
+    <color	name="editTextTint">#757575</color>
+    <color	name="spinnerItemColor">#000000</color>
 </resources>

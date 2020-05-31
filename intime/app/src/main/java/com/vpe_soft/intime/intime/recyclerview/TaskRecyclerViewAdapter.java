@@ -15,6 +15,7 @@ import android.widget.TextView;
 import androidx.cardview.widget.CardView;
 
 import com.vpe_soft.intime.intime.R;
+import com.vpe_soft.intime.intime.activity.Dimensions;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 import com.vpe_soft.intime.intime.view.ViewUtil;
 
@@ -68,7 +69,6 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             final int pos = cursor.getPosition();
             // 0 - not ready (white), 1 - almost (yellow), 2 - ready (red)
             int phase = System.currentTimeMillis() > nextCaution ? System.currentTimeMillis() > nextAlarm ? 2 : 1 : 0;
-            float cornerRadiusSecond = ViewUtil.toPx(40);
             card.setRadius(0);
             card.setCardBackgroundColor(Color.WHITE);
             card.setCardElevation(0);
@@ -78,19 +78,19 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             }
             card.setOutlineProvider(null);
             GradientDrawable gradientDrawable1 = new GradientDrawable();
-            gradientDrawable1.setCornerRadius(cornerRadiusSecond);
+            gradientDrawable1.setCornerRadius(Dimensions.indicatorCornerRadius);
             GradientDrawable gradientDrawable2 = new GradientDrawable();
-            gradientDrawable2.setCornerRadius(cornerRadiusSecond);
-            gradientDrawable2.setColor(Color.parseColor("#FFFFFF"));
+            gradientDrawable2.setCornerRadius(Dimensions.indicatorCornerRadius);
+            gradientDrawable2.setColor(Color.WHITE);
             switch(phase){
                 case 0:
-                    gradientDrawable1.setColor(Color.parseColor("#595959"));
+                    gradientDrawable1.setColor(colors.cardIndicatorNeutral);
                     break;
                 case 1:
-                    gradientDrawable1.setColor(Color.parseColor("#FFC627"));
+                    gradientDrawable1.setColor(colors.cardIndicatorAlmost);
                     break;
                 case 2:
-                    gradientDrawable1.setColor(Color.parseColor("#D8232A"));
+                    gradientDrawable1.setColor(colors.cardIndicatorReady);
                     break;
             }
             indicator.setBackground(gradientDrawable1);

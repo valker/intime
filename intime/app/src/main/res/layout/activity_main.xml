@@ -3,15 +3,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#FFFFFF">
+    android:background="@color/activityBackground">
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="65dp"
         android:orientation="horizontal"
         android:paddingLeft="16dp"
         android:paddingRight="16dp"
-        android:paddingBottom="4.5dp"
-        android:background="@color/colorPrimary">
+        android:paddingBottom="4.5dp">
         <LinearLayout
             android:layout_height="match_parent"
             android:layout_width="match_parent"
@@ -25,7 +24,7 @@
                 android:text="@string/main_activity_title"
                 android:maxLines="1"
                 android:textSize="30sp"
-                android:textColor="#595959"/>
+                android:textColor="@color/titleText"/>
         </LinearLayout>
         <LinearLayout
             android:layout_width="wrap_content"

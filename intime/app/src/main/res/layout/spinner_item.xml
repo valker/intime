@@ -7,6 +7,6 @@
     android:paddingStart="15dp"
     android:paddingEnd="15dp"
     android:textSize="18sp"
-    android:textColor="#000000"
+    android:textColor="@color/spinnerItemColor"
     android:layout_width="match_parent"
     android:layout_height="match_parent"/>
