@@ -34,6 +34,7 @@
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
         <LinearLayout
+            android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="match_parent">
             <LinearLayout
@@ -66,15 +67,14 @@
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
-                        android:padding="5dp"
-                        android:layout_weight="0">
+                        android:padding="5dp">
                         <TextView
                             android:id="@+id/group1item1title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/export_title"
                             android:textSize="16sp"
-                            android:textColor="@color/cardTitleText"
+                            android:textColor="@color/settingsItemTitle"
                             android:layout_marginBottom="5dp"/>
                         <TextView
                             android:id="@+id/group1item1description"
@@ -82,15 +82,11 @@
                             android:layout_height="wrap_content"
                             android:text="@string/export_description"
                             android:textSize="14sp"
-                            android:textColor="@color/cardDateText"/>
-                    </LinearLayout>
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1">
+                            android:textColor="@color/settingsItemDescription"/>
+                        </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
-                <include layout="@layout/divider"/>
+            <include layout="@layout/divider"/>
                 <LinearLayout
                     android:id="@+id/action_import"
                     android:layout_width="match_parent"
@@ -99,18 +95,17 @@
                     android:paddingStart="14dp"
                     android:paddingEnd="14dp">
                     <LinearLayout
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical"
-                        android:padding="5dp"
-                        android:layout_weight="0">
+                        android:padding="5dp">
                         <TextView
                             android:id="@+id/group1item2title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/import_title"
                             android:textSize="16sp"
-                            android:textColor="@color/cardTitleText"
+                            android:textColor="@color/settingsItemTitle"
                             android:layout_marginBottom="5dp"/>
                         <TextView
                             android:id="@+id/group1item2description"
@@ -118,16 +113,10 @@
                             android:layout_height="wrap_content"
                             android:text="@string/import_description"
                             android:textSize="14sp"
-                            android:textColor="@color/cardDateText"/>
-                    </LinearLayout>
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1">
+                            android:textColor="@color/settingsItemDescription"/>
                     </LinearLayout>
                 </LinearLayout>
-                <include layout="@layout/divider"/>
-            </LinearLayout>
+            <include layout="@layout/divider"/>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>
