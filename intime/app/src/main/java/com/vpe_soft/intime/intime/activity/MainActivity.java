@@ -7,7 +7,6 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
@@ -15,7 +14,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewOutlineProvider;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -24,9 +22,9 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.material.snackbar.Snackbar;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
+import com.vpe_soft.intime.intime.database.TaskState;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 import com.vpe_soft.intime.intime.recyclerview.TaskRecyclerViewAdapter;
 import com.vpe_soft.intime.intime.view.CardViewStateHelper;
@@ -148,15 +146,7 @@ public class MainActivity extends AppCompatActivity {
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
                 Log.d(TAG, viewHolder.itemView.toString());
                 int pos = viewHolder.getAdapterPosition();
-                acknowledgeTask(DatabaseUtil.getId(getContext(), pos));
-                adapter.swapCursor(DatabaseUtil.createCursor(getContext()));
-                adapter.notifyItemChanged(pos);
-                SnackbarHelper.showOnAcknowledged(getContext(), recyclerView, new SnackbarHelper.Listener() {
-                    @Override
-                    public void onCancelled() {
-                        //TODO: implement this method
-                    }
-                });
+                acknowledgeTask(DatabaseUtil.getId(getContext(), pos), pos);
             }
         };
         new ItemTouchHelper(simpleItemTouchCallback).attachToRecyclerView(recyclerView);
@@ -204,10 +194,32 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    private void acknowledgeTask(long id) {
+    /**
+     * Acknowledges the task with given ID and position with ability to roll-back unwanted ack
+     * @param id - ID of the task
+     * @param pos - position of the task in the list
+     */
+    private void acknowledgeTask(final long id, final int pos) {
+        Log.d(TAG,"id " + id);
+        Log.d(TAG,"pos " + pos);
         final long currentTimeMillis = System.currentTimeMillis();
-        if (DatabaseUtil.acknowledgeTask(id, currentTimeMillis, this)) return;
+        final TaskState previousTaskState = DatabaseUtil.acknowledgeTask(id, currentTimeMillis, this);
+        if (previousTaskState == null) {
+            return;
+        }
+
         createAlarm();
+        final Context context = getContext();
+        adapter.swapCursor(DatabaseUtil.createCursor(context));
+        adapter.notifyItemChanged(pos);
+        SnackbarHelper.showOnAcknowledged(context, recyclerView, new SnackbarHelper.Listener() {
+            @Override
+            public void onCancelled() {
+                DatabaseUtil.rollBackState(id, context, previousTaskState);
+                createAlarm();
+                adapter.swapCursor(DatabaseUtil.createCursor(context));
+            }
+        });
     }
 
     private void createAlarm() {
@@ -252,17 +264,8 @@ public class MainActivity extends AppCompatActivity {
             private final static String TAG = "ManageViewDialog";
             @Override
             public void acknowledge() {
-                Log.d(TAG,"id " + id);
-                Log.d(TAG,"pos " + pos);
-                acknowledgeTask(id);
-                adapter.swapCursor(DatabaseUtil.createCursor(getContext()));
-                adapter.notifyItemChanged(pos);
-                SnackbarHelper.showOnAcknowledged(getContext(), recyclerView, new SnackbarHelper.Listener() {
-                    @Override
-                    public void onCancelled() {
-                        //TODO: implement this method
-                    }
-                });
+                // re-route the call to activity's method
+                acknowledgeTask(id, pos);
             }
 
             @Override
