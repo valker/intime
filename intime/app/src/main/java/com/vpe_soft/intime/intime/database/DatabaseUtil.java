@@ -75,12 +75,14 @@ public class DatabaseUtil {
         return helper.getWritableDatabase();
     }
 
-    public static boolean acknowledgeTask(long id, long currentTimeMillis, Context context) {
+    public static TaskState acknowledgeTask(long id, long currentTimeMillis, Context context) {
         Task task = findTaskById(context, id);
         if (task == null) {
             Log.w(TAG, "Can't find task with id = " + id);
-            return true;
+            return null;
         }
+
+        TaskState taskState = new TaskState(task);
         Log.d(TAG, "id " + id);
         Log.d(TAG, "task_desc " + task.getDescription());
         Log.d(TAG, "millis " + currentTimeMillis);
@@ -100,7 +102,7 @@ public class DatabaseUtil {
             }
         }
 
-        return false;
+        return taskState;
     }
 
     public static long getNumberOfOverDueTasks(Context context, long currentTimeMillis) {
@@ -164,6 +166,20 @@ public class DatabaseUtil {
         contentValues.put(AMOUNT_FIELD, task.getAmount());
         contentValues.put(NEXT_ALARM_FIELD, task.getNextAlarm());
         contentValues.put(NEXT_CAUTION_FIELD, task.getNextCaution());
+        updateTaskImpl(id, context, contentValues);
+    }
+
+    /**
+     * Roll back the state of task
+     * @param id - identifier ot the task
+     * @param context - context to get DB
+     * @param taskState - target state of the task
+     */
+    public static void rollBackState(long id, Context context, TaskState taskState) {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(NEXT_ALARM_FIELD, taskState.getNextAlarm());
+        contentValues.put(NEXT_CAUTION_FIELD, taskState.getNextCaution());
+        contentValues.put(LAST_ACK_FIELD, taskState.getLastAck());
         updateTaskImpl(id, context, contentValues);
     }
 
