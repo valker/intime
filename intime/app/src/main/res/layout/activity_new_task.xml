@@ -33,12 +33,14 @@
                 android:layout_weight="0"
                 android:orientation="horizontal"
                 android:gravity="end|center_vertical">
-                <ImageButton
+                <ImageView
+                    android:padding="5dp"
                     android:id="@+id/newtask_action"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
                     android:src="@drawable/next"
                     android:scaleType="fitCenter"
+                    android:background="?attr/selectableItemBackground"
                     tools:ignore="ContentDescription" />
             </LinearLayout>
         </LinearLayout>

@@ -60,6 +60,7 @@
                     android:id="@+id/action_export"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
                     android:orientation="horizontal"
                     android:paddingStart="14dp"
                     android:paddingEnd="14dp">
@@ -80,6 +81,7 @@
                             android:id="@+id/group1item1description"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
                             android:text="@string/export_description"
                             android:textSize="14sp"
                             android:textColor="@color/settingsItemDescription"/>
@@ -91,6 +93,7 @@
                     android:id="@+id/action_import"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
                     android:orientation="horizontal"
                     android:paddingStart="14dp"
                     android:paddingEnd="14dp">
@@ -111,6 +114,7 @@
                             android:id="@+id/group1item2description"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
                             android:text="@string/import_description"
                             android:textSize="14sp"
                             android:textColor="@color/settingsItemDescription"/>
