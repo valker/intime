@@ -26,6 +26,10 @@ public class Colors {
     public int spinnerItemColor;
     public int snackbarActionColor;
     public int snackbarBackgroundColor;
+    public int settingsGroupTitle;
+    public int settingsDivider;
+    public int settingsItemTitle;
+    public int settingsItemDescription;
 
     public Colors(Context context) {
         activityBackground = getColor(context, R.color.activityBackground);
@@ -43,8 +47,12 @@ public class Colors {
         editTextErrorTint = getColor(context, R.color.editTextErrorTint);
         editTextHint = getColor(context, R.color.editTextHint);
         editTextTint = getColor(context, R.color.editTextTint);
-        spinnerItemColor = getColor(context, R.color.spinnerItemColor);
-        snackbarActionColor = getColor(context, R.color.snackbarActionColor);
-        snackbarBackgroundColor = getColor(context, R.color.snackbarBackgroundColor);
+        spinnerItemColor = getColor(context, R.color.spinnerItem);
+        snackbarActionColor = getColor(context, R.color.snackbarAction);
+        snackbarBackgroundColor = getColor(context, R.color.snackbarBackground);
+        settingsGroupTitle = getColor(context, R.color.settingsGroupTitle);
+        settingsDivider = getColor(context, R.color.settingsDivider);
+        settingsItemTitle = getColor(context, R.color.settingsItemTitle);
+        settingsItemDescription = getColor(context, R.color.settingsItemDescription);
     }
 }

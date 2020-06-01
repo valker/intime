@@ -59,7 +59,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         TextView title = findViewById(R.id.title_text);
         title.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
+        View settings = findViewById(R.id.open_settings);
         View addTask = findViewById(R.id.add_task);
+        settings.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
+                startActivity(intent);
+            }
+        });
         addTask.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View view) {

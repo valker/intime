@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Вовремя!</string>
-    <!--<string name="action_settings">Настройки</string>-->
+    <string name="action_settings">Настройки</string>
     <string name="new_task_activity_title">Добавить новую задачу</string>
     <string name="label_amount_text">Количество:</string>
     <string name="label_description_text">Описание:</string>
@@ -20,4 +20,10 @@
     <string name="cancel">Отменить</string>
     <string name="task_deleted">Задача удалена</string>
     <string name="task_acknowledged">Задача подтверждена</string>
+    <string name="settings_group_dbwork">Работа с базой</string>
+    <string name="export_title">Экспортировать в файл</string>
+    <string name="export_description">Экспортируйте Ваши задачи в файл для последующего использования</string>
+    <string name="import_title">Импортировать из файла</string>
+    <string name="import_description">Импортируйте Ваши задачи из файла для того, чтобы использовать их на этом устройстве</string>
+    <string name="content_description_open_settings">Открыть настройки</string>
 </resources>
