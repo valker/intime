@@ -19,6 +19,7 @@ public class DatabaseUtil {
     public static final String TASK_TABLE = "main.tasks";
     public static final String NEXT_ALARM_FIELD = "next_alarm";
     public static final String DESCRIPTION_FIELD = "description";
+    public static final String ID_FIELD = "id";
     public static final String INTERVAL_FIELD = "interval";
     public static final String AMOUNT_FIELD = "amount";
     public static final String NEXT_CAUTION_FIELD = "next_caution";
@@ -139,7 +140,21 @@ public class DatabaseUtil {
     public static void createNewTask(Task task, Context context) {
         Log.d(TAG, "createNewTask");
 
+        createTaskImp(null, task, context);
+    }
+
+    public static void createNewTask(long id, Task task, Context context) {
+        Log.d(TAG, "createNewTask with ID");
+
+        createTaskImp(id, task, context);
+    }
+
+    private static void createTaskImp(Long id, Task task, Context context) {
         ContentValues contentValues = new ContentValues();
+
+        if(id != null) {
+            contentValues.put(ID_FIELD, id);
+        }
         contentValues.put(DESCRIPTION_FIELD, task.getDescription());
         contentValues.put(INTERVAL_FIELD, task.getInterval());
         contentValues.put(AMOUNT_FIELD, task.getAmount());

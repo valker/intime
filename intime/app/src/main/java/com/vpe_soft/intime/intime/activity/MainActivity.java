@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
+import com.vpe_soft.intime.intime.database.Task;
 import com.vpe_soft.intime.intime.database.TaskState;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 import com.vpe_soft.intime.intime.recyclerview.TaskRecyclerViewAdapter;
@@ -234,14 +235,16 @@ public class MainActivity extends AppCompatActivity {
         adapter.notifyItemRangeChanged(0, DatabaseUtil.getDatabaseLengthFromContext(this));
     }
 
-    private void deleteTask(long id) {
+    private Task deleteTask(long id) {
         Log.d(TAG, "deleteTask");
+        Task task = null;
         try {
+            task = DatabaseUtil.findTaskById(this, id);
             DatabaseUtil.deleteTask(id, this);
         } catch (Exception ex) {
             Log.e(TAG, "deleteTask: cannot delete task", ex);
         }
-        createAlarm();
+        return task;
     }
 
     private Context getContext(){
@@ -279,14 +282,18 @@ public class MainActivity extends AppCompatActivity {
             public void delete() {
                 Log.d(TAG,"id " + id);
                 Log.d(TAG,"pos " + pos);
-                deleteTask(id);
+                final Task task = deleteTask(id);
+                createAlarm();
                 adapter.swapCursor(DatabaseUtil.createCursor(getContext()));
                 adapter.notifyItemRemoved(pos);
                 adapter.notifyItemRangeChanged(pos, DatabaseUtil.getDatabaseLengthFromContext(getContext()));
                 SnackbarHelper.showOnDeleted(getContext(), recyclerView, new SnackbarHelper.Listener() {
                     @Override
                     public void onCancelled() {
-                        //TODO: implement this method
+                        DatabaseUtil.createNewTask(id, task, getContext());
+                        createAlarm();
+                        adapter.swapCursor(DatabaseUtil.createCursor(getContext()));
+                        adapter.notifyItemInserted(pos);
                     }
                 });
             }
