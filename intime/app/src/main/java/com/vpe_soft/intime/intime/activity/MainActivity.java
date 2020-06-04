@@ -209,7 +209,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        createAlarm();
+        AlarmUtil.setupAlarmIfRequired(this);
         final Context context = getContext();
         adapter.swapCursor(DatabaseUtil.createCursor(context));
         adapter.notifyItemChanged(pos);
@@ -217,7 +217,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onCancelled() {
                 DatabaseUtil.rollBackState(id, context, previousTaskState);
-                createAlarm();
+                AlarmUtil.setupAlarmIfRequired(context);
                 adapter.swapCursor(DatabaseUtil.createCursor(context));
             }
         });
@@ -283,7 +283,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG,"id " + id);
                 Log.d(TAG,"pos " + pos);
                 final Task task = deleteTask(id);
-                createAlarm();
+                AlarmUtil.setupAlarmIfRequired(getContext());
                 adapter.swapCursor(DatabaseUtil.createCursor(getContext()));
                 adapter.notifyItemRemoved(pos);
                 adapter.notifyItemRangeChanged(pos, DatabaseUtil.getDatabaseLengthFromContext(getContext()));
@@ -291,7 +291,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onCancelled() {
                         DatabaseUtil.createNewTask(id, task, getContext());
-                        createAlarm();
+                        AlarmUtil.setupAlarmIfRequired(getContext());
                         adapter.swapCursor(DatabaseUtil.createCursor(getContext()));
                         adapter.notifyItemInserted(pos);
                     }
