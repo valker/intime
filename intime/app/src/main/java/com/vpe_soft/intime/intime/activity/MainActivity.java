@@ -209,18 +209,21 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        AlarmUtil.setupAlarmIfRequired(this);
         final Context context = getContext();
-        adapter.swapCursor(DatabaseUtil.createCursor(context));
+        onTaskListUpdated(context);
         adapter.notifyItemChanged(pos);
         SnackbarHelper.showOnAcknowledged(context, recyclerView, new SnackbarHelper.Listener() {
             @Override
             public void onCancelled() {
                 DatabaseUtil.rollBackState(id, context, previousTaskState);
-                AlarmUtil.setupAlarmIfRequired(context);
-                adapter.swapCursor(DatabaseUtil.createCursor(context));
+                onTaskListUpdated(context);
             }
         });
+    }
+
+    private void onTaskListUpdated(Context context) {
+        AlarmUtil.setupAlarmIfRequired(context);
+        adapter.swapCursor(DatabaseUtil.createCursor(context));
     }
 
     private void createAlarm() {
@@ -283,16 +286,15 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG,"id " + id);
                 Log.d(TAG,"pos " + pos);
                 final Task task = deleteTask(id);
-                AlarmUtil.setupAlarmIfRequired(getContext());
-                adapter.swapCursor(DatabaseUtil.createCursor(getContext()));
+                final Context context = getContext();
+                onTaskListUpdated(context);
                 adapter.notifyItemRemoved(pos);
-                adapter.notifyItemRangeChanged(pos, DatabaseUtil.getDatabaseLengthFromContext(getContext()));
-                SnackbarHelper.showOnDeleted(getContext(), recyclerView, new SnackbarHelper.Listener() {
+                adapter.notifyItemRangeChanged(pos, DatabaseUtil.getDatabaseLengthFromContext(context));
+                SnackbarHelper.showOnDeleted(context, recyclerView, new SnackbarHelper.Listener() {
                     @Override
                     public void onCancelled() {
-                        DatabaseUtil.createNewTask(id, task, getContext());
-                        AlarmUtil.setupAlarmIfRequired(getContext());
-                        adapter.swapCursor(DatabaseUtil.createCursor(getContext()));
+                        DatabaseUtil.createNewTask(id, task, context);
+                        onTaskListUpdated(context);
                         adapter.notifyItemInserted(pos);
                     }
                 });
