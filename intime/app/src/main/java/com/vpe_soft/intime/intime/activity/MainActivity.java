@@ -16,6 +16,8 @@ import android.view.View;
 import android.view.ViewOutlineProvider;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.ItemTouchHelper;
@@ -87,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
         ItemTouchHelper.SimpleCallback simpleItemTouchCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
             @Override
-            public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
                 return false;
             }
 
@@ -100,13 +102,13 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void clearView(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
+            public void clearView(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
                 cardViewStateHelper.setDefaultState((TaskRecyclerViewAdapter.TaskRecyclerViewVH) viewHolder);
                 super.clearView(recyclerView, viewHolder);
             }
 
             @Override
-            public void onChildDraw(Canvas canvas, RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
+            public void onChildDraw(@NonNull Canvas canvas, @NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
                 if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
                     int dx = (int) dX;
                     int cardLeft = viewHolder.itemView.getLeft();
@@ -119,6 +121,11 @@ public class MainActivity extends AppCompatActivity {
                     int imgRight = 0;
                     int imgMargin = (int) ViewUtil.toPx(24);
                     Drawable img = ContextCompat.getDrawable(getContext(), R.drawable.acknowledge);
+                    if(img == null) {
+                        Log.e(TAG, "onChildDraw: Cannot get drawable!");
+                        throw new UnsupportedOperationException("Cannot get drawable!");
+                    }
+
                     int imgSize = (int) ViewUtil.toPx(24);
                     int imgTop = cardTop + ((cardBottom - cardTop) / 2) - (imgSize / 2);
                     if (dx > 0) {
@@ -229,6 +236,11 @@ public class MainActivity extends AppCompatActivity {
     private void createAlarm() {
         Log.d(TAG, "createAlarm");
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if(notificationManager == null) {
+            Log.w(TAG, "createAlarm: Cannot get NotificationManager.");
+            return;
+        }
+
         notificationManager.cancel(AlarmUtil.NOTIFICATION_TAG, 1);
         AlarmUtil.setupAlarmIfRequired(this);
     }
@@ -276,15 +288,13 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void edit() {
-                Log.d(TAG,"id " + id);
-                Log.d(TAG,"pos " + pos);
+                Log.d(TAG,"edit: id=" + id + ", pos=" + pos);
                 editTask(id);
             }
 
             @Override
             public void delete() {
-                Log.d(TAG,"id " + id);
-                Log.d(TAG,"pos " + pos);
+                Log.d(TAG,"delete: id=" + id + ", pos=" + pos);
                 final Task task = deleteTask(id);
                 final Context context = getContext();
                 onTaskListUpdated(context);
