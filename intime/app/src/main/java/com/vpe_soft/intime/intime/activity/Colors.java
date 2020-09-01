@@ -2,9 +2,9 @@ package com.vpe_soft.intime.intime.activity;
 
 import android.content.Context;
 
-import static  androidx.core.content.ContextCompat.getColor;
-
 import com.vpe_soft.intime.intime.R;
+
+import static androidx.core.content.ContextCompat.getColor;
 
 public class Colors {
 

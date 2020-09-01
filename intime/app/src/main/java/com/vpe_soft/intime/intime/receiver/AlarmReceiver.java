@@ -6,14 +6,15 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import androidx.core.app.NotificationCompat;
 import android.util.Log;
 
-import com.vpe_soft.intime.intime.activity.MainActivity;
+import androidx.core.app.NotificationCompat;
+
 import com.vpe_soft.intime.intime.R;
+import com.vpe_soft.intime.intime.activity.MainActivity;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
 
-/** 
+/**
  * Created by Valentin on 26.08.2015.
  * Receives notifications from AlarmManager about next alarm and pass it to MainActivity
  */
@@ -27,7 +28,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         String s = null;
         try {
             s = intent.getStringExtra("task_description");
-        } catch( Exception e) {
+        } catch (Exception e) {
             Log.e(TAG, "onReceive: unexpected error", e);
         }
 
@@ -41,7 +42,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         long overdueCount = DatabaseUtil.getNumberOfOverDueTasks(context, currentTimeMillis);
 
         // if there are other overdue tasks, modify notification text to let user know about that
-        if(overdueCount > 1) {
+        if (overdueCount > 1) {
             s = AlarmUtil.getNotificationString(context, s, overdueCount);
         }
 
@@ -49,7 +50,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         broadcastIntent.putExtra("task_description", s);
         context.sendOrderedBroadcast(broadcastIntent, null);
 
-        if(!MainActivity.isOnScreen) {
+        if (!MainActivity.isOnScreen) {
             Log.d(TAG, "onReceive: will show notification");
             showNotification(context, s);
         } else {

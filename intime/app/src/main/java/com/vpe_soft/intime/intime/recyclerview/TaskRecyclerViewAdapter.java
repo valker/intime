@@ -21,7 +21,7 @@ import com.vpe_soft.intime.intime.view.ViewUtil;
 
 import java.util.Locale;
 
-public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyclerViewAdapter.TaskRecyclerViewVH>{
+public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyclerViewAdapter.TaskRecyclerViewVH> {
 
     public TaskRecyclerViewAdapter(Context context, Cursor cursor, Locale locale) {
         super(context, locale);
@@ -30,7 +30,7 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
 
     @Override
     public TaskRecyclerViewVH onCreateViewHolder(ViewGroup viewGroup, int i) {
-        View itemView = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.task_item,viewGroup,false);
+        View itemView = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.task_item, viewGroup, false);
         return new TaskRecyclerViewVH(itemView);
     }
 
@@ -82,7 +82,7 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
             GradientDrawable gradientDrawable2 = new GradientDrawable();
             gradientDrawable2.setCornerRadius(Dimensions.indicatorCornerRadius);
             gradientDrawable2.setColor(Color.WHITE);
-            switch(phase){
+            switch (phase) {
                 case 0:
                     gradientDrawable1.setColor(colors.cardIndicatorNeutral);
                     break;

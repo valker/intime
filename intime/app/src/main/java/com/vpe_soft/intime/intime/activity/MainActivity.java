@@ -7,21 +7,22 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Canvas;
-import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.ViewOutlineProvider;
-import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.appbar.AppBarLayout;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
 import com.vpe_soft.intime.intime.database.TaskState;
@@ -55,25 +56,12 @@ public class MainActivity extends AppCompatActivity {
         colors = new Colors(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        TextView title = findViewById(R.id.title_text);
-        title.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
-        View settings = findViewById(R.id.open_settings);
-        View addTask = findViewById(R.id.add_task);
-        settings.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
-                startActivity(intent);
-            }
-        });
-        addTask.setOnClickListener(new View.OnClickListener(){
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this, NewTaskActivity.class);
-                intent.putExtra("action", "create");
-                startActivity(intent);
-            }
-        });
+        AppBarLayout appbar = findViewById(R.id.main_appbar);
+        appbar.setOutlineProvider(null);
+        Toolbar toolbar = findViewById(R.id.main_toolbar);
+        toolbar.setTitle(getString(R.string.main_activity_title));
+        setSupportActionBar(toolbar);
+
         Cursor cursor = DatabaseUtil.createCursor(this);
 
         //TODO: create empty view after deleting old empty view
@@ -91,8 +79,8 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onSelectedChanged (RecyclerView.ViewHolder viewHolder, int actionState) {
-                if(actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+            public void onSelectedChanged(RecyclerView.ViewHolder viewHolder, int actionState) {
+                if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
                     cardViewStateHelper.setOnSwipeState((TaskRecyclerViewAdapter.TaskRecyclerViewVH) viewHolder);
                 }
                 super.onSelectedChanged(viewHolder, actionState);
@@ -153,6 +141,29 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_add_task:
+                Intent intent1 = new Intent(MainActivity.this, NewTaskActivity.class);
+                intent1.putExtra("action", "create");
+                startActivity(intent1);
+                return true;
+            case R.id.action_settings:
+                Intent intent2 = new Intent(MainActivity.this, SettingsActivity.class);
+                startActivity(intent2);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    @Override
     protected void onStart() {
         IntentFilter filter = new IntentFilter(AlarmUtil.TASK_OVERDUE_ACTION);
         registerReceiver(getReceiver(), filter);
@@ -196,12 +207,13 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Acknowledges the task with given ID and position with ability to roll-back unwanted ack
-     * @param id - ID of the task
+     *
+     * @param id  - ID of the task
      * @param pos - position of the task in the list
      */
     private void acknowledgeTask(final long id, final int pos) {
-        Log.d(TAG,"id " + id);
-        Log.d(TAG,"pos " + pos);
+        Log.d(TAG, "id " + id);
+        Log.d(TAG, "pos " + pos);
         final long currentTimeMillis = System.currentTimeMillis();
         final TaskState previousTaskState = DatabaseUtil.acknowledgeTask(id, currentTimeMillis, this);
         if (previousTaskState == null) {
@@ -244,7 +256,7 @@ public class MainActivity extends AppCompatActivity {
         createAlarm();
     }
 
-    private Context getContext(){
+    private Context getContext() {
         return this;
     }
 
@@ -262,6 +274,7 @@ public class MainActivity extends AppCompatActivity {
     public void onItemLongClicked(final long id, final int pos) {
         ManageDialogView dialog = new ManageDialogView(this, new ManageDialogView.Actions() {
             private final static String TAG = "ManageViewDialog";
+
             @Override
             public void acknowledge() {
                 // re-route the call to activity's method
@@ -270,15 +283,15 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void edit() {
-                Log.d(TAG,"id " + id);
-                Log.d(TAG,"pos " + pos);
+                Log.d(TAG, "id " + id);
+                Log.d(TAG, "pos " + pos);
                 editTask(id);
             }
 
             @Override
             public void delete() {
-                Log.d(TAG,"id " + id);
-                Log.d(TAG,"pos " + pos);
+                Log.d(TAG, "id " + id);
+                Log.d(TAG, "pos " + pos);
                 deleteTask(id);
                 adapter.swapCursor(DatabaseUtil.createCursor(getContext()));
                 adapter.notifyItemRemoved(pos);
@@ -296,7 +309,10 @@ public class MainActivity extends AppCompatActivity {
 
     class MyBroadcastReceiver extends android.content.BroadcastReceiver {
         private static final String TAG = "MyBroadcastReceiver";
-        public MyBroadcastReceiver(){}
+
+        public MyBroadcastReceiver() {
+        }
+
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.d(TAG, "onReceive");

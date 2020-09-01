@@ -1,63 +1,44 @@
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
-    <LinearLayout
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/new_task_appbar"
         android:layout_width="match_parent"
-        android:layout_height="65dp"
-        android:orientation="horizontal"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:paddingBottom="4.5dp"
-        android:background="@color/activityBackground">
-        <LinearLayout
-            android:layout_height="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/new_task_toolbar"
             android:layout_width="match_parent"
-            android:gravity="start|center_vertical"
-            android:orientation="horizontal"
-            android:layout_weight="1">
-            <TextView
-                android:id="@+id/newtask_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxLines="1"
-                android:textSize="25sp"
-                android:textColor="@color/titleText"/>
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_weight="0"
-                android:orientation="horizontal"
-                android:gravity="end|center_vertical">
-                <ImageButton
-                    android:id="@+id/newtask_action"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:src="@drawable/next"
-                    android:scaleType="fitCenter"
-                    tools:ignore="ContentDescription" />
-            </LinearLayout>
-        </LinearLayout>
+            android:layout_height="?attr/actionBarSize"
+            android:theme="@style/ToolbarTheme"
+            app:layout_collapseMode="pin"
+            app:layout_scrollFlags="scroll|enterAlways"
+            app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+            app:titleTextAppearance="@style/Toolbar.TitleText" />
+    </com.google.android.material.appbar.AppBarLayout>
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/gridLayout2"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="8dp"
         android:background="@color/colorPrimary"
         android:columnCount="2"
+        android:padding="8dp"
         android:rowCount="6">
+
         <TextView
             android:id="@+id/textView4"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
-            android:textSize="18sp"
-            android:textColor="@color/staticText"
             android:text="@string/label_description_text"
+            android:textColor="@color/staticText"
+            android:textSize="18sp"
             app:layout_constraintBaseline_toBaselineOf="@+id/description"
             app:layout_constraintEnd_toStartOf="@+id/guideline" />
 
@@ -68,11 +49,11 @@
             android:layout_marginStart="15dp"
             android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
-            android:textSize="18sp"
             android:hint="@string/new_task_description_hint"
             android:inputType="text"
             android:minHeight="48dp"
             android:textColorHint="#757575"
+            android:textSize="18sp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="@+id/guideline"
             app:layout_constraintTop_toTopOf="parent"
@@ -83,9 +64,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
-            android:textSize="18sp"
-            android:textColor="@color/staticText"
             android:text="@string/label_intervals_text"
+            android:textColor="@color/staticText"
+            android:textSize="18sp"
             app:layout_constraintBaseline_toBaselineOf="@+id/spinner"
             app:layout_constraintEnd_toStartOf="@+id/guideline" />
 
@@ -106,9 +87,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
-            android:textSize="18sp"
-            android:textColor="@color/staticText"
             android:text="@string/label_amount_text"
+            android:textColor="@color/staticText"
+            android:textSize="18sp"
             app:layout_constraintBottom_toBottomOf="@+id/numberPicker"
             app:layout_constraintEnd_toStartOf="@+id/guideline"
             app:layout_constraintTop_toTopOf="@+id/numberPicker" />
@@ -137,4 +118,3 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </LinearLayout>
-

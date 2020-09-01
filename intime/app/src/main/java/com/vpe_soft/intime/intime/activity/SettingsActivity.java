@@ -1,12 +1,12 @@
 package com.vpe_soft.intime.intime.activity;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.view.ViewUtil;

@@ -21,7 +21,8 @@ public class TextViewWithFont extends AppCompatTextView {
         super(context);
         init(context);
     }
+
     public void init(Context context) {
-        setTypeface(ViewUtil.getTypeface(context),Typeface.NORMAL);
+        setTypeface(ViewUtil.getTypeface(context), Typeface.NORMAL);
     }
 }

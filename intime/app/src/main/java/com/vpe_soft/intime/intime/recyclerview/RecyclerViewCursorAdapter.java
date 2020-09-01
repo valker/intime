@@ -2,12 +2,12 @@ package com.vpe_soft.intime.intime.recyclerview;
 
 import android.content.Context;
 import android.database.Cursor;
-import androidx.cursoradapter.widget.CursorAdapter;
-import androidx.recyclerview.widget.RecyclerView;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import androidx.cursoradapter.widget.CursorAdapter;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.vpe_soft.intime.intime.activity.Colors;
 import com.vpe_soft.intime.intime.activity.MainActivity;
@@ -25,6 +25,7 @@ public abstract class RecyclerViewCursorAdapter<T extends RecyclerViewCursorView
     protected CursorAdapter cursorAdapter;
 
     private T viewHolder;
+
     protected RecyclerViewCursorAdapter(Context context, Locale locale) {
         this.context = context;
         this.locale = locale;

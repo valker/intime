@@ -11,7 +11,7 @@ public class ViewUtil {
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, Resources.getSystem().getDisplayMetrics());
     }
 
-    public static Typeface getTypeface(Context context){
-        return Typeface.createFromAsset(context.getAssets(),"font/font.ttf");
+    public static Typeface getTypeface(Context context) {
+        return Typeface.createFromAsset(context.getAssets(), "font/font.ttf");
     }
 }

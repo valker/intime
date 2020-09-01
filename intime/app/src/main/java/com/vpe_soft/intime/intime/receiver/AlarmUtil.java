@@ -30,7 +30,7 @@ public class AlarmUtil {
     public static final String TASK_OVERDUE_ACTION = "com.vpe_soft.intime.intime.TaskOverdue";
     public static final String NOTIFICATION_TAG = "com.vpe_soft.intime.intime.NotificationTag";
 
-    private static final int[] fields= new int[]{
+    private static final int[] fields = new int[]{
             Calendar.MINUTE,
             Calendar.HOUR,
             Calendar.DAY_OF_YEAR,
@@ -45,7 +45,7 @@ public class AlarmUtil {
         Calendar calendar = new GregorianCalendar(locale);
         calendar.setTime(date);
         int field = fields[interval];
-        if(field == Calendar.FIELD_COUNT) {
+        if (field == Calendar.FIELD_COUNT) {
             // YEAR is not supported by calendar.add, so emulate it as 12 months
             field = Calendar.MONTH;
             amount = amount * 12;
@@ -56,7 +56,7 @@ public class AlarmUtil {
         return date.getTime();
     }
 
-    public static String getDateFromNextAlarm(Locale locale, long nextAlarm){
+    public static String getDateFromNextAlarm(Locale locale, long nextAlarm) {
         Date date = new Date(nextAlarm);
         String pattern = DateFormat.getBestDateTimePattern(locale, SKELETON);
         SimpleDateFormat format = new SimpleDateFormat(pattern, locale);
@@ -86,6 +86,7 @@ public class AlarmUtil {
             }
         }
     }
+
     public static String getNotificationString(Context context, String taskDescription, long overdueTasksCount) {
         String formatString = context.getString(R.string.notification_format);
         Locale locale = context.getResources().getConfiguration().locale;
@@ -98,14 +99,13 @@ public class AlarmUtil {
     }
 
     public static ChoiceFormat getTaskChoiceFormat(String iso3Language) {
-        if(iso3Language.equals("rus")) {
-            double[] limits = {1,2,5,21,22,25};
-            String[] texts = {"задача","задачи", "задач", "задача", "задачи", "задач"};
+        if (iso3Language.equals("rus")) {
+            double[] limits = {1, 2, 5, 21, 22, 25};
+            String[] texts = {"задача", "задачи", "задач", "задача", "задачи", "задач"};
             return new ChoiceFormat(limits, texts);
-        }
-        else {
+        } else {
             // other language - english by default
-            double[] limits = {1,2};
+            double[] limits = {1, 2};
             String[] texts = {"task", "tasks"};
             return new ChoiceFormat(limits, texts);
         }
