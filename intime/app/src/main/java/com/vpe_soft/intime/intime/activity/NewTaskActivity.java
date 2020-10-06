@@ -44,20 +44,12 @@ public class NewTaskActivity extends AppCompatActivity {
         colors = new Colors(this);
         Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_new_task);
-        TextView title = findViewById(R.id.newtask_title);
         TextView description_text = findViewById(R.id.textView4);
         TextView intervals_text = findViewById(R.id.textView5);
         TextView amount_text = findViewById(R.id.textView6);
-        View next = findViewById(R.id.newtask_action);
         description = findViewById(R.id.description);
         numberPicker = findViewById(R.id.numberPicker);
         spinner = findViewById(R.id.spinner);
-        title.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
-        description_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
-        intervals_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
-        amount_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
-        description_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
-        description.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
         spinner.setAdapter(new SpinnerAdapter(this, R.layout.spinner_item, getResources().getStringArray(R.array.spinnerItems)));
         description.addTextChangedListener(new TextWatcher() {
             @Override

@@ -25,14 +25,14 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:paddingStart="14dp"
-                    android:paddingEnd="14dp"
+                    android:paddingHorizontal="14dp"
                     android:paddingBottom="10dp">
 
                     <TextView
                         android:id="@+id/group1title"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:fontFamily="@font/manroperegular"
                         android:text="@string/settings_group_dbwork"
                         android:textColor="@color/settingsGroupTitle"
                         android:textSize="12sp" />
@@ -42,33 +42,28 @@
                     android:id="@+id/action_export"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:paddingStart="14dp"
-                    android:paddingEnd="14dp">
+                    android:orientation="vertical"
+                    android:paddingHorizontal="19dp"
+                    android:paddingVertical="5dp">
 
-                    <LinearLayout
+                    <TextView
+                        android:id="@+id/group1item1title"
                         android:layout_width="wrap_content"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:padding="5dp">
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="5dp"
+                        android:fontFamily="@font/manroperegular"
+                        android:text="@string/export_title"
+                        android:textColor="@color/settingsItemTitle"
+                        android:textSize="16sp" />
 
-                        <TextView
-                            android:id="@+id/group1item1title"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="5dp"
-                            android:text="@string/export_title"
-                            android:textColor="@color/settingsItemTitle"
-                            android:textSize="16sp" />
-
-                        <TextView
-                            android:id="@+id/group1item1description"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/export_description"
-                            android:textColor="@color/settingsItemDescription"
-                            android:textSize="14sp" />
-                    </LinearLayout>
+                    <TextView
+                        android:id="@+id/group1item1description"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/manroperegular"
+                        android:text="@string/export_description"
+                        android:textColor="@color/settingsItemDescription"
+                        android:textSize="14sp" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -78,33 +73,28 @@
                 android:id="@+id/action_import"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp">
+                android:orientation="vertical"
+                android:paddingHorizontal="19dp"
+                android:paddingVertical="5dp">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:padding="5dp">
+                <TextView
+                    android:id="@+id/group1item2title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="5dp"
+                    android:fontFamily="@font/manroperegular"
+                    android:text="@string/import_title"
+                    android:textColor="@color/settingsItemTitle"
+                    android:textSize="16sp" />
 
-                    <TextView
-                        android:id="@+id/group1item2title"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="5dp"
-                        android:text="@string/import_title"
-                        android:textColor="@color/settingsItemTitle"
-                        android:textSize="16sp" />
-
-                    <TextView
-                        android:id="@+id/group1item2description"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/import_description"
-                        android:textColor="@color/settingsItemDescription"
-                        android:textSize="14sp" />
-                </LinearLayout>
+                <TextView
+                    android:id="@+id/group1item2description"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/manroperegular"
+                    android:text="@string/import_description"
+                    android:textColor="@color/settingsItemDescription"
+                    android:textSize="14sp" />
             </LinearLayout>
 
             <include layout="@layout/divider" />

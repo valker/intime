@@ -38,6 +38,8 @@ public class BootReceiver extends BroadcastReceiver {
             // number of tasks were overdue during phone was off
             final long tasksCount = DatabaseUtil.getNumberOfSkippedTasks(context, lastUsageTimestamp, currentTimestamp);
             //2. if this list is not empty, generate notification
+
+            //TODO: rewrite
             if (tasksCount > 0) {
                 Log.d(TAG, "onReceive: overdue tasks were found");
                 // we will raise a notification

@@ -3,7 +3,6 @@ package com.vpe_soft.intime.intime.recyclerview;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Color;
-import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -12,12 +11,12 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.activity.Dimensions;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
-import com.vpe_soft.intime.intime.view.ViewUtil;
 
 import java.util.Locale;
 
@@ -25,9 +24,10 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
 
     public TaskRecyclerViewAdapter(Context context, Cursor cursor, Locale locale) {
         super(context, locale);
-        setupCursorAdapter(cursor, 0, R.layout.task_item, false);
+        setupCursorAdapter(cursor, R.layout.task_item);
     }
 
+    @NonNull
     @Override
     public TaskRecyclerViewVH onCreateViewHolder(ViewGroup viewGroup, int i) {
         View itemView = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.task_item, viewGroup, false);
@@ -35,7 +35,7 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
     }
 
     @Override
-    public void onBindViewHolder(TaskRecyclerViewVH holder, int position) {
+    public void onBindViewHolder(@NonNull TaskRecyclerViewVH holder, int position) {
         cursorAdapter.getCursor().moveToPosition(position);
         setViewHolder(holder);
         cursorAdapter.bindView(null, context, cursorAdapter.getCursor());
@@ -48,6 +48,7 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
         public CardView card;
         public LinearLayout indicator;
         public LinearLayout help;
+        @SuppressWarnings("FieldCanBeLocal")
         private String TAG = "TaskRecyclerViewVH";
 
         public TaskRecyclerViewVH(View itemView) {
@@ -103,8 +104,6 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
                     + "id " + id + "\n"
                     + "pos " + pos + "\n"
                     + "phase " + phase + "\n");*/
-            title.setTypeface(ViewUtil.getTypeface(context), Typeface.NORMAL);
-            date.setTypeface(ViewUtil.getTypeface(context), Typeface.NORMAL);
             card.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View view) {

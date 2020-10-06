@@ -122,12 +122,11 @@ public class DatabaseUtil {
 
     private static long countTasks(Context context, String selection, String[] selectionArgs) {
         try (SQLiteDatabase database = getReadableDatabaseFromContext(context)) {
-            long rowsCount = DatabaseUtils.queryNumEntries(
+            return DatabaseUtils.queryNumEntries(
                     database,
                     TASK_TABLE,
                     selection,
                     selectionArgs);
-            return rowsCount;
         }
     }
 

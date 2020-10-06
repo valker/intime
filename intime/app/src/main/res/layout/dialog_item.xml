@@ -4,15 +4,14 @@
     android:layout_height="wrap_content"
     android:minHeight="48dp"
     android:orientation="vertical"
-    android:paddingStart="20dp"
-    android:paddingTop="10dp"
-    android:paddingEnd="20dp"
-    android:paddingBottom="10dp">
+    android:paddingHorizontal="20dp"
+    android:paddingVertical="10dp">
 
-    <com.vpe_soft.intime.intime.view.TextViewWithFont
+    <TextView
         android:id="@+id/text"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:fontFamily="@font/manroperegular"
         android:textColor="@color/contextMenuItem"
         android:textSize="20sp" />
 </LinearLayout>

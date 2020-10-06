@@ -60,6 +60,8 @@ public class AlarmReceiver extends BroadcastReceiver {
         AlarmUtil.setupAlarmIfRequired(context);
     }
 
+
+    //TODO: rewrite
     private static void showNotification(Context context, String s) {
         Log.d(TAG, "showNotification");
 

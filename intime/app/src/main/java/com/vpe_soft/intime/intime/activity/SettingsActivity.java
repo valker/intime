@@ -20,7 +20,6 @@ public class SettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
         Typeface typeface = ViewUtil.getTypeface(this);
-        TextView settingsTitle = findViewById(R.id.settings_title);
         TextView group1title = findViewById(R.id.group1title);
         TextView group1item1title = findViewById(R.id.group1item1title);
         TextView group1item1description = findViewById(R.id.group1item1description);
