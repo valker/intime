@@ -22,6 +22,7 @@ public class CardViewStateHelper {
             holder.card.setOutlineProvider(null);
         }
     }
+
     public void setOnSwipeState(TaskRecyclerViewAdapter.TaskRecyclerViewVH holder) {
         if (isIdle) {
             isIdle = false;

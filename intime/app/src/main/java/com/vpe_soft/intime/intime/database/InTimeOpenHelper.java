@@ -34,19 +34,19 @@ public class InTimeOpenHelper extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         Log.d(TAG, "onUpgrade");
 
-        if(oldVersion < 2) {
+        if (oldVersion < 2) {
             Log.d(TAG, "onUpgrade: up to version 2");
             String sqlCommand = "ALTER TABLE main.tasks ADD COLUMN next_alarm INTEGER NOT NULL DEFAULT 0;";
             db.execSQL(sqlCommand);
         }
 
-        if(oldVersion < 3) {
+        if (oldVersion < 3) {
             Log.d(TAG, "onUpgrade: up to version 3");
             String sqlCommand = "ALTER TABLE main.tasks ADD COLUMN next_caution INTEGER NOT NULL DEFAULT 0;";
             db.execSQL(sqlCommand);
         }
 
-        if(oldVersion < 4) {
+        if (oldVersion < 4) {
             Log.d(TAG, "onUpgrade: up to version 4");
             String sqlCommand = "ALTER TABLE main.tasks ADD COLUMN last_ack INTEGER NOT NULL DEFAULT 0;";
             db.execSQL(sqlCommand);

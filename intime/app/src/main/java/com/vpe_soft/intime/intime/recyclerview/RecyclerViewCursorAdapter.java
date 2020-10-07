@@ -2,12 +2,12 @@ package com.vpe_soft.intime.intime.recyclerview;
 
 import android.content.Context;
 import android.database.Cursor;
-import androidx.cursoradapter.widget.CursorAdapter;
-import androidx.recyclerview.widget.RecyclerView;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import androidx.cursoradapter.widget.CursorAdapter;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.vpe_soft.intime.intime.activity.Colors;
 import com.vpe_soft.intime.intime.activity.MainActivity;
@@ -25,6 +25,7 @@ public abstract class RecyclerViewCursorAdapter<T extends RecyclerViewCursorView
     protected CursorAdapter cursorAdapter;
 
     private T viewHolder;
+
     protected RecyclerViewCursorAdapter(Context context, Locale locale) {
         this.context = context;
         this.locale = locale;
@@ -32,11 +33,11 @@ public abstract class RecyclerViewCursorAdapter<T extends RecyclerViewCursorView
         mainActivity = (MainActivity) context;
     }
 
-    protected void setupCursorAdapter(Cursor cursor, int flags, final int resource, final boolean attachToRoot) {
-        this.cursorAdapter = new CursorAdapter(context, cursor, flags) {
+    protected void setupCursorAdapter(Cursor cursor, @SuppressWarnings("SameParameterValue") final int resource) {
+        this.cursorAdapter = new CursorAdapter(context, cursor, 0) {
             @Override
             public View newView(Context context, Cursor cursor, ViewGroup parent) {
-                return LayoutInflater.from(context).inflate(resource, parent, attachToRoot);
+                return LayoutInflater.from(context).inflate(resource, parent, false);
             }
 
             @Override

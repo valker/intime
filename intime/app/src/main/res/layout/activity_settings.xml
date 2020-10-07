@@ -1,98 +1,88 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/activityBackground">
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="65dp"
-        android:orientation="horizontal"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:paddingBottom="4.5dp">
-        <LinearLayout
-            android:layout_height="match_parent"
-            android:layout_width="match_parent"
-            android:gravity="start|center_vertical"
-            android:orientation="horizontal"
-            android:layout_weight="1">
-            <TextView
-                android:id="@+id/settings_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/action_settings"
-                android:maxLines="1"
-                android:textSize="30sp"
-                android:textColor="@color/titleText"/>
-        </LinearLayout>
-    </LinearLayout>
+    android:background="@color/activityBackground"
+    android:orientation="vertical">
+
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
         <LinearLayout
-            android:orientation="vertical"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
             <LinearLayout
                 android:id="@+id/group1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:paddingStart="14dp"
-                    android:paddingEnd="14dp"
+                    android:paddingHorizontal="14dp"
                     android:paddingBottom="10dp">
+
                     <TextView
                         android:id="@+id/group1title"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:fontFamily="@font/manroperegular"
                         android:text="@string/settings_group_dbwork"
-                        android:textSize="12sp"
-                        android:textColor="@color/settingsGroupTitle"/>
+                        android:textColor="@color/settingsGroupTitle"
+                        android:textSize="12sp" />
                 </LinearLayout>
+
                 <LinearLayout
                     android:id="@+id/action_export"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="?attr/selectableItemBackground"
-                    android:orientation="horizontal"
-                    android:paddingStart="14dp"
-                    android:paddingEnd="14dp">
-                    <LinearLayout
+
+                    android:orientation="vertical"
+                    android:paddingHorizontal="19dp"
+                    android:paddingVertical="5dp">
+
+                    <TextView
+                        android:id="@+id/group1item1title"
                         android:layout_width="wrap_content"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:padding="5dp">
-                        <TextView
-                            android:id="@+id/group1item1title"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/export_title"
-                            android:textSize="16sp"
-                            android:textColor="@color/settingsItemTitle"
-                            android:layout_marginBottom="5dp"/>
-                        <TextView
-                            android:id="@+id/group1item1description"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="10dp"
-                            android:text="@string/export_description"
-                            android:textSize="14sp"
-                            android:textColor="@color/settingsItemDescription"/>
-                        </LinearLayout>
-                    </LinearLayout>
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="5dp"
+                        android:fontFamily="@font/manroperegular"
+                        android:text="@string/export_title"
+                        android:textColor="@color/settingsItemTitle"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:id="@+id/group1item1description"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/manroperegular"
+                        android:text="@string/export_description"
+                        android:textColor="@color/settingsItemDescription"
+                        android:textSize="14sp" />
                 </LinearLayout>
-            <include layout="@layout/divider"/>
-                <LinearLayout
-                    android:id="@+id/action_import"
-                    android:layout_width="match_parent"
+            </LinearLayout>
+
+            <include layout="@layout/divider" />
+
+            <LinearLayout
+                android:id="@+id/action_import"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="19dp"
+                android:paddingVertical="5dp">
+
+                <TextView
+                    android:id="@+id/group1item2title"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+<<<<<<< HEAD
                     android:background="?attr/selectableItemBackground"
                     android:orientation="horizontal"
                     android:paddingStart="14dp"
@@ -121,6 +111,42 @@
                     </LinearLayout>
                 </LinearLayout>
             <include layout="@layout/divider"/>
+=======
+                    android:layout_marginBottom="5dp"
+                    android:fontFamily="@font/manroperegular"
+                    android:text="@string/import_title"
+                    android:textColor="@color/settingsItemTitle"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/group1item2description"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/manroperegular"
+                    android:text="@string/import_description"
+                    android:textColor="@color/settingsItemDescription"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <include layout="@layout/divider" />
+>>>>>>> origin/new-toolbar
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
-</LinearLayout>
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/settings_appbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/settings_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:theme="@style/ToolbarTheme"
+            app:layout_collapseMode="pin"
+            app:layout_scrollFlags="scroll|enterAlways"
+            app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+            app:titleTextAppearance="@style/Toolbar.TitleText" />
+    </com.google.android.material.appbar.AppBarLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

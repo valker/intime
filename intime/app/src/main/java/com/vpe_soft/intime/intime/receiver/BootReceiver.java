@@ -27,8 +27,8 @@ public class BootReceiver extends BroadcastReceiver {
         final String intentAction = intent.getAction();
         if (intentAction.equals(Intent.ACTION_BOOT_COMPLETED)
                 ||
-            intentAction.equals(Intent.ACTION_LOCKED_BOOT_COMPLETED)
-                ) {
+                intentAction.equals(Intent.ACTION_LOCKED_BOOT_COMPLETED)
+        ) {
             Log.d(TAG, "onReceive: " + intentAction);
             //1. get list of tasks that have next alarm between last-run and current time
             // 1.1 get last usage timestamp
@@ -38,7 +38,9 @@ public class BootReceiver extends BroadcastReceiver {
             // number of tasks were overdue during phone was off
             final long tasksCount = DatabaseUtil.getNumberOfSkippedTasks(context, lastUsageTimestamp, currentTimestamp);
             //2. if this list is not empty, generate notification
-            if(tasksCount > 0) {
+
+            //TODO: rewrite
+            if (tasksCount > 0) {
                 Log.d(TAG, "onReceive: overdue tasks were found");
                 // we will raise a notification
                 NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);

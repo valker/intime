@@ -27,10 +27,10 @@ public class DatabaseUtil {
 
     public static Cursor createCursor(Context context) {
         SQLiteDatabase database = getReadableDatabaseFromContext(context);
-        return database.query(TASK_TABLE,new String[]{DESCRIPTION_FIELD, "id AS _id", NEXT_ALARM_FIELD, NEXT_CAUTION_FIELD}, null, null, null, null, NEXT_ALARM_FIELD);
+        return database.query(TASK_TABLE, new String[]{DESCRIPTION_FIELD, "id AS _id", NEXT_ALARM_FIELD, NEXT_CAUTION_FIELD}, null, null, null, null, NEXT_ALARM_FIELD);
     }
 
-    public static int getDatabaseLengthFromContext(Context context){
+    public static int getDatabaseLengthFromContext(Context context) {
         try (SQLiteDatabase database = getReadableDatabaseFromContext(context)) {
             long length;
             length = DatabaseUtils.queryNumEntries(database, TASK_TABLE);
@@ -66,12 +66,13 @@ public class DatabaseUtil {
 
         return null;
     }
-    public static SQLiteDatabase getReadableDatabaseFromContext(Context context){
+
+    public static SQLiteDatabase getReadableDatabaseFromContext(Context context) {
         InTimeOpenHelper helper = new InTimeOpenHelper(context);
         return helper.getReadableDatabase();
     }
 
-    public static SQLiteDatabase getWritableDatabaseFromContext(Context context){
+    public static SQLiteDatabase getWritableDatabaseFromContext(Context context) {
         InTimeOpenHelper helper = new InTimeOpenHelper(context);
         return helper.getWritableDatabase();
     }
@@ -119,16 +120,17 @@ public class DatabaseUtil {
                 NEXT_ALARM_FIELD + ">?" + " AND " + NEXT_ALARM_FIELD + "<?",
                 new String[]{Long.toString(lastUsageTimestamp), Long.toString(currentTimestamp)});
     }
+
     private static long countTasks(Context context, String selection, String[] selectionArgs) {
         try (SQLiteDatabase database = getReadableDatabaseFromContext(context)) {
-            long rowsCount = DatabaseUtils.queryNumEntries(
+            return DatabaseUtils.queryNumEntries(
                     database,
                     TASK_TABLE,
                     selection,
                     selectionArgs);
-            return rowsCount;
         }
     }
+
     public static void deleteTask(long id, Context context) {
         try (SQLiteDatabase database = getWritableDatabaseFromContext(context)) {
             int result = database.delete(TASK_TABLE, "id=?", withId(id));
@@ -137,6 +139,7 @@ public class DatabaseUtil {
             }
         }
     }
+
     public static void createNewTask(Task task, Context context) {
         Log.d(TAG, "createNewTask");
 
@@ -166,15 +169,13 @@ public class DatabaseUtil {
         }
     }
 
-    public static void updateTaskDescription(long id, Task task, Context context)
-    {
+    public static void updateTaskDescription(long id, Task task, Context context) {
         ContentValues contentValues = new ContentValues();
         contentValues.put(DESCRIPTION_FIELD, task.getDescription());
         updateTaskImpl(id, context, contentValues);
     }
 
-    public static void updateTask(long id, Task task, Context context)
-    {
+    public static void updateTask(long id, Task task, Context context) {
         ContentValues contentValues = new ContentValues();
         contentValues.put(DESCRIPTION_FIELD, task.getDescription());
         contentValues.put(INTERVAL_FIELD, task.getInterval());
@@ -186,8 +187,9 @@ public class DatabaseUtil {
 
     /**
      * Roll back the state of task
-     * @param id - identifier ot the task
-     * @param context - context to get DB
+     *
+     * @param id        - identifier ot the task
+     * @param context   - context to get DB
      * @param taskState - target state of the task
      */
     public static void rollBackState(long id, Context context, TaskState taskState) {

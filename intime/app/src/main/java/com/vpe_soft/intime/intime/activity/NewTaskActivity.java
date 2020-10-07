@@ -1,11 +1,6 @@
 package com.vpe_soft.intime.intime.activity;
 
 import android.content.Context;
-
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.AppCompatSpinner;
-import androidx.core.graphics.drawable.DrawableCompat;
-
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.Editable;
@@ -14,9 +9,13 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.TextView;
 import android.widget.EditText;
 import android.widget.NumberPicker;
+import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatSpinner;
+import androidx.core.graphics.drawable.DrawableCompat;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
@@ -24,7 +23,7 @@ import com.vpe_soft.intime.intime.database.Task;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 import com.vpe_soft.intime.intime.view.ViewUtil;
 
-public class NewTaskActivity extends AppCompatActivity{
+public class NewTaskActivity extends AppCompatActivity {
 
     private static final String TAG = "NewTaskActivity";
 
@@ -45,20 +44,12 @@ public class NewTaskActivity extends AppCompatActivity{
         colors = new Colors(this);
         Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_new_task);
-        TextView title = findViewById(R.id.newtask_title);
         TextView description_text = findViewById(R.id.textView4);
         TextView intervals_text = findViewById(R.id.textView5);
         TextView amount_text = findViewById(R.id.textView6);
-        View next = findViewById(R.id.newtask_action);
         description = findViewById(R.id.description);
         numberPicker = findViewById(R.id.numberPicker);
         spinner = findViewById(R.id.spinner);
-        title.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
-        description_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
-        intervals_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
-        amount_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
-        description_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
-        description.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
         spinner.setAdapter(new SpinnerAdapter(this, R.layout.spinner_item, getResources().getStringArray(R.array.spinnerItems)));
         description.addTextChangedListener(new TextWatcher() {
             @Override
@@ -89,10 +80,10 @@ public class NewTaskActivity extends AppCompatActivity{
                 numberPicker.setMinValue(1);
                 numberPicker.setValue(1);
                 next.setContentDescription(getString(R.string.content_description_add_task));
-                next.setOnClickListener(new View.OnClickListener(){
+                next.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        if(description.getText().length() == 0) {
+                        if (description.getText().length() == 0) {
                             setEditTextState(1);
                         } else {
                             DatabaseUtil.createNewTask(connectInfo(System.currentTimeMillis()), getContext());
@@ -113,10 +104,10 @@ public class NewTaskActivity extends AppCompatActivity{
                 numberPicker.setMinValue(1);
                 numberPicker.setValue(_task.getAmount());
                 next.setContentDescription(getString(R.string.content_description_update_task));
-                next.setOnClickListener(new View.OnClickListener(){
+                next.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        if(description.getText().length() == 0) {
+                        if (description.getText().length() == 0) {
                             setEditTextState(1);
                         } else {
                             updateTask(connectInfo(_task.getLastAcknowledge()));
@@ -132,7 +123,7 @@ public class NewTaskActivity extends AppCompatActivity{
         }
     }
 
-    private void setEditTextState (int state) {
+    private void setEditTextState(int state) {
         if (state == 0) {
             //normal state 757575
             description.setHintTextColor(colors.editTextHint);
@@ -151,7 +142,7 @@ public class NewTaskActivity extends AppCompatActivity{
         String taskDescription = description.getText().toString();
         long nextAlarm = AlarmUtil.getNextAlarm(interval, amount, lastAck, getResources().getConfiguration().locale);
         long cautionPeriod = (long) ((nextAlarm - lastAck) * 0.95);
-        long nextCaution  = lastAck + cautionPeriod;
+        long nextCaution = lastAck + cautionPeriod;
         final Task task = new Task(taskDescription, interval, amount, nextAlarm, nextCaution, lastAck);
         return task;
     }
@@ -159,7 +150,7 @@ public class NewTaskActivity extends AppCompatActivity{
     private void updateTask(Task task) {
         Log.d(TAG, "updateTask");
 
-        if(wasIntervalOrAmountChanged(task.getInterval(), task.getAmount())) {
+        if (wasIntervalOrAmountChanged(task.getInterval(), task.getAmount())) {
             DatabaseUtil.updateTask(_id, task, this);
         } else {
             DatabaseUtil.updateTaskDescription(_id, task, this);
