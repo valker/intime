@@ -27,31 +27,35 @@
                 android:textColor="@color/titleText"/>
         </LinearLayout>
         <LinearLayout
+            android:padding="5dp"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_weight="0"
             android:orientation="horizontal"
             android:gravity="end|center_vertical">
-            <ImageButton
+            <ImageView
                 android:id="@+id/open_settings"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
                 android:src="@drawable/settings"
                 android:contentDescription="@string/content_description_open_settings"
+                android:background="?attr/selectableItemBackground"
                 android:scaleType="fitCenter"/>
         </LinearLayout>
         <LinearLayout
+            android:padding="5dp"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_weight="0"
             android:orientation="horizontal"
             android:gravity="end|center_vertical">
-            <ImageButton
+            <ImageView
                 android:id="@+id/add_task"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:src="@drawable/add"
                 android:contentDescription="@string/content_description_add_task"
+                android:background="?attr/selectableItemBackground"
                 android:scaleType="fitCenter"/>
         </LinearLayout>
     </LinearLayout>
