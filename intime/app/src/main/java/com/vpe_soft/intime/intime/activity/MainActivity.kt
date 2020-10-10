@@ -15,14 +15,10 @@ import android.view.ViewOutlineProvider
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.vpe_soft.intime.intime.R
 import com.vpe_soft.intime.intime.database.*
-import com.vpe_soft.intime.intime.kotlin.contentView
-import com.vpe_soft.intime.intime.kotlin.cursor
-import com.vpe_soft.intime.intime.kotlin.px
-import com.vpe_soft.intime.intime.kotlin.toolbar
+import com.vpe_soft.intime.intime.kotlin.*
 import com.vpe_soft.intime.intime.receiver.NOTIFICATION_TAG
 import com.vpe_soft.intime.intime.receiver.TASK_OVERDUE_ACTION
 import com.vpe_soft.intime.intime.receiver.setupAlarmIfRequired
@@ -34,7 +30,7 @@ import com.vpe_soft.intime.intime.view.showOnDeleted
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var adapter: TaskRecyclerViewAdapter
+    private lateinit var tasksAdapter: TaskRecyclerViewAdapter
     private val stateHelper = CardViewStateHelper()
     private val receiver = MyBroadcastReceiver()
     private val tag = "MainActivity"
@@ -47,13 +43,16 @@ class MainActivity : AppCompatActivity() {
         mainAppbar.outlineProvider = null
         mainToolbar.title = getString(R.string.main_activity_title)
         toolbar = mainToolbar
+        tasksAdapter = newRecyclerViewAdapter
         //TODO: create empty view after deleting old empty view
-        recyclerView.setBackgroundColor(cardSwipeBackground)
-        recyclerView.layoutManager = LinearLayoutManager(this)
-        with(TaskRecyclerViewAdapter(this)) {
-            adapter = this
-            recyclerView.adapter = adapter
+        with(recyclerView) {
+            backgroundColor = cardSwipeBackground
+            layoutManager = linearLayoutManager
+            adapter = tasksAdapter
+
         }
+
+        //todo: replace with extension & dsl
         val simpleItemTouchCallback: ItemTouchHelper.SimpleCallback = object :
             ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
             override fun onMove(
@@ -138,9 +137,8 @@ class MainActivity : AppCompatActivity() {
         ItemTouchHelper(simpleItemTouchCallback).attachToRecyclerView(recyclerView)
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+    override fun onCreateOptionsMenu(menu: Menu): Boolean = true.also {
         menuInflater.inflate(R.menu.menu_main, menu)
-        return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -175,7 +173,7 @@ class MainActivity : AppCompatActivity() {
         Log.d(tag, "onPause")
         isOnScreen = false
         with(getSharedPreferences("SessionInfo", MODE_PRIVATE).edit()) {
-            putLong("LastUsageTimestamp", System.currentTimeMillis())
+            putLong("LastUsageTimestamp", millis)
             apply()
         }
         super.onPause()
@@ -184,7 +182,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         Log.d(tag, "onResume")
         isOnScreen = true
-        adapter.swapCursor(cursor)
+        tasksAdapter.swapCursor(cursor)
         refreshRecyclerView()
         createAlarm()
         super.onResume()
@@ -207,10 +205,10 @@ class MainActivity : AppCompatActivity() {
     private fun acknowledgeTask(id: Long, pos: Int) {
         Log.d(tag, "Id = $id")
         Log.d(tag, "Position = $pos")
-        val currentTimeMillis = System.currentTimeMillis()
+        val currentTimeMillis = millis
         val previousTaskState = databaseAcknowledge(id, currentTimeMillis) ?: return
         onTaskListUpdated()
-        adapter.notifyItemChanged(pos)
+        tasksAdapter.notifyItemChanged(pos)
         showOnAcknowledged(recyclerView) {
             rollbackState(id, previousTaskState)
             onTaskListUpdated()
@@ -219,7 +217,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun onTaskListUpdated() {
         setupAlarmIfRequired()
-        adapter.swapCursor(cursor)
+        tasksAdapter.swapCursor(cursor)
     }
 
     private fun createAlarm() {
@@ -230,7 +228,7 @@ class MainActivity : AppCompatActivity() {
 
     fun refreshRecyclerView() {
         Log.d(tag, "refreshListView")
-        adapter.notifyItemRangeChanged(0, databaseLength)
+        tasksAdapter.notifyItemRangeChanged(0, databaseLength)
     }
 
     private fun deleteTask(id: Long): Task {
@@ -255,14 +253,14 @@ class MainActivity : AppCompatActivity() {
             Log.d(tag, "delete: id=$id, pos=$pos")
             val task = deleteTask(id)
             onTaskListUpdated()
-            with(adapter) {
+            with(tasksAdapter) {
                 notifyItemRemoved(pos)
                 notifyItemRangeChanged(pos, databaseLength)
             }
             showOnDeleted(recyclerView) {
                 createNewTask(task, id)
                 onTaskListUpdated()
-                adapter.notifyItemInserted(pos)
+                tasksAdapter.notifyItemInserted(pos)
             }
         })
     }

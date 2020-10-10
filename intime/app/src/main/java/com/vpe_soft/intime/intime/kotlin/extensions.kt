@@ -19,6 +19,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.drawable.DrawableCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.vpe_soft.intime.intime.R
 import com.vpe_soft.intime.intime.activity.MainActivity
 import com.vpe_soft.intime.intime.database.InTimeOpenHelper
@@ -27,6 +29,7 @@ import com.vpe_soft.intime.intime.database.TaskState
 import com.vpe_soft.intime.intime.database.createCursor
 import com.vpe_soft.intime.intime.receiver.AlarmReceiver
 import com.vpe_soft.intime.intime.receiver.NOTIFICATION_TAG
+import com.vpe_soft.intime.intime.recyclerview.TaskRecyclerViewAdapter
 import java.util.*
 
 //todo: create exception for get = 0, get = {}, etc (UnsupportedException)
@@ -76,6 +79,10 @@ val Context.locale: Locale
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) resources.configuration.locales.get(0)
         else @Suppress("DEPRECATION") resources.configuration.locale
 
+val Context.linearLayoutManager get() = LinearLayoutManager(this)
+
+val Context.newRecyclerViewAdapter get() = TaskRecyclerViewAdapter(this)
+
 val Task.taskState get() = TaskState(nextAlarm, nextCaution, lastAcknowledge)
 
 var View.clickListener: (View) -> Unit
@@ -101,7 +108,10 @@ var EditText.textChangesListener: () -> Unit
     get() = {}
     set(value) = addTextChangedListener(object : TextWatcher {
         override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
-        override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) { value() }
+        override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
+            value()
+        }
+
         override fun afterTextChanged(s: Editable) {}
     })
 
@@ -120,3 +130,7 @@ var EditText.tint: Int
 var AbsSpinner.selection: Int
     get() = selectedItemPosition
     set(value) = setSelection(value)
+
+var RecyclerView.backgroundColor: Int
+    get() = 0
+    set(value) = setBackgroundColor(value)

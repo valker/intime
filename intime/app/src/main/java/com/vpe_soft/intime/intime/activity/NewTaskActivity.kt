@@ -18,7 +18,7 @@ class NewTaskActivity : AppCompatActivity() {
     private lateinit var activityAction: String
     private var editTextError = false
     private val tag = "NewTaskActivity"
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(tag, "onCreate")
