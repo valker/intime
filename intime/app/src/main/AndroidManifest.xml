@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.vpe_soft.intime.intime"
     android:installLocation="internalOnly">
     <!-- internalOnly location allows receiving boot-completed events -->
@@ -11,7 +12,8 @@
         android:label="@string/app_name"
         android:roundIcon="@drawable/app_icon_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        tools:ignore="AllowBackup">
         <activity android:name=".activity.SettingsActivity" />
 
         <receiver android:name=".receiver.AlarmReceiver" />

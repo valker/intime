@@ -6,15 +6,14 @@
     android:orientation="vertical">
 
     <com.google.android.material.appbar.AppBarLayout
-        android:id="@+id/new_task_appbar"
+        android:id="@+id/newTaskAppbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
 
         <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/new_task_toolbar"
+            android:id="@+id/newTaskToolbar"
             android:layout_width="match_parent"
-
             android:layout_height="?attr/actionBarSize"
             android:theme="@style/ToolbarTheme"
             app:layout_collapseMode="pin"
