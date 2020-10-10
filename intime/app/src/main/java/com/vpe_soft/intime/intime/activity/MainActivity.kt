@@ -8,7 +8,6 @@ import android.content.IntentFilter
 import android.graphics.Canvas
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.ViewOutlineProvider
@@ -19,7 +18,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.vpe_soft.intime.intime.R
 import com.vpe_soft.intime.intime.database.*
+import com.vpe_soft.intime.intime.kotlin.Taggable
 import com.vpe_soft.intime.intime.kotlin.cursor
+import com.vpe_soft.intime.intime.kotlin.log
 import com.vpe_soft.intime.intime.kotlin.px
 import com.vpe_soft.intime.intime.receiver.NOTIFICATION_TAG
 import com.vpe_soft.intime.intime.receiver.TASK_OVERDUE_ACTION
@@ -31,15 +32,16 @@ import com.vpe_soft.intime.intime.view.showOnAcknowledged
 import com.vpe_soft.intime.intime.view.showOnDeleted
 import kotlinx.android.synthetic.main.activity_main.*
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), Taggable {
     private lateinit var adapter: TaskRecyclerViewAdapter
     private val stateHelper = CardViewStateHelper()
     private val receiver = MyBroadcastReceiver()
-    private val tag = "MainActivity"
     var isDefaultViewOutlineProviderSet = false
 
+    override val tag = "MainActivity"
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        Log.d(tag, "onCreate")
+        log("onCreate")
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         mainAppbar.outlineProvider = null
@@ -128,7 +130,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                Log.d(tag, viewHolder.itemView.toString())
+                log(viewHolder.itemView.toString())
                 val pos = viewHolder.adapterPosition
                 acknowledgeTask(getId(pos), pos)
             }
@@ -170,7 +172,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
-        Log.d(tag, "onPause")
+        log("onPause")
         isOnScreen = false
         with(getSharedPreferences("SessionInfo", MODE_PRIVATE).edit()) {
             putLong("LastUsageTimestamp", System.currentTimeMillis())
@@ -180,7 +182,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onResume() {
-        Log.d(tag, "onResume")
+        log("onResume")
         isOnScreen = true
         adapter.swapCursor(cursor)
         refreshRecyclerView()
@@ -189,7 +191,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun editTask(id: Long) {
-        Log.d(tag, "editTask")
+        log("editTask", "id = $id")
         Intent(this, NewTaskActivity::class.java)
             .putExtra("action", "edit")
             .putExtra("id", id)
@@ -203,8 +205,7 @@ class MainActivity : AppCompatActivity() {
      * @param pos - position of the task in the list
      */
     private fun acknowledgeTask(id: Long, pos: Int) {
-        Log.d(tag, "Id = $id")
-        Log.d(tag, "Position = $pos")
+        log(id, pos)
         val currentTimeMillis = System.currentTimeMillis()
         val previousTaskState = databaseAcknowledge(id, currentTimeMillis) ?: return
         onTaskListUpdated()
@@ -221,18 +222,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun createAlarm() {
-        Log.d(tag, "createAlarm")
+        log("createAlarm")
         (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).cancel(NOTIFICATION_TAG, 1)
         setupAlarmIfRequired()
     }
 
     fun refreshRecyclerView() {
-        Log.d(tag, "refreshListView")
+        log("refreshListView")
         adapter.notifyItemRangeChanged(0, databaseLength)
     }
 
     private fun deleteTask(id: Long): Task {
-        Log.d(tag, "deleteTask")
+        log("deleteTask")
         val task = findTaskById(id)
         deleteTask(id)
         return task
@@ -246,11 +247,10 @@ class MainActivity : AppCompatActivity() {
         showDialog(acknowledge = {
             acknowledgeTask(id, pos)
         }, edit = {
-            Log.d(tag, "id $id")
-            Log.d(tag, "pos $pos")
+            log(id, pos)
             editTask(id)
         }, delete = {
-            Log.d(tag, "delete: id=$id, pos=$pos")
+            log("delete", "id = $id", "pos = $pos")
             val task = deleteTask(id)
             onTaskListUpdated()
             with(adapter) {
@@ -265,10 +265,11 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private inner class MyBroadcastReceiver : BroadcastReceiver() {
-        private val tag = "MyBroadcastReceiver"
+    private inner class MyBroadcastReceiver : BroadcastReceiver(), Taggable {
+        override val tag = "MyBroadcastReceiver"
+
         override fun onReceive(context: Context, intent: Intent) {
-            Log.d(tag, "onReceive")
+            log("onReceive")
             if (isOnScreen) refreshRecyclerView()
         }
     }

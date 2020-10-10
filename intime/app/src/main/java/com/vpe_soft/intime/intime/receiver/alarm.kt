@@ -4,7 +4,6 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.text.format.DateFormat
-import android.util.Log
 import com.vpe_soft.intime.intime.R
 import com.vpe_soft.intime.intime.database.DESCRIPTION_FIELD
 import com.vpe_soft.intime.intime.database.NEXT_ALARM_FIELD
@@ -12,6 +11,7 @@ import com.vpe_soft.intime.intime.database.TASK_TABLE
 import com.vpe_soft.intime.intime.database.readableDatabase
 import com.vpe_soft.intime.intime.kotlin.alarmIntent
 import com.vpe_soft.intime.intime.kotlin.date
+import com.vpe_soft.intime.intime.kotlin.printLog
 import java.text.ChoiceFormat
 import java.text.MessageFormat
 import java.text.SimpleDateFormat
@@ -34,7 +34,7 @@ private val fields = intArrayOf(
 
 fun getNextAlarm(interval: Int, amount: Int, lastAck: Long, locale: Locale): Long {
     var newAmount = amount
-    Log.d(tag, "getNextAlarm")
+    printLog("getNextAlarm", tag = tag)
     val calendar: Calendar = GregorianCalendar(locale)
     calendar.time = lastAck.date
     var field = fields[interval]
@@ -55,7 +55,7 @@ fun getDateFromNextAlarm(locale: Locale, nextAlarm: Long): String {
 }
 
 fun Context.setupAlarmIfRequired() {
-    Log.d(tag, "setupAlarmIfRequired")
+    printLog("setupAlarmIfRequired", tag = tag)
     val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
     readableDatabase.use { database ->
         val currentTimestamp = System.currentTimeMillis()
@@ -74,10 +74,7 @@ fun Context.setupAlarmIfRequired() {
             "1"
         ).use { cursor ->
             if (cursor.moveToNext()) {
-                Log.d(
-                    tag,
-                    "setupAlarmIfRequired: task was found. going to setup alarm"
-                )
+                printLog("setupAlarmIfRequired: task was found. going to setup alarm", tag = tag)
                 val nextAlarm =
                     cursor.getLong(cursor.getColumnIndexOrThrow(NEXT_ALARM_FIELD))
                 val pendingIntent = createPendingIntent(
@@ -89,7 +86,7 @@ fun Context.setupAlarmIfRequired() {
                     nextAlarm,
                     pendingIntent
                 )
-            } else Log.d(tag, "setupAlarmIfRequired: no task with alarm in future found")
+            } else printLog("setupAlarmIfRequired: no task with alarm in future found", tag = tag)
         }
     }
 }
@@ -121,7 +118,7 @@ val String.taskChoiceFormat
         }
 
 private fun createPendingIntent(context: Context, taskDescription: String): PendingIntent {
-    Log.d(tag, "createPendingIntent")
+    printLog("createPendingIntent", tag = tag)
     return PendingIntent.getBroadcast(
         context,
         199709,

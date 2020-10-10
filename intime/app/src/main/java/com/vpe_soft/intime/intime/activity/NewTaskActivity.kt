@@ -3,7 +3,6 @@ package com.vpe_soft.intime.intime.activity
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.ArrayAdapter
@@ -11,18 +10,22 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.drawable.DrawableCompat
 import com.vpe_soft.intime.intime.R
 import com.vpe_soft.intime.intime.database.*
+import com.vpe_soft.intime.intime.kotlin.Taggable
+import com.vpe_soft.intime.intime.kotlin.log
 import com.vpe_soft.intime.intime.receiver.getNextAlarm
 import kotlinx.android.synthetic.main.activity_new_task.*
 
-class NewTaskActivity : AppCompatActivity() {
+class NewTaskActivity : AppCompatActivity(), Taggable {
     private var operatedId = 0L
     private lateinit var operatedTask: Task
     private lateinit var activityAction: String
     private var editTextError = false
-    private val tag = "NewTaskActivity"
+
+    override val tag = "NewTaskActivity"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d(tag, "onCreate")
+        log("onCreate")
         setContentView(R.layout.activity_new_task)
         spinner.adapter = ArrayAdapter(
             this,
@@ -114,7 +117,7 @@ class NewTaskActivity : AppCompatActivity() {
     }
 
     private fun update(task: Task) {
-        Log.d(tag, "updateTask")
+        log("updateTask")
         if (wasIntervalOrAmountChanged(task.interval, task.amount)) updateTask(operatedId, task)
         else updateTaskDescription(operatedId, task)
     }

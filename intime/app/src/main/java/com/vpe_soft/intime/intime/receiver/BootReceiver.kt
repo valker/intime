@@ -3,18 +3,20 @@ package com.vpe_soft.intime.intime.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import com.vpe_soft.intime.intime.R
 import com.vpe_soft.intime.intime.database.getNumberOfSkippedTasks
+import com.vpe_soft.intime.intime.kotlin.Taggable
+import com.vpe_soft.intime.intime.kotlin.log
 import com.vpe_soft.intime.intime.kotlin.showNotification
 
-class BootReceiver : BroadcastReceiver() {
-    private val tag = "BootReceiver"
+class BootReceiver : BroadcastReceiver(), Taggable {
+    override val tag = "BootReceiver"
+    
     override fun onReceive(context: Context, intent: Intent) {
-        Log.d(tag, "onReceive")
+        log("onReceive")
         val intentAction = intent.action
         if (intentAction == Intent.ACTION_BOOT_COMPLETED || intentAction == Intent.ACTION_LOCKED_BOOT_COMPLETED) {
-            Log.d(tag, "onReceive: $intentAction")
+            log("onReceive", "intentAction = $intentAction")
             //1. get list of tasks that have next alarm between last-run and current time
             // 1.1 get last usage timestamp
             val sharedPreferences =
@@ -29,13 +31,13 @@ class BootReceiver : BroadcastReceiver() {
             //TODO: rewrite
             if (tasksCount > 0) {
                 context.getString(R.string.boot_completed_overdue_tasks_notification)
-                Log.d(tag, "onReceive: overdue tasks were found")
+                log("onReceive: overdue tasks were found")
                 // we will raise a notification
                 context.showNotification(
                     context.getString(R.string.boot_completed_overdue_tasks_notification),
                     tag
                 )
-            } else Log.d(tag, "onReceive: not found overdue tasks")
+            } else log("onReceive: not found overdue tasks")
 
             //3. create alarm (if required for future task)
             context.setupAlarmIfRequired()

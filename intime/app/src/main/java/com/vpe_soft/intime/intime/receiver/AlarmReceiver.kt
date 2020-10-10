@@ -3,19 +3,21 @@ package com.vpe_soft.intime.intime.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import com.vpe_soft.intime.intime.activity.MainActivity.Companion.isOnScreen
 import com.vpe_soft.intime.intime.database.getNumberOfOverDueTasks
+import com.vpe_soft.intime.intime.kotlin.Taggable
+import com.vpe_soft.intime.intime.kotlin.log
 import com.vpe_soft.intime.intime.kotlin.showNotification
 
 /**
  * Created by Valentin on 26.08.2015.
  * Receives notifications from AlarmManager about next alarm and pass it to MainActivity
  */
-class AlarmReceiver : BroadcastReceiver() {
-    private val tag = "AlarmReceiver"
+class AlarmReceiver : BroadcastReceiver(), Taggable {
+    override val tag = "AlarmReceiver"
+    
     override fun onReceive(context: Context, intent: Intent) {
-        Log.d(tag, "onReceive")
+        log("onReceive")
         //todo: next line may produce errors (need to check)
         var description = intent.getStringExtra("task_description")!!
         val currentTimeMillis = System.currentTimeMillis()
@@ -27,9 +29,9 @@ class AlarmReceiver : BroadcastReceiver() {
         broadcastIntent.putExtra("task_description", description)
         context.sendOrderedBroadcast(broadcastIntent, null)
         if (!isOnScreen) {
-            Log.d(tag, "onReceive: will show notification")
+            log("onReceive: will show notification")
             context.showNotification(description, tag)
-        } else Log.d(tag, "onReceive: won't show notification")
+        } else log("onReceive: won't show notification")
         context.setupAlarmIfRequired()
     }
 }

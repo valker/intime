@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.util.Log
 import com.vpe_soft.intime.intime.kotlin.cursor
 import com.vpe_soft.intime.intime.kotlin.helper
+import com.vpe_soft.intime.intime.kotlin.printLog
 import com.vpe_soft.intime.intime.kotlin.taskState
 import com.vpe_soft.intime.intime.receiver.getNextAlarm
 
@@ -47,7 +48,7 @@ fun Context.getId(position: Int): Long = with(cursor) {
 }
 
 fun Context.findTaskById(id: Long): Task {
-    Log.d(tag, "findTaskById")
+    printLog("findTaskById", tag = tag)
     readableDatabase.use { database ->
         database.query(
             TASK_TABLE,
@@ -95,9 +96,7 @@ val Context.writableDatabase: SQLiteDatabase get() = helper.writableDatabase
 
 fun Context.databaseAcknowledge(id: Long, currentTimeMillis: Long): TaskState? {
     val task = findTaskById(id)
-    Log.d(tag, "Id = $id")
-    Log.d(tag, "Task Description = ${task.description}")
-    Log.d(tag, "millis $currentTimeMillis")
+    printLog("id = $id", "description = ${task.description}", "milliseconds = $currentTimeMillis")
     val nextAlarmMoment: Long = getNextAlarm(
         task.interval,
         task.amount,
@@ -174,7 +173,7 @@ fun Context.deleteTask(id: Long) {
 }
 
 fun Context.createNewTask(task: Task, id: Long? = null) {
-    Log.d(tag, "createNewTask with ID = $id")
+    printLog("createNewTask", "id = $id", tag = tag)
     createTaskImp(id, task, this)
 }
 

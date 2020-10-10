@@ -6,7 +6,6 @@ import android.content.Context
 import android.database.Cursor
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,11 +17,16 @@ import com.vpe_soft.intime.intime.activity.cardIndicatorAlmost
 import com.vpe_soft.intime.intime.activity.cardIndicatorNeutral
 import com.vpe_soft.intime.intime.activity.cardIndicatorReady
 import com.vpe_soft.intime.intime.activity.indicatorCornerRadius
+import com.vpe_soft.intime.intime.kotlin.Taggable
+import com.vpe_soft.intime.intime.kotlin.log
 import com.vpe_soft.intime.intime.receiver.getDateFromNextAlarm
 import java.util.*
 
 class TaskRecyclerViewAdapter(context: Context, cursor: Cursor, locale: Locale) :
-    RecyclerViewCursorAdapter<TaskRecyclerViewAdapter.TaskRecyclerViewVH>(context, locale) {
+    RecyclerViewCursorAdapter<TaskRecyclerViewAdapter.TaskRecyclerViewVH>(context, locale), Taggable {
+
+    override val tag = "TaskRecyclerViewAdapter"
+    
     override fun onCreateViewHolder(viewGroup: ViewGroup, i: Int): TaskRecyclerViewVH =
         TaskRecyclerViewVH(
             LayoutInflater.from(context).inflate(R.layout.task_item, viewGroup, false)
@@ -35,16 +39,16 @@ class TaskRecyclerViewAdapter(context: Context, cursor: Cursor, locale: Locale) 
         cursorAdapter.bindView(null, context, cursorAdapter.cursor)
     }
 
-    inner class TaskRecyclerViewVH(itemView: View) : RecyclerViewCursorViewHolder(itemView) {
+    inner class TaskRecyclerViewVH(itemView: View) : RecyclerViewCursorViewHolder(itemView), Taggable {
         val title: TextView = itemView.findViewById(R.id.title)
         val date: TextView = itemView.findViewById(R.id.description)
         val card: CardView = itemView.findViewById(R.id.card)
         val indicator: LinearLayout = itemView.findViewById(R.id.indicator)
         val help: LinearLayout = itemView.findViewById(R.id.help)
-        private val tag = "TaskRecyclerViewVH"
+        override val tag = "TaskRecyclerViewVH"
 
         override fun bindCursor(cursor: Cursor) {
-            Log.d(tag, "bindCursor")
+            log("bindCursor")
             val description = cursor.getString(cursor.getColumnIndexOrThrow("description"))
             val nextAlarm = cursor.getLong(cursor.getColumnIndexOrThrow("next_alarm"))
             val nextCaution = cursor.getLong(cursor.getColumnIndexOrThrow("next_caution"))

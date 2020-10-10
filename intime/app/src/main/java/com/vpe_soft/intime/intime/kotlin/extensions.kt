@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
 import android.database.Cursor
-import android.util.Log
 import android.util.TypedValue
 import androidx.core.app.NotificationCompat
 import com.vpe_soft.intime.intime.R
@@ -41,7 +40,7 @@ val Context.mainPendingIntent: PendingIntent
 
 //todo: replace with non-deprecated implementation
 fun Context.showNotification(string: String, logTag: String = "no tag") {
-    Log.d(logTag, "showNotification")
+    printLog("showNotification", "message = $string", tag = logTag)
     val notificationManager =
         getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     val builder = NotificationCompat.Builder(this)
