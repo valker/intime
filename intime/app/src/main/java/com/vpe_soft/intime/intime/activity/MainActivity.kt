@@ -19,8 +19,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.vpe_soft.intime.intime.R
 import com.vpe_soft.intime.intime.database.*
+import com.vpe_soft.intime.intime.kotlin.contentView
 import com.vpe_soft.intime.intime.kotlin.cursor
 import com.vpe_soft.intime.intime.kotlin.px
+import com.vpe_soft.intime.intime.kotlin.toolbar
 import com.vpe_soft.intime.intime.receiver.NOTIFICATION_TAG
 import com.vpe_soft.intime.intime.receiver.TASK_OVERDUE_ACTION
 import com.vpe_soft.intime.intime.receiver.setupAlarmIfRequired
@@ -41,10 +43,10 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.d(tag, "onCreate")
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        contentView = R.layout.activity_main
         mainAppbar.outlineProvider = null
         mainToolbar.title = getString(R.string.main_activity_title)
-        setSupportActionBar(mainToolbar)
+        toolbar = mainToolbar
         //TODO: create empty view after deleting old empty view
         recyclerView.setBackgroundColor(cardSwipeBackground)
         recyclerView.layoutManager = LinearLayoutManager(this)

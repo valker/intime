@@ -11,8 +11,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.drawable.DrawableCompat
 import com.vpe_soft.intime.intime.R
 import com.vpe_soft.intime.intime.database.*
+import com.vpe_soft.intime.intime.kotlin.contentView
 import com.vpe_soft.intime.intime.kotlin.locale
 import com.vpe_soft.intime.intime.kotlin.string
+import com.vpe_soft.intime.intime.kotlin.toolbar
 import com.vpe_soft.intime.intime.receiver.getNextAlarm
 import kotlinx.android.synthetic.main.activity_new_task.*
 
@@ -25,14 +27,14 @@ class NewTaskActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(tag, "onCreate")
-        setContentView(R.layout.activity_new_task)
+        contentView = R.layout.activity_new_task
         spinner.adapter = ArrayAdapter(
             this,
             R.layout.spinner_item,
             resources.getStringArray(R.array.spinnerItems)
         )
         newTaskAppbar.outlineProvider = null
-        setSupportActionBar(newTaskToolbar)
+        toolbar = newTaskToolbar
         description.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {

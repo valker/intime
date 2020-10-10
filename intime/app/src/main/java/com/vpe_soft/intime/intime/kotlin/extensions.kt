@@ -12,6 +12,9 @@ import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.widget.EditText
+import androidx.annotation.LayoutRes
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.core.app.NotificationCompat
 import com.vpe_soft.intime.intime.R
 import com.vpe_soft.intime.intime.activity.MainActivity
@@ -61,9 +64,10 @@ val Context.helper get() = InTimeOpenHelper(this)
 
 val Context.cursor: Cursor get() = createCursor(this)
 
-val Context.locale: Locale get() =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) resources.configuration.locales.get(0)
-    else @Suppress("DEPRECATION") resources.configuration.locale
+val Context.locale: Locale
+    get() =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) resources.configuration.locales.get(0)
+        else @Suppress("DEPRECATION") resources.configuration.locale
 
 val Task.taskState get() = TaskState(nextAlarm, nextCaution, lastAcknowledge)
 
@@ -79,3 +83,11 @@ var View.longClickListener: (View) -> Unit
         value(it)
         true
     }
+
+var AppCompatActivity.contentView: Int
+    get() = 0
+    set(value) = setContentView(value)
+
+var AppCompatActivity.toolbar: Toolbar?
+    get() = null
+    set(value) = setSupportActionBar(value)
