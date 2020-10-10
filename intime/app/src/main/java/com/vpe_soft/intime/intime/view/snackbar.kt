@@ -7,7 +7,7 @@ import com.vpe_soft.intime.intime.R
 import com.vpe_soft.intime.intime.activity.snackbarActionColor
 import com.vpe_soft.intime.intime.activity.snackbarBackgroundColor
 
-fun Context.showOnDeleted(view: View, onCancelled: () -> Unit) {
+fun Context.showOnDeleted(view: View, onCancelled: () -> Unit) =
     showSnackbar(
         this,
         getString(R.string.task_deleted),
@@ -15,7 +15,7 @@ fun Context.showOnDeleted(view: View, onCancelled: () -> Unit) {
         view,
         onCancelled
     )
-}
+
 
 fun Context.showOnAcknowledged(view: View, onCancelled: () -> Unit) =
     showSnackbar(
