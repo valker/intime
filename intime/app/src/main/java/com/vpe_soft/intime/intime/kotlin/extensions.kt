@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
 import android.database.Cursor
+import android.os.Build
 import android.util.Log
 import android.util.TypedValue
 import androidx.core.app.NotificationCompat
@@ -57,5 +58,9 @@ fun Context.showNotification(string: String, logTag: String = "no tag") {
 val Context.helper get() = InTimeOpenHelper(this)
 
 val Context.cursor: Cursor get() = createCursor(this)
+
+val Context.locale: Locale get() =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) resources.configuration.locales.get(0)
+    else @Suppress("DEPRECATION")resources.configuration.locale
 
 val Task.taskState get() = TaskState(nextAlarm, nextCaution, lastAcknowledge)

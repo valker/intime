@@ -48,9 +48,9 @@ class MainActivity : AppCompatActivity() {
         //TODO: create empty view after deleting old empty view
         recyclerView.setBackgroundColor(cardSwipeBackground)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        with(TaskRecyclerViewAdapter(this, cursor, resources.configuration.locale)) {
+        with(TaskRecyclerViewAdapter(this)) {
             adapter = this
-            recyclerView.adapter = this
+            recyclerView.adapter = adapter
         }
         val simpleItemTouchCallback: ItemTouchHelper.SimpleCallback = object :
             ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {

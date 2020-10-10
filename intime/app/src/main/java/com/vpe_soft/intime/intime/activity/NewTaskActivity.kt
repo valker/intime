@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.drawable.DrawableCompat
 import com.vpe_soft.intime.intime.R
 import com.vpe_soft.intime.intime.database.*
+import com.vpe_soft.intime.intime.kotlin.locale
 import com.vpe_soft.intime.intime.receiver.getNextAlarm
 import kotlinx.android.synthetic.main.activity_new_task.*
 
@@ -107,7 +108,7 @@ class NewTaskActivity : AppCompatActivity() {
         val interval = spinner.selectedItemPosition
         val taskDescription = description!!.text.toString()
         val nextAlarm: Long =
-            getNextAlarm(interval, amount, lastAck, resources.configuration.locale)
+            getNextAlarm(interval, amount, lastAck, locale)
         val cautionPeriod = ((nextAlarm - lastAck) * 0.95).toLong()
         val nextCaution = lastAck + cautionPeriod
         return Task(taskDescription, interval, amount, nextAlarm, nextCaution, lastAck)

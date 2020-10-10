@@ -11,7 +11,7 @@ import com.vpe_soft.intime.intime.activity.MainActivity
 import java.util.*
 
 abstract class RecyclerViewCursorAdapter<T : RecyclerViewCursorViewHolder> protected constructor(
-    protected val context: Context, protected val locale: Locale
+    protected val context: Context
 ) :
     RecyclerView.Adapter<T>() {
     protected var mainActivity: MainActivity = context as MainActivity

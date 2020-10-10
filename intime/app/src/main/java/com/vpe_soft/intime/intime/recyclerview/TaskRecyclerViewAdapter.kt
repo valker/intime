@@ -18,11 +18,12 @@ import com.vpe_soft.intime.intime.activity.cardIndicatorAlmost
 import com.vpe_soft.intime.intime.activity.cardIndicatorNeutral
 import com.vpe_soft.intime.intime.activity.cardIndicatorReady
 import com.vpe_soft.intime.intime.activity.indicatorCornerRadius
+import com.vpe_soft.intime.intime.kotlin.cursor
+import com.vpe_soft.intime.intime.kotlin.locale
 import com.vpe_soft.intime.intime.receiver.getDateFromNextAlarm
-import java.util.*
 
-class TaskRecyclerViewAdapter(context: Context, cursor: Cursor, locale: Locale) :
-    RecyclerViewCursorAdapter<TaskRecyclerViewAdapter.TaskRecyclerViewVH>(context, locale) {
+class TaskRecyclerViewAdapter(context: Context) :
+    RecyclerViewCursorAdapter<TaskRecyclerViewAdapter.TaskRecyclerViewVH>(context) {
     override fun onCreateViewHolder(viewGroup: ViewGroup, i: Int): TaskRecyclerViewVH =
         TaskRecyclerViewVH(
             LayoutInflater.from(context).inflate(R.layout.task_item, viewGroup, false)
@@ -80,7 +81,7 @@ class TaskRecyclerViewAdapter(context: Context, cursor: Cursor, locale: Locale) 
             indicator.background = gradientDrawable1
             help.background = gradientDrawable2
             title.text = description
-            date.text = getDateFromNextAlarm(locale, nextAlarm)
+            date.text = getDateFromNextAlarm(context.locale, nextAlarm)
             card.setOnLongClickListener {
                 mainActivity.onItemLongClicked(id, pos)
                 true
@@ -89,6 +90,6 @@ class TaskRecyclerViewAdapter(context: Context, cursor: Cursor, locale: Locale) 
     }
 
     init {
-        setupCursorAdapter(cursor, R.layout.task_item)
+        setupCursorAdapter(context.cursor, R.layout.task_item)
     }
 }
