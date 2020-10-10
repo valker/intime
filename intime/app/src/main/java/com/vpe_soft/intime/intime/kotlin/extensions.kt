@@ -8,14 +8,16 @@ import android.content.Intent
 import android.content.res.Resources
 import android.database.Cursor
 import android.os.Build
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.widget.EditText
-import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.NotificationCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import com.vpe_soft.intime.intime.R
 import com.vpe_soft.intime.intime.activity.MainActivity
 import com.vpe_soft.intime.intime.database.InTimeOpenHelper
@@ -26,6 +28,7 @@ import com.vpe_soft.intime.intime.receiver.AlarmReceiver
 import com.vpe_soft.intime.intime.receiver.NOTIFICATION_TAG
 import java.util.*
 
+//todo: create exception for get = 0, get = {}, etc (UnsupportedException)
 val Float.px
     get() = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_DIP,
@@ -71,8 +74,6 @@ val Context.locale: Locale
 
 val Task.taskState get() = TaskState(nextAlarm, nextCaution, lastAcknowledge)
 
-val EditText.string get() = text.toString()
-
 var View.clickListener: (View) -> Unit
     get() = {}
     set(value) = setOnClickListener(value)
@@ -91,3 +92,23 @@ var AppCompatActivity.contentView: Int
 var AppCompatActivity.toolbar: Toolbar?
     get() = null
     set(value) = setSupportActionBar(value)
+
+var EditText.textChangesListener: () -> Unit
+    get() = {}
+    set(value) = addTextChangedListener(object : TextWatcher {
+        override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
+        override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) { value() }
+        override fun afterTextChanged(s: Editable) {}
+    })
+
+var EditText.value: String
+    get() = text.toString()
+    set(value) = setText(value)
+
+var EditText.hintColor: Int
+    get() = 0
+    set(value) = setHintTextColor(value)
+
+var EditText.tint: Int
+    get() = 0
+    set(value) = DrawableCompat.setTint(background, value)

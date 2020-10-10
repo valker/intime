@@ -1,20 +1,14 @@
 package com.vpe_soft.intime.intime.activity
 
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.graphics.drawable.DrawableCompat
 import com.vpe_soft.intime.intime.R
 import com.vpe_soft.intime.intime.database.*
-import com.vpe_soft.intime.intime.kotlin.contentView
-import com.vpe_soft.intime.intime.kotlin.locale
-import com.vpe_soft.intime.intime.kotlin.string
-import com.vpe_soft.intime.intime.kotlin.toolbar
+import com.vpe_soft.intime.intime.kotlin.*
 import com.vpe_soft.intime.intime.receiver.getNextAlarm
 import kotlinx.android.synthetic.main.activity_new_task.*
 
@@ -28,24 +22,12 @@ class NewTaskActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         Log.d(tag, "onCreate")
         contentView = R.layout.activity_new_task
-        spinner.adapter = ArrayAdapter(
-            this,
-            R.layout.spinner_item,
-            resources.getStringArray(R.array.spinnerItems)
-        )
+        spinner.adapter = ArrayAdapter(this, R.layout.spinner_item, resources.getStringArray(R.array.spinnerItems))
         newTaskAppbar.outlineProvider = null
         toolbar = newTaskToolbar
-        description.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
-                if (editTextError) setEditTextState(0)
-            }
-
-            override fun afterTextChanged(s: Editable) {}
-        })
+        description.textChangesListener = { if (editTextError) setEditTextState(0) }
         val extras = intent.extras
-        val action =
-            if (extras != null) extras.getString("action")!! else "create" // default action if nothing provided via extras
+        val action = if (extras != null) extras.getString("action")!! else "create" // default action if nothing provided via extras
         activityAction = action
         when (action) {
             "create" -> {
@@ -61,7 +43,7 @@ class NewTaskActivity : AppCompatActivity() {
                 val id = extras?.getLong("id")!!
                 operatedId = id
                 operatedTask = findTaskById(id)
-                description.setText(operatedTask.description)
+                description.value = operatedTask.description
                 spinner.setSelection(operatedTask.interval)
                 with(numberPicker) {
                     maxValue = 10
@@ -95,23 +77,25 @@ class NewTaskActivity : AppCompatActivity() {
         }
 
     private fun setEditTextState(state: Int) =
-        if (state == 0) {
-            //normal state 757575
-            description.setHintTextColor(editTextHint)
-            DrawableCompat.setTint(description.background, editTextTint)
-        } else {
-            //error state
+        if (state == 0) { //normal state
+            editTextError = false
+            with(description) {
+                hintColor = editTextHint
+                tint = editTextTint
+            }
+        } else { //error state
             editTextError = true
-            description.setHintTextColor(editTextErrorHint)
-            DrawableCompat.setTint(description.background, editTextErrorTint)
+            with(description) {
+                hintColor = editTextErrorHint
+                tint = editTextErrorTint
+            }
         }
 
     private fun formTask(lastAck: Long): Task {
         val amount = numberPicker.value
         val interval = spinner.selectedItemPosition
-        val taskDescription = description.string
-        val nextAlarm: Long =
-            getNextAlarm(interval, amount, lastAck, locale)
+        val taskDescription = description.value
+        val nextAlarm: Long = getNextAlarm(interval, amount, lastAck, locale)
         val cautionPeriod = ((nextAlarm - lastAck) * 0.95).toLong()
         val nextCaution = lastAck + cautionPeriod
         return Task(taskDescription, interval, amount, nextAlarm, nextCaution, lastAck)
