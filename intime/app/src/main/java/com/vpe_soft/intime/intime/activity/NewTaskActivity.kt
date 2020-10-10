@@ -12,6 +12,7 @@ import androidx.core.graphics.drawable.DrawableCompat
 import com.vpe_soft.intime.intime.R
 import com.vpe_soft.intime.intime.database.*
 import com.vpe_soft.intime.intime.kotlin.locale
+import com.vpe_soft.intime.intime.kotlin.string
 import com.vpe_soft.intime.intime.receiver.getNextAlarm
 import kotlinx.android.synthetic.main.activity_new_task.*
 
@@ -106,7 +107,7 @@ class NewTaskActivity : AppCompatActivity() {
     private fun formTask(lastAck: Long): Task {
         val amount = numberPicker.value
         val interval = spinner.selectedItemPosition
-        val taskDescription = description!!.text.toString()
+        val taskDescription = description.string
         val nextAlarm: Long =
             getNextAlarm(interval, amount, lastAck, locale)
         val cautionPeriod = ((nextAlarm - lastAck) * 0.95).toLong()

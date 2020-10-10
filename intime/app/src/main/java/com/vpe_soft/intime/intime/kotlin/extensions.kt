@@ -10,6 +10,8 @@ import android.database.Cursor
 import android.os.Build
 import android.util.Log
 import android.util.TypedValue
+import android.view.View
+import android.widget.EditText
 import androidx.core.app.NotificationCompat
 import com.vpe_soft.intime.intime.R
 import com.vpe_soft.intime.intime.activity.MainActivity
@@ -61,6 +63,19 @@ val Context.cursor: Cursor get() = createCursor(this)
 
 val Context.locale: Locale get() =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) resources.configuration.locales.get(0)
-    else @Suppress("DEPRECATION")resources.configuration.locale
+    else @Suppress("DEPRECATION") resources.configuration.locale
 
 val Task.taskState get() = TaskState(nextAlarm, nextCaution, lastAcknowledge)
+
+val EditText.string get() = text.toString()
+
+var View.clickListener: (View) -> Unit
+    get() = {}
+    set(value) = setOnClickListener(value)
+
+var View.longClickListener: (View) -> Unit
+    get() = {}
+    set(value) = setOnLongClickListener {
+        value(it)
+        true
+    }

@@ -20,6 +20,7 @@ import com.vpe_soft.intime.intime.activity.cardIndicatorReady
 import com.vpe_soft.intime.intime.activity.indicatorCornerRadius
 import com.vpe_soft.intime.intime.kotlin.cursor
 import com.vpe_soft.intime.intime.kotlin.locale
+import com.vpe_soft.intime.intime.kotlin.longClickListener
 import com.vpe_soft.intime.intime.receiver.getDateFromNextAlarm
 
 class TaskRecyclerViewAdapter(context: Context) :
@@ -82,9 +83,8 @@ class TaskRecyclerViewAdapter(context: Context) :
             help.background = gradientDrawable2
             title.text = description
             date.text = getDateFromNextAlarm(context.locale, nextAlarm)
-            card.setOnLongClickListener {
+            card.longClickListener = {
                 mainActivity.onItemLongClicked(id, pos)
-                true
             }
         }
     }
