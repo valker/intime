@@ -18,6 +18,7 @@ class NewTaskActivity : AppCompatActivity() {
     private lateinit var activityAction: String
     private var editTextError = false
     private val tag = "NewTaskActivity"
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(tag, "onCreate")
@@ -49,7 +50,7 @@ class NewTaskActivity : AppCompatActivity() {
                 operatedId = id
                 operatedTask = findTaskById(id)
                 description.value = operatedTask.description
-                spinner.setSelection(operatedTask.interval)
+                spinner.selection = operatedTask.interval
                 with(numberPicker) {
                     maxValue = 10
                     minValue = 1
@@ -105,7 +106,7 @@ class NewTaskActivity : AppCompatActivity() {
             val nextAlarm: Long = getNextAlarm(interval, amount, this, locale)
             val cautionPeriod = ((nextAlarm - this) * 0.95).toLong()
             val nextCaution = this + cautionPeriod
-            Task(taskDescription, interval, amount, nextAlarm, nextCaution, this)
+            return Task(taskDescription, interval, amount, nextAlarm, nextCaution, this)
         }
 
     private fun update(task: Task) {

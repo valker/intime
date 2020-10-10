@@ -13,6 +13,7 @@ import android.text.TextWatcher
 import android.util.Log
 import android.util.TypedValue
 import android.view.View
+import android.widget.AbsSpinner
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -29,6 +30,9 @@ import com.vpe_soft.intime.intime.receiver.NOTIFICATION_TAG
 import java.util.*
 
 //todo: create exception for get = 0, get = {}, etc (UnsupportedException)
+
+val millis get() = System.currentTimeMillis()
+
 val Float.px
     get() = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_DIP,
@@ -113,4 +117,6 @@ var EditText.tint: Int
     get() = 0
     set(value) = DrawableCompat.setTint(background, value)
 
-val millis get() = System.currentTimeMillis()
+var AbsSpinner.selection: Int
+    get() = selectedItemPosition
+    set(value) = setSelection(value)
