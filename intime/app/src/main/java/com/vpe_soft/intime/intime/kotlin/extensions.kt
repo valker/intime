@@ -112,3 +112,5 @@ var EditText.hintColor: Int
 var EditText.tint: Int
     get() = 0
     set(value) = DrawableCompat.setTint(background, value)
+
+val millis get() = System.currentTimeMillis()

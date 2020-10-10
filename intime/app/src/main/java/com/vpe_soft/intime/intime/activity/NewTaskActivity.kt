@@ -22,12 +22,17 @@ class NewTaskActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         Log.d(tag, "onCreate")
         contentView = R.layout.activity_new_task
-        spinner.adapter = ArrayAdapter(this, R.layout.spinner_item, resources.getStringArray(R.array.spinnerItems))
+        spinner.adapter = ArrayAdapter(
+            this,
+            R.layout.spinner_item,
+            resources.getStringArray(R.array.spinnerItems)
+        )
         newTaskAppbar.outlineProvider = null
         toolbar = newTaskToolbar
         description.textChangesListener = { if (editTextError) setEditTextState(0) }
         val extras = intent.extras
-        val action = if (extras != null) extras.getString("action")!! else "create" // default action if nothing provided via extras
+        val action =
+            if (extras != null) extras.getString("action")!! else "create" // default action if nothing provided via extras
         activityAction = action
         when (action) {
             "create" -> {
@@ -61,20 +66,21 @@ class NewTaskActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem) =
         when (item.itemId) {
             R.id.action_create -> {
-                //TODO: wrap with extension
-                if (activityAction == "create") {
-                    if (description.text.isEmpty()) setEditTextState(1)
-                    else createNewTask(formTask(System.currentTimeMillis()))
-                        .also { finish() }
-                } else {
-                    if (description.text.isEmpty()) setEditTextState(1)
-                    else update(formTask(operatedTask.lastAcknowledge))
-                        .also { finish() }
+                if (activityAction == "create") leave {
+                    createNewTask(millis.formTask)
+                }
+                else leave {
+                    update(operatedTask.lastAcknowledge.formTask)
                 }
                 true
             }
             else -> super.onOptionsItemSelected(item)
         }
+
+    private fun leave(work: () -> Unit) {
+        if (description.text.isEmpty()) setEditTextState(1)
+        else work().also { finish() }
+    }
 
     private fun setEditTextState(state: Int) =
         if (state == 0) { //normal state
@@ -91,15 +97,16 @@ class NewTaskActivity : AppCompatActivity() {
             }
         }
 
-    private fun formTask(lastAck: Long): Task {
-        val amount = numberPicker.value
-        val interval = spinner.selectedItemPosition
-        val taskDescription = description.value
-        val nextAlarm: Long = getNextAlarm(interval, amount, lastAck, locale)
-        val cautionPeriod = ((nextAlarm - lastAck) * 0.95).toLong()
-        val nextCaution = lastAck + cautionPeriod
-        return Task(taskDescription, interval, amount, nextAlarm, nextCaution, lastAck)
-    }
+    private val Long.formTask: Task
+        get() {
+            val amount = numberPicker.value
+            val interval = spinner.selectedItemPosition
+            val taskDescription = description.value
+            val nextAlarm: Long = getNextAlarm(interval, amount, this, locale)
+            val cautionPeriod = ((nextAlarm - this) * 0.95).toLong()
+            val nextCaution = this + cautionPeriod
+            Task(taskDescription, interval, amount, nextAlarm, nextCaution, this)
+        }
 
     private fun update(task: Task) {
         Log.d(tag, "updateTask")
