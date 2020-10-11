@@ -138,26 +138,25 @@ class MainActivity : AppCompatActivity() {
         ItemTouchHelper(simpleItemTouchCallback).attachToRecyclerView(recyclerView)
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean = true.also {
+    override fun onCreateOptionsMenu(menu: Menu) = true.also {
         menuInflater.inflate(R.menu.menu_main, menu)
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_add_task -> {
-                val intent1 = Intent(this@MainActivity, NewTaskActivity::class.java)
-                intent1.putExtra("action", "create")
-                startActivity(intent1)
-                true
-            }
-            R.id.action_settings -> {
-                val intent2 = Intent(this@MainActivity, SettingsActivity::class.java)
-                startActivity(intent2)
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
+    override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
+        R.id.action_add_task -> {
+            val intent1 = Intent(this@MainActivity, NewTaskActivity::class.java)
+            intent1.putExtra("action", "create")
+            startActivity(intent1)
+            true
         }
+        R.id.action_settings -> {
+            val intent2 = Intent(this@MainActivity, SettingsActivity::class.java)
+            startActivity(intent2)
+            true
+        }
+        else -> super.onOptionsItemSelected(item)
     }
+
 
     override fun onStart() {
         val filter = IntentFilter(TASK_OVERDUE_ACTION)
