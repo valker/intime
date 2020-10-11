@@ -41,11 +41,12 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         contentView = R.layout.activity_main
         mainAppbar.outlineProvider = null
-        mainToolbar.title = getString(R.string.main_activity_title)
-        toolbar = mainToolbar
+        toolbar = mainToolbar.apply {
+            title = getString(R.string.main_activity_title)
+        }
         tasksAdapter = newRecyclerViewAdapter
         //TODO: create empty view after deleting old empty view
-        with(recyclerView) {
+        recyclerView.apply {
             backgroundColor = cardSwipeBackground
             layoutManager = linearLayoutManager
             adapter = tasksAdapter
@@ -182,7 +183,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         Log.d(tag, "onResume")
         isOnScreen = true
-        tasksAdapter.swapCursor(cursor)
+        tasksAdapter.swapCursor(newCursor)
         refreshRecyclerView()
         createAlarm()
         super.onResume()
@@ -217,7 +218,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun onTaskListUpdated() {
         setupAlarmIfRequired()
-        tasksAdapter.swapCursor(cursor)
+        tasksAdapter.swapCursor(newCursor)
     }
 
     private fun createAlarm() {

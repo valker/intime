@@ -86,13 +86,13 @@ class NewTaskActivity : AppCompatActivity() {
     private fun setEditTextState(state: Int) =
         if (state == 0) { //normal state
             editTextError = false
-            with(description) {
+            description.apply {
                 hintColor = editTextHint
                 tint = editTextTint
             }
         } else { //error state
             editTextError = true
-            with(description) {
+            description.apply {
                 hintColor = editTextErrorHint
                 tint = editTextErrorTint
             }

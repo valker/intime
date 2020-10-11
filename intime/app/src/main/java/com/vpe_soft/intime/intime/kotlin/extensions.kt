@@ -70,9 +70,9 @@ fun Context.showNotification(string: String, logTag: String = "no tag") {
     notificationManager.notify(NOTIFICATION_TAG, 1, builder.build())
 }
 
-val Context.helper get() = InTimeOpenHelper(this)
+val Context.newInTimeOpenHelper get() = InTimeOpenHelper(this)
 
-val Context.cursor: Cursor get() = createCursor(this)
+val Context.newCursor: Cursor get() = createCursor(this)
 
 val Context.locale: Locale
     get() =

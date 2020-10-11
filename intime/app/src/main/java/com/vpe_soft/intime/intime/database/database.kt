@@ -6,8 +6,8 @@ import android.database.Cursor
 import android.database.DatabaseUtils
 import android.database.sqlite.SQLiteDatabase
 import android.util.Log
-import com.vpe_soft.intime.intime.kotlin.cursor
-import com.vpe_soft.intime.intime.kotlin.helper
+import com.vpe_soft.intime.intime.kotlin.newCursor
+import com.vpe_soft.intime.intime.kotlin.newInTimeOpenHelper
 import com.vpe_soft.intime.intime.kotlin.taskState
 import com.vpe_soft.intime.intime.receiver.getNextAlarm
 
@@ -41,7 +41,7 @@ val Context.databaseLength
         ).toInt()
     }
 
-fun Context.getId(position: Int): Long = with(cursor) {
+fun Context.getId(position: Int): Long = with(newCursor) {
     moveToPosition(position)
     return getLong(getColumnIndex("_id"))
 }
@@ -89,9 +89,9 @@ fun Context.findTaskById(id: Long): Task {
     }
 }
 
-val Context.readableDatabase: SQLiteDatabase get() = helper.readableDatabase
+val Context.readableDatabase: SQLiteDatabase get() = newInTimeOpenHelper.readableDatabase
 
-val Context.writableDatabase: SQLiteDatabase get() = helper.writableDatabase
+val Context.writableDatabase: SQLiteDatabase get() = newInTimeOpenHelper.writableDatabase
 
 fun Context.databaseAcknowledge(id: Long, currentTimeMillis: Long): TaskState? {
     val task = findTaskById(id)
