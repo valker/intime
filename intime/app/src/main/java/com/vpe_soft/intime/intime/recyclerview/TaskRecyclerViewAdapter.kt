@@ -19,14 +19,16 @@ import com.vpe_soft.intime.intime.activity.cardIndicatorReady
 import com.vpe_soft.intime.intime.activity.indicatorCornerRadius
 import com.vpe_soft.intime.intime.kotlin.Taggable
 import com.vpe_soft.intime.intime.kotlin.log
+import com.vpe_soft.intime.intime.kotlin.newCursor
+import com.vpe_soft.intime.intime.kotlin.locale
+import com.vpe_soft.intime.intime.kotlin.longClickListener
 import com.vpe_soft.intime.intime.receiver.getDateFromNextAlarm
-import java.util.*
 
-class TaskRecyclerViewAdapter(context: Context, cursor: Cursor, locale: Locale) :
-    RecyclerViewCursorAdapter<TaskRecyclerViewAdapter.TaskRecyclerViewVH>(context, locale), Taggable {
+class TaskRecyclerViewAdapter(context: Context) :
+    RecyclerViewCursorAdapter<TaskRecyclerViewAdapter.TaskRecyclerViewVH>(context), Taggable {
 
     override val tag = "TaskRecyclerViewAdapter"
-    
+
     override fun onCreateViewHolder(viewGroup: ViewGroup, i: Int): TaskRecyclerViewVH =
         TaskRecyclerViewVH(
             LayoutInflater.from(context).inflate(R.layout.task_item, viewGroup, false)
@@ -84,15 +86,14 @@ class TaskRecyclerViewAdapter(context: Context, cursor: Cursor, locale: Locale) 
             indicator.background = gradientDrawable1
             help.background = gradientDrawable2
             title.text = description
-            date.text = getDateFromNextAlarm(locale, nextAlarm)
-            card.setOnLongClickListener {
+            date.text = getDateFromNextAlarm(context.locale, nextAlarm)
+            card.longClickListener = {
                 mainActivity.onItemLongClicked(id, pos)
-                true
             }
         }
     }
 
     init {
-        setupCursorAdapter(cursor, R.layout.task_item)
+        setupCursorAdapter(context.newCursor, R.layout.task_item)
     }
 }

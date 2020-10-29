@@ -14,14 +14,10 @@ import android.view.ViewOutlineProvider
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.vpe_soft.intime.intime.R
 import com.vpe_soft.intime.intime.database.*
-import com.vpe_soft.intime.intime.kotlin.Taggable
-import com.vpe_soft.intime.intime.kotlin.cursor
-import com.vpe_soft.intime.intime.kotlin.log
-import com.vpe_soft.intime.intime.kotlin.px
+import com.vpe_soft.intime.intime.kotlin.*
 import com.vpe_soft.intime.intime.receiver.NOTIFICATION_TAG
 import com.vpe_soft.intime.intime.receiver.TASK_OVERDUE_ACTION
 import com.vpe_soft.intime.intime.receiver.setupAlarmIfRequired
@@ -33,7 +29,7 @@ import com.vpe_soft.intime.intime.view.showOnDeleted
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity(), Taggable {
-    private lateinit var adapter: TaskRecyclerViewAdapter
+    private lateinit var tasksAdapter: TaskRecyclerViewAdapter
     private val stateHelper = CardViewStateHelper()
     private val receiver = MyBroadcastReceiver()
     var isDefaultViewOutlineProviderSet = false
@@ -43,17 +39,21 @@ class MainActivity : AppCompatActivity(), Taggable {
     override fun onCreate(savedInstanceState: Bundle?) {
         log("onCreate")
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        contentView = R.layout.activity_main
         mainAppbar.outlineProvider = null
-        mainToolbar.title = getString(R.string.main_activity_title)
-        setSupportActionBar(mainToolbar)
-        //TODO: create empty view after deleting old empty view
-        recyclerView.setBackgroundColor(cardSwipeBackground)
-        recyclerView.layoutManager = LinearLayoutManager(this)
-        with(TaskRecyclerViewAdapter(this, cursor, resources.configuration.locale)) {
-            adapter = this
-            recyclerView.adapter = this
+        toolbar = mainToolbar.apply {
+            title = getString(R.string.main_activity_title)
         }
+        tasksAdapter = newRecyclerViewAdapter
+        //TODO: create empty view after deleting old empty view
+        recyclerView.apply {
+            backgroundColor = cardSwipeBackground
+            layoutManager = linearLayoutManager
+            adapter = tasksAdapter
+
+        }
+
+        //todo: replace with extension & dsl
         val simpleItemTouchCallback: ItemTouchHelper.SimpleCallback = object :
             ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
             override fun onMove(
@@ -138,27 +138,25 @@ class MainActivity : AppCompatActivity(), Taggable {
         ItemTouchHelper(simpleItemTouchCallback).attachToRecyclerView(recyclerView)
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+    override fun onCreateOptionsMenu(menu: Menu) = true.also {
         menuInflater.inflate(R.menu.menu_main, menu)
-        return true
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_add_task -> {
-                val intent1 = Intent(this@MainActivity, NewTaskActivity::class.java)
-                intent1.putExtra("action", "create")
-                startActivity(intent1)
-                true
-            }
-            R.id.action_settings -> {
-                val intent2 = Intent(this@MainActivity, SettingsActivity::class.java)
-                startActivity(intent2)
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
+    override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
+        R.id.action_add_task -> {
+            val intent1 = Intent(this@MainActivity, NewTaskActivity::class.java)
+            intent1.putExtra("action", "create")
+            startActivity(intent1)
+            true
         }
+        R.id.action_settings -> {
+            val intent2 = Intent(this@MainActivity, SettingsActivity::class.java)
+            startActivity(intent2)
+            true
+        }
+        else -> super.onOptionsItemSelected(item)
     }
+
 
     override fun onStart() {
         val filter = IntentFilter(TASK_OVERDUE_ACTION)
@@ -175,7 +173,7 @@ class MainActivity : AppCompatActivity(), Taggable {
         log("onPause")
         isOnScreen = false
         with(getSharedPreferences("SessionInfo", MODE_PRIVATE).edit()) {
-            putLong("LastUsageTimestamp", System.currentTimeMillis())
+            putLong("LastUsageTimestamp", millis)
             apply()
         }
         super.onPause()
@@ -184,7 +182,7 @@ class MainActivity : AppCompatActivity(), Taggable {
     override fun onResume() {
         log("onResume")
         isOnScreen = true
-        adapter.swapCursor(cursor)
+        tasksAdapter.swapCursor(newCursor)
         refreshRecyclerView()
         createAlarm()
         super.onResume()
@@ -206,10 +204,10 @@ class MainActivity : AppCompatActivity(), Taggable {
      */
     private fun acknowledgeTask(id: Long, pos: Int) {
         log(id, pos)
-        val currentTimeMillis = System.currentTimeMillis()
+        val currentTimeMillis = millis
         val previousTaskState = databaseAcknowledge(id, currentTimeMillis) ?: return
         onTaskListUpdated()
-        adapter.notifyItemChanged(pos)
+        tasksAdapter.notifyItemChanged(pos)
         showOnAcknowledged(recyclerView) {
             rollbackState(id, previousTaskState)
             onTaskListUpdated()
@@ -218,7 +216,7 @@ class MainActivity : AppCompatActivity(), Taggable {
 
     private fun onTaskListUpdated() {
         setupAlarmIfRequired()
-        adapter.swapCursor(cursor)
+        tasksAdapter.swapCursor(newCursor)
     }
 
     private fun createAlarm() {
@@ -229,7 +227,7 @@ class MainActivity : AppCompatActivity(), Taggable {
 
     fun refreshRecyclerView() {
         log("refreshListView")
-        adapter.notifyItemRangeChanged(0, databaseLength)
+        tasksAdapter.notifyItemRangeChanged(0, databaseLength)
     }
 
     private fun deleteTask(id: Long): Task {
@@ -253,14 +251,14 @@ class MainActivity : AppCompatActivity(), Taggable {
             log("delete", "id = $id", "pos = $pos")
             val task = deleteTask(id)
             onTaskListUpdated()
-            with(adapter) {
+            with(tasksAdapter) {
                 notifyItemRemoved(pos)
                 notifyItemRangeChanged(pos, databaseLength)
             }
             showOnDeleted(recyclerView) {
                 createNewTask(task, id)
                 onTaskListUpdated()
-                adapter.notifyItemInserted(pos)
+                tasksAdapter.notifyItemInserted(pos)
             }
         })
     }

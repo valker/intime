@@ -7,11 +7,9 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.graphics.drawable.DrawableCompat
 import com.vpe_soft.intime.intime.R
 import com.vpe_soft.intime.intime.database.*
-import com.vpe_soft.intime.intime.kotlin.Taggable
-import com.vpe_soft.intime.intime.kotlin.log
+import com.vpe_soft.intime.intime.kotlin.*
 import com.vpe_soft.intime.intime.receiver.getNextAlarm
 import kotlinx.android.synthetic.main.activity_new_task.*
 
@@ -20,28 +18,20 @@ class NewTaskActivity : AppCompatActivity(), Taggable {
     private lateinit var operatedTask: Task
     private lateinit var activityAction: String
     private var editTextError = false
-
     override val tag = "NewTaskActivity"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         log("onCreate")
-        setContentView(R.layout.activity_new_task)
+        contentView = R.layout.activity_new_task
         spinner.adapter = ArrayAdapter(
             this,
             R.layout.spinner_item,
             resources.getStringArray(R.array.spinnerItems)
         )
         newTaskAppbar.outlineProvider = null
-        setSupportActionBar(newTaskToolbar)
-        description.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
-                if (editTextError) setEditTextState(0)
-            }
-
-            override fun afterTextChanged(s: Editable) {}
-        })
+        toolbar = newTaskToolbar
+        description.textChangesListener = { if (editTextError) setEditTextState(0) }
         val extras = intent.extras
         val action =
             if (extras != null) extras.getString("action")!! else "create" // default action if nothing provided via extras
@@ -60,8 +50,8 @@ class NewTaskActivity : AppCompatActivity(), Taggable {
                 val id = extras?.getLong("id")!!
                 operatedId = id
                 operatedTask = findTaskById(id)
-                description.setText(operatedTask.description)
-                spinner.setSelection(operatedTask.interval)
+                description.value = operatedTask.description
+                spinner.selection = operatedTask.interval
                 with(numberPicker) {
                     maxValue = 10
                     minValue = 1
@@ -78,43 +68,47 @@ class NewTaskActivity : AppCompatActivity(), Taggable {
     override fun onOptionsItemSelected(item: MenuItem) =
         when (item.itemId) {
             R.id.action_create -> {
-                //TODO: wrap with extension
-                if (activityAction == "create") {
-                    if (description.text.isEmpty()) setEditTextState(1)
-                    else createNewTask(formTask(System.currentTimeMillis()))
-                        .also { finish() }
-                } else {
-                    if (description.text.isEmpty()) setEditTextState(1)
-                    else update(formTask(operatedTask.lastAcknowledge))
-                        .also { finish() }
+                if (activityAction == "create") leave {
+                    createNewTask(millis.formTask)
+                }
+                else leave {
+                    update(operatedTask.lastAcknowledge.formTask)
                 }
                 true
             }
             else -> super.onOptionsItemSelected(item)
         }
 
+    private fun leave(work: () -> Unit) {
+        if (description.text.isEmpty()) setEditTextState(1)
+        else work().also { finish() }
+    }
+
     private fun setEditTextState(state: Int) =
-        if (state == 0) {
-            //normal state 757575
-            description.setHintTextColor(editTextHint)
-            DrawableCompat.setTint(description.background, editTextTint)
-        } else {
-            //error state
+        if (state == 0) { //normal state
+            editTextError = false
+            description.apply {
+                hintColor = editTextHint
+                tint = editTextTint
+            }
+        } else { //error state
             editTextError = true
-            description.setHintTextColor(editTextErrorHint)
-            DrawableCompat.setTint(description.background, editTextErrorTint)
+            description.apply {
+                hintColor = editTextErrorHint
+                tint = editTextErrorTint
+            }
         }
 
-    private fun formTask(lastAck: Long): Task {
-        val amount = numberPicker.value
-        val interval = spinner.selectedItemPosition
-        val taskDescription = description!!.text.toString()
-        val nextAlarm: Long =
-            getNextAlarm(interval, amount, lastAck, resources.configuration.locale)
-        val cautionPeriod = ((nextAlarm - lastAck) * 0.95).toLong()
-        val nextCaution = lastAck + cautionPeriod
-        return Task(taskDescription, interval, amount, nextAlarm, nextCaution, lastAck)
-    }
+    private val Long.formTask: Task
+        get() {
+            val amount = numberPicker.value
+            val interval = spinner.selectedItemPosition
+            val taskDescription = description.value
+            val nextAlarm: Long = getNextAlarm(interval, amount, this, locale)
+            val cautionPeriod = ((nextAlarm - this) * 0.95).toLong()
+            val nextCaution = this + cautionPeriod
+            return Task(taskDescription, interval, amount, nextAlarm, nextCaution, this)
+        }
 
     private fun update(task: Task) {
         log("updateTask")
