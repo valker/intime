@@ -12,6 +12,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.ViewOutlineProvider
 import androidx.appcompat.app.AppCompatActivity
+import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
@@ -40,6 +41,7 @@ class MainActivity : AppCompatActivity(), Taggable {
         log("onCreate")
         super.onCreate(savedInstanceState)
         contentView = R.layout.activity_main
+        log(123)
         mainAppbar.outlineProvider = null
         toolbar = mainToolbar.apply {
             title = getString(R.string.main_activity_title)
@@ -50,7 +52,6 @@ class MainActivity : AppCompatActivity(), Taggable {
             backgroundColor = cardSwipeBackground
             layoutManager = linearLayoutManager
             adapter = tasksAdapter
-
         }
 
         //todo: replace with extension & dsl
@@ -131,6 +132,7 @@ class MainActivity : AppCompatActivity(), Taggable {
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 log(viewHolder.itemView.toString())
+                stateHelper.setDefaultState(viewHolder as TaskRecyclerViewAdapter.TaskRecyclerViewVH)
                 val pos = viewHolder.adapterPosition
                 acknowledgeTask(getId(pos), pos)
             }
@@ -203,7 +205,7 @@ class MainActivity : AppCompatActivity(), Taggable {
      * @param pos - position of the task in the list
      */
     private fun acknowledgeTask(id: Long, pos: Int) {
-        log(id, pos)
+        log("$id", "$pos")
         val currentTimeMillis = millis
         val previousTaskState = databaseAcknowledge(id, currentTimeMillis) ?: return
         onTaskListUpdated()
@@ -245,7 +247,7 @@ class MainActivity : AppCompatActivity(), Taggable {
         showDialog(acknowledge = {
             acknowledgeTask(id, pos)
         }, edit = {
-            log(id, pos)
+            log("$id", "$pos")
             editTask(id)
         }, delete = {
             log("delete", "id = $id", "pos = $pos")

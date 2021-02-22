@@ -12,4 +12,4 @@ interface Taggable {
     val tag: String
 }
 
-fun Taggable.log(vararg values: Any?) = printLog(values, tag)
+fun Taggable.log(vararg values: Any?) = printLog(*values, tag)

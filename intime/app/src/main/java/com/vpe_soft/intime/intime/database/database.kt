@@ -6,10 +6,9 @@ import android.database.Cursor
 import android.database.DatabaseUtils
 import android.database.sqlite.SQLiteDatabase
 import android.util.Log
-import com.vpe_soft.intime.intime.kotlin.helper
+import com.vpe_soft.intime.intime.kotlin.newInTimeOpenHelper
 import com.vpe_soft.intime.intime.kotlin.printLog
 import com.vpe_soft.intime.intime.kotlin.newCursor
-import com.vpe_soft.intime.intime.kotlin.newInTimeOpenHelper
 import com.vpe_soft.intime.intime.kotlin.taskState
 import com.vpe_soft.intime.intime.receiver.getNextAlarm
 
