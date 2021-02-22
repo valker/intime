@@ -10,7 +10,8 @@ import com.vpe_soft.intime.intime.database.NEXT_ALARM_FIELD
 import com.vpe_soft.intime.intime.database.TASK_TABLE
 import com.vpe_soft.intime.intime.database.readableDatabase
 import com.vpe_soft.intime.intime.kotlin.alarmIntent
-import com.vpe_soft.intime.intime.kotlin.date
+import com.vpe_soft.intime.intime.kotlin.dateOf
+import com.vpe_soft.intime.intime.kotlin.locale
 import com.vpe_soft.intime.intime.kotlin.printLog
 import java.text.ChoiceFormat
 import java.text.MessageFormat
@@ -36,7 +37,7 @@ fun getNextAlarm(interval: Int, amount: Int, lastAck: Long, locale: Locale): Lon
     var newAmount = amount
     printLog("getNextAlarm", tag = tag)
     val calendar: Calendar = GregorianCalendar(locale)
-    calendar.time = lastAck.date
+    calendar.time = dateOf(lastAck)
     var field = fields[interval]
     if (field == Calendar.FIELD_COUNT) {
         // YEAR is not supported by calendar.add, so emulate it as 12 months
@@ -51,7 +52,7 @@ fun getDateFromNextAlarm(locale: Locale, nextAlarm: Long): String {
     val pattern = DateFormat.getBestDateTimePattern(locale, skeleton)
     val format = SimpleDateFormat(pattern, locale)
     format.timeZone = TimeZone.getDefault()
-    return format.format(nextAlarm.date)
+    return format.format(dateOf(nextAlarm))
 }
 
 fun Context.setupAlarmIfRequired() {
@@ -96,7 +97,6 @@ fun Context.getNotificationString(
     overdueTasksCount: Long
 ): String {
     val formatString = getString(R.string.notification_format)
-    val locale = resources.configuration.locale
     val format = MessageFormat(formatString, locale)
     val cfn = locale.isO3Language.taskChoiceFormat
     format.setFormatByArgumentIndex(2, cfn)
@@ -122,7 +122,7 @@ private fun createPendingIntent(context: Context, taskDescription: String): Pend
     return PendingIntent.getBroadcast(
         context,
         199709,
-        context.alarmIntent.putExtra("task_description", taskDescription),
+        context.alarmIntent().putExtra("task_description", taskDescription),
         PendingIntent.FLAG_CANCEL_CURRENT
     )
 }

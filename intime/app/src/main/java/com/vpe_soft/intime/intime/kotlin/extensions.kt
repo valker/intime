@@ -10,7 +10,6 @@ import android.database.Cursor
 import android.os.Build
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.widget.AbsSpinner
@@ -32,31 +31,24 @@ import com.vpe_soft.intime.intime.receiver.NOTIFICATION_TAG
 import com.vpe_soft.intime.intime.recyclerview.TaskRecyclerViewAdapter
 import java.util.*
 
-//todo: create exception for get = 0, get = {}, etc (UnsupportedException)
+fun millis(): Long = System.currentTimeMillis()
 
-val millis get() = System.currentTimeMillis()
-
-val Float.px
-    get() = TypedValue.applyDimension(
+fun Float.px(): Float = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_DIP,
         this,
         Resources.getSystem().displayMetrics
     )
 
-val Long.date
-    get() = Date(this)
+fun dateOf(source: Long): Date = Date(source)
 
-val Context.alarmIntent
-    get() = Intent(this, AlarmReceiver::class.java)
+fun Context.alarmIntent(): Intent = Intent(this, AlarmReceiver::class.java)
 
-val Context.mainIntent
-    get() = Intent(this, MainActivity::class.java)
+fun Context.mainIntent(): Intent = Intent(this, MainActivity::class.java)
 
-val Context.mainPendingIntent: PendingIntent
-    get() = PendingIntent.getActivity(this, 0, mainIntent, 0)
+fun Context.mainPendingIntent(): PendingIntent = PendingIntent.getActivity(this, 0, mainIntent(), 0)
 
 //todo: replace with non-deprecated implementation
-fun Context.showNotification(string: String, logTag: String = "no tag") {
+fun Context.showNotification(string: String, logTag: String = "") {
     printLog("showNotification", "message = $string", tag = logTag)
     val notificationManager =
         getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -65,25 +57,25 @@ fun Context.showNotification(string: String, logTag: String = "no tag") {
         .setContentText(string)
         .setSmallIcon(R.drawable.notification_icon)
         .setDefaults(Notification.DEFAULT_ALL)
-        .setContentIntent(mainPendingIntent)
+        .setContentIntent(mainPendingIntent())
 
     notificationManager.notify(NOTIFICATION_TAG, 1, builder.build())
 }
 
-val Context.newInTimeOpenHelper get() = InTimeOpenHelper(this)
+fun Context.inTimeOpenHelper(): InTimeOpenHelper = InTimeOpenHelper(this)
 
-val Context.newCursor: Cursor get() = createCursor(this)
+fun Context.cursor(): Cursor = createCursor(this)
 
 val Context.locale: Locale
     get() =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) resources.configuration.locales.get(0)
         else @Suppress("DEPRECATION") resources.configuration.locale
 
-val Context.linearLayoutManager get() = LinearLayoutManager(this)
+fun Context.linearLayoutManager(): LinearLayoutManager = LinearLayoutManager(this)
 
-val Context.newRecyclerViewAdapter get() = TaskRecyclerViewAdapter(this)
+fun Context.taskRecyclerViewAdapter(): TaskRecyclerViewAdapter = TaskRecyclerViewAdapter(this)
 
-val Task.taskState get() = TaskState(nextAlarm, nextCaution, lastAcknowledge)
+fun Task.taskState(): TaskState = TaskState(nextAlarm, nextCaution, lastAcknowledge)
 
 var View.clickListener: (View) -> Unit
     get() = {}
@@ -95,10 +87,6 @@ var View.longClickListener: (View) -> Unit
         value(it)
         true
     }
-
-var AppCompatActivity.contentView: Int
-    get() = 0
-    set(value) = setContentView(value)
 
 var AppCompatActivity.toolbar: Toolbar?
     get() = null
@@ -114,10 +102,6 @@ var EditText.textChangesListener: () -> Unit
 
         override fun afterTextChanged(s: Editable) {}
     })
-
-var EditText.value: String
-    get() = text.toString()
-    set(value) = setText(value)
 
 var EditText.hintColor: Int
     get() = 0

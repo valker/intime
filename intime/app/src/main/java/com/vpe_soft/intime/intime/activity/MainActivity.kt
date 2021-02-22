@@ -12,7 +12,6 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.ViewOutlineProvider
 import androidx.appcompat.app.AppCompatActivity
-import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
@@ -40,17 +39,17 @@ class MainActivity : AppCompatActivity(), Taggable {
     override fun onCreate(savedInstanceState: Bundle?) {
         log("onCreate")
         super.onCreate(savedInstanceState)
-        contentView = R.layout.activity_main
+        setContentView(R.layout.activity_main)
         log(123)
         mainAppbar.outlineProvider = null
         toolbar = mainToolbar.apply {
             title = getString(R.string.main_activity_title)
         }
-        tasksAdapter = newRecyclerViewAdapter
+        tasksAdapter = taskRecyclerViewAdapter()
         //TODO: create empty view after deleting old empty view
         recyclerView.apply {
             backgroundColor = cardSwipeBackground
-            layoutManager = linearLayoutManager
+            layoutManager = linearLayoutManager()
             adapter = tasksAdapter
         }
 
@@ -96,10 +95,10 @@ class MainActivity : AppCompatActivity(), Taggable {
                     var newCardRight = 0
                     var imgLeft = 0
                     var imgRight = 0
-                    val imgMargin = 24f.px
+                    val imgMargin = 24f.px()
                     val img = ContextCompat.getDrawable(this@MainActivity, R.drawable.acknowledge)!!
-                    val imgSize = 24f.px.toInt()
-                    val imgTop = (cardTop + (cardBottom - cardTop) / 2 - imgSize / 2).toInt()
+                    val imgSize = 24f.px().toInt()
+                    val imgTop = (cardTop + (cardBottom - cardTop) / 2 - imgSize / 2)
                     if (dx > 0) {
                         //right
                         newCardRight = cardLeft + dx
@@ -175,7 +174,7 @@ class MainActivity : AppCompatActivity(), Taggable {
         log("onPause")
         isOnScreen = false
         with(getSharedPreferences("SessionInfo", MODE_PRIVATE).edit()) {
-            putLong("LastUsageTimestamp", millis)
+            putLong("LastUsageTimestamp", millis())
             apply()
         }
         super.onPause()
@@ -184,7 +183,7 @@ class MainActivity : AppCompatActivity(), Taggable {
     override fun onResume() {
         log("onResume")
         isOnScreen = true
-        tasksAdapter.swapCursor(newCursor)
+        tasksAdapter.swapCursor(cursor())
         refreshRecyclerView()
         createAlarm()
         super.onResume()
@@ -206,8 +205,8 @@ class MainActivity : AppCompatActivity(), Taggable {
      */
     private fun acknowledgeTask(id: Long, pos: Int) {
         log("$id", "$pos")
-        val currentTimeMillis = millis
-        val previousTaskState = databaseAcknowledge(id, currentTimeMillis) ?: return
+        val currentTimeMillis = millis()
+        val previousTaskState = databaseAcknowledge(id, currentTimeMillis)
         onTaskListUpdated()
         tasksAdapter.notifyItemChanged(pos)
         showOnAcknowledged(recyclerView) {
@@ -218,7 +217,7 @@ class MainActivity : AppCompatActivity(), Taggable {
 
     private fun onTaskListUpdated() {
         setupAlarmIfRequired()
-        tasksAdapter.swapCursor(newCursor)
+        tasksAdapter.swapCursor(cursor())
     }
 
     private fun createAlarm() {
@@ -258,7 +257,7 @@ class MainActivity : AppCompatActivity(), Taggable {
                 notifyItemRangeChanged(pos, databaseLength)
             }
             showOnDeleted(recyclerView) {
-                createNewTask(task, id)
+                initTask(task, id)
                 onTaskListUpdated()
                 tasksAdapter.notifyItemInserted(pos)
             }

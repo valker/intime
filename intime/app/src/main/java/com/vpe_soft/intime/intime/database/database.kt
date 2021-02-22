@@ -6,10 +6,7 @@ import android.database.Cursor
 import android.database.DatabaseUtils
 import android.database.sqlite.SQLiteDatabase
 import android.util.Log
-import com.vpe_soft.intime.intime.kotlin.newInTimeOpenHelper
-import com.vpe_soft.intime.intime.kotlin.printLog
-import com.vpe_soft.intime.intime.kotlin.newCursor
-import com.vpe_soft.intime.intime.kotlin.taskState
+import com.vpe_soft.intime.intime.kotlin.*
 import com.vpe_soft.intime.intime.receiver.getNextAlarm
 
 private const val tag = "DatabaseUtil"
@@ -42,7 +39,7 @@ val Context.databaseLength
         ).toInt()
     }
 
-fun Context.getId(position: Int): Long = with(newCursor) {
+fun Context.getId(position: Int): Long = with(cursor()) {
     moveToPosition(position)
     return getLong(getColumnIndex("_id"))
 }
@@ -90,18 +87,18 @@ fun Context.findTaskById(id: Long): Task {
     }
 }
 
-val Context.readableDatabase: SQLiteDatabase get() = newInTimeOpenHelper.readableDatabase
+val Context.readableDatabase: SQLiteDatabase get() = inTimeOpenHelper().readableDatabase
 
-val Context.writableDatabase: SQLiteDatabase get() = newInTimeOpenHelper.writableDatabase
+val Context.writableDatabase: SQLiteDatabase get() = inTimeOpenHelper().writableDatabase
 
-fun Context.databaseAcknowledge(id: Long, currentTimeMillis: Long): TaskState? {
+fun Context.databaseAcknowledge(id: Long, currentTimeMillis: Long): TaskState {
     val task = findTaskById(id)
     printLog("id = $id", "description = ${task.description}", "milliseconds = $currentTimeMillis")
     val nextAlarmMoment: Long = getNextAlarm(
         task.interval,
         task.amount,
         currentTimeMillis,
-        resources.configuration.locale
+        locale
     )
     val cautionPeriod = ((nextAlarmMoment - currentTimeMillis) * 0.95).toLong()
     val nextCautionMoment = currentTimeMillis + cautionPeriod
@@ -125,7 +122,7 @@ fun Context.databaseAcknowledge(id: Long, currentTimeMillis: Long): TaskState? {
             throw RuntimeException("cannot update task with id=$id")
         }
     }
-    return task.taskState
+    return task.taskState()
 }
 
 fun Context.getNumberOfOverDueTasks(currentTimeMillis: Long): Long = countTasks(
@@ -172,7 +169,7 @@ fun Context.deleteTask(id: Long) {
     }
 }
 
-fun Context.createNewTask(task: Task, id: Long? = null) {
+fun Context.initTask(task: Task, id: Long? = null) {
     printLog("createNewTask", "id = $id", tag = tag)
     createTaskImp(id, task, this)
 }

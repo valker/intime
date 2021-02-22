@@ -1,8 +1,6 @@
 package com.vpe_soft.intime.intime.activity
 
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.ArrayAdapter
@@ -23,7 +21,7 @@ class NewTaskActivity : AppCompatActivity(), Taggable {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         log("onCreate")
-        contentView = R.layout.activity_new_task
+        setContentView(R.layout.activity_new_task)
         spinner.adapter = ArrayAdapter(
             this,
             R.layout.spinner_item,
@@ -50,7 +48,7 @@ class NewTaskActivity : AppCompatActivity(), Taggable {
                 val id = extras?.getLong("id")!!
                 operatedId = id
                 operatedTask = findTaskById(id)
-                description.value = operatedTask.description
+                description.setText(operatedTask.description)
                 spinner.selection = operatedTask.interval
                 with(numberPicker) {
                     maxValue = 10
@@ -69,10 +67,10 @@ class NewTaskActivity : AppCompatActivity(), Taggable {
         when (item.itemId) {
             R.id.action_create -> {
                 if (activityAction == "create") leave {
-                    createNewTask(millis.formTask)
+                    initTask(createTask(millis()))
                 }
                 else leave {
-                    update(operatedTask.lastAcknowledge.formTask)
+                    update(createTask(operatedTask.lastAcknowledge))
                 }
                 true
             }
@@ -99,16 +97,15 @@ class NewTaskActivity : AppCompatActivity(), Taggable {
             }
         }
 
-    private val Long.formTask: Task
-        get() {
-            val amount = numberPicker.value
-            val interval = spinner.selectedItemPosition
-            val taskDescription = description.value
-            val nextAlarm: Long = getNextAlarm(interval, amount, this, locale)
-            val cautionPeriod = ((nextAlarm - this) * 0.95).toLong()
-            val nextCaution = this + cautionPeriod
-            return Task(taskDescription, interval, amount, nextAlarm, nextCaution, this)
-        }
+    private fun createTask(lastAck: Long): Task {
+        val amount = numberPicker.value
+        val interval = spinner.selectedItemPosition
+        val taskDescription = description.text.toString()
+        val nextAlarm: Long = getNextAlarm(interval, amount, lastAck, locale)
+        val cautionPeriod = ((nextAlarm - lastAck) * 0.95).toLong()
+        val nextCaution = lastAck + cautionPeriod
+        return Task(taskDescription, interval, amount, nextAlarm, nextCaution, lastAck)
+    }
 
     private fun update(task: Task) {
         log("updateTask")

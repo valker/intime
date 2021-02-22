@@ -17,11 +17,7 @@ import com.vpe_soft.intime.intime.activity.cardIndicatorAlmost
 import com.vpe_soft.intime.intime.activity.cardIndicatorNeutral
 import com.vpe_soft.intime.intime.activity.cardIndicatorReady
 import com.vpe_soft.intime.intime.activity.indicatorCornerRadius
-import com.vpe_soft.intime.intime.kotlin.Taggable
-import com.vpe_soft.intime.intime.kotlin.log
-import com.vpe_soft.intime.intime.kotlin.newCursor
-import com.vpe_soft.intime.intime.kotlin.locale
-import com.vpe_soft.intime.intime.kotlin.longClickListener
+import com.vpe_soft.intime.intime.kotlin.*
 import com.vpe_soft.intime.intime.receiver.getDateFromNextAlarm
 
 class TaskRecyclerViewAdapter(context: Context) :
@@ -94,6 +90,6 @@ class TaskRecyclerViewAdapter(context: Context) :
     }
 
     init {
-        setupCursorAdapter(context.newCursor, R.layout.task_item)
+        setupCursorAdapter(context.cursor(), R.layout.task_item)
     }
 }
