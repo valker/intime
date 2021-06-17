@@ -1,7 +1,8 @@
 plugins {
     id("com.android.application")
     kotlin("android")
-    kotlin("android.extensions")
+    kotlin("kapt")
+    id("androidx.navigation.safeargs.kotlin")
 }
 
 android {
@@ -25,20 +26,21 @@ android {
 }
 
 dependencies {
-    google("material", "1.2.1")
-    androidx("appcompat", "1.2.0")
-    androidx("recyclerview", "1.1.0")
-    androidx("coordinatorlayout", "1.1.0")
-    androidx("cardview")
-    androidx("constraintlayout", "2.0.1")
-    ktx("core", "1.3.2")
+    implementation("com.google.android.material:material:1.3.0")
+    implementation("androidx.appcompat:appcompat:1.3.0")
+    implementation("androidx.recyclerview:recyclerview:1.2.1")
+    implementation("androidx.coordinatorlayout:coordinatorlayout:1.1.0")
+    implementation("androidx.cardview:cardview:1.0.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.0.4")
+    implementation("androidx.core:core:1.5.0")
+    implementation("androidx.navigation:navigation-fragment-ktx:2.3.5")
+    implementation("androidx.navigation:navigation-ui-ktx:2.3.5")
+    implementation("androidx.room:room-runtime:2.3.0")
+    implementation("androidx.room:room-ktx:2.3.0")
+    implementation("androidx.lifecycle:lifecycle-extensions:2.2.0")
+    implementation("androidx.lifecycle:lifecycle-common-java8:2.3.1")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.1")
+    "kapt"("androidx.room:room-compiler:2.3.0")
 }
-
-fun DependencyHandlerScope.ktx(name: String, version: String) =
-    implementation("androidx.$name:$name-ktx:$version")
-
-fun DependencyHandlerScope.google(name: String, version: String) =
-    implementation("com.google.android.$name:$name:$version")
-
-fun DependencyHandlerScope.androidx(name: String, version: String = "1.0.0") =
-    implementation("androidx.$name:$name:$version")
