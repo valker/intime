@@ -1,4 +1,4 @@
-package com.vpe_soft.intime.intime.kotlin
+package com.vpe_soft.intime.intime.utility
 
 import android.util.Log
 import com.vpe_soft.intime.intime.BuildConfig.DEBUG

@@ -1,4 +1,4 @@
-package com.vpe_soft.intime.intime.database
+package com.vpe_soft.intime.intime.data
 
 data class Task(
     val description: String,
