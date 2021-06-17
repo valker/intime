@@ -1,4 +1,4 @@
-package com.vpe_soft.intime.intime.activity
+package com.vpe_soft.intime.intime
 
 import android.app.NotificationManager
 import android.content.BroadcastReceiver
@@ -15,7 +15,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
-import com.vpe_soft.intime.intime.R
+import com.vpe_soft.intime.intime.activity.NewTaskActivity
+import com.vpe_soft.intime.intime.activity.SettingsActivity
+import com.vpe_soft.intime.intime.activity.cardSwipeBackground
 import com.vpe_soft.intime.intime.database.*
 import com.vpe_soft.intime.intime.kotlin.*
 import com.vpe_soft.intime.intime.receiver.NOTIFICATION_TAG

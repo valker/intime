@@ -7,8 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.cursoradapter.widget.CursorAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.vpe_soft.intime.intime.activity.MainActivity
-import java.util.*
+import com.vpe_soft.intime.intime.MainActivity
 
 abstract class RecyclerViewCursorAdapter<T : RecyclerViewCursorViewHolder> protected constructor(
     protected val context: Context

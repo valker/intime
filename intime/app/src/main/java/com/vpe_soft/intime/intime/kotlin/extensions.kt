@@ -21,7 +21,7 @@ import androidx.core.graphics.drawable.DrawableCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.vpe_soft.intime.intime.R
-import com.vpe_soft.intime.intime.activity.MainActivity
+import com.vpe_soft.intime.intime.MainActivity
 import com.vpe_soft.intime.intime.database.InTimeOpenHelper
 import com.vpe_soft.intime.intime.database.Task
 import com.vpe_soft.intime.intime.database.TaskState

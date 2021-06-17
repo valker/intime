@@ -3,7 +3,7 @@ package com.vpe_soft.intime.intime.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.vpe_soft.intime.intime.activity.MainActivity.Companion.isOnScreen
+import com.vpe_soft.intime.intime.MainActivity.Companion.isOnScreen
 import com.vpe_soft.intime.intime.database.getNumberOfOverDueTasks
 import com.vpe_soft.intime.intime.kotlin.Taggable
 import com.vpe_soft.intime.intime.kotlin.log
