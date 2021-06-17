@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.util.Log
 import com.vpe_soft.intime.intime.kotlin.*
 import com.vpe_soft.intime.intime.receiver.getNextAlarm
-
+//TODO: OBSOLETE
 private const val tag = "DatabaseUtil"
 private val Long.withId get() = arrayOf(toString())
 

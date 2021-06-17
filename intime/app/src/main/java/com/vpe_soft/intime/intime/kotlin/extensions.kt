@@ -30,7 +30,7 @@ import com.vpe_soft.intime.intime.receiver.AlarmReceiver
 import com.vpe_soft.intime.intime.receiver.NOTIFICATION_TAG
 import com.vpe_soft.intime.intime.recyclerview.TaskRecyclerViewAdapter
 import java.util.*
-
+//TODO: OBSOLETE
 fun millis(): Long = System.currentTimeMillis()
 
 fun Float.px(): Float = TypedValue.applyDimension(

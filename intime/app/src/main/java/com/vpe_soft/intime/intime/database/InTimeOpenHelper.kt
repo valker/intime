@@ -5,7 +5,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import com.vpe_soft.intime.intime.kotlin.Taggable
 import com.vpe_soft.intime.intime.kotlin.log
-
+//TODO: OBSOLETE
 /**
  * Created by Valentin on 19.08.2015.
  */

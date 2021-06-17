@@ -7,6 +7,7 @@ import com.vpe_soft.intime.intime.R
 import com.vpe_soft.intime.intime.activity.snackbarActionColor
 import com.vpe_soft.intime.intime.activity.snackbarBackgroundColor
 
+//todo: rewrite
 fun Context.showOnDeleted(view: View, onCancelled: () -> Unit) =
     showSnackbar(
         this,

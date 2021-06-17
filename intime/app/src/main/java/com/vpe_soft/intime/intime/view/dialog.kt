@@ -4,7 +4,7 @@ import android.content.Context
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AlertDialog
 import com.vpe_soft.intime.intime.R
-
+//TODO: OBSOLETE
 fun Context.showDialog(
     acknowledge: () -> Unit = {},
     edit: () -> Unit = {},

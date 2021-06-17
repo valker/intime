@@ -7,7 +7,7 @@ import com.vpe_soft.intime.intime.kotlin.Taggable
 import com.vpe_soft.intime.intime.kotlin.log
 import com.vpe_soft.intime.intime.kotlin.clickListener
 import kotlinx.android.synthetic.main.activity_settings.*
-
+//TODO: OBSOLETE
 class SettingsActivity : AppCompatActivity(), Taggable {
     override val tag = "SettingsActivity"
     override fun onCreate(savedInstanceState: Bundle?) {

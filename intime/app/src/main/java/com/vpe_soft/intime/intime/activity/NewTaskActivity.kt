@@ -10,7 +10,7 @@ import com.vpe_soft.intime.intime.database.*
 import com.vpe_soft.intime.intime.kotlin.*
 import com.vpe_soft.intime.intime.receiver.getNextAlarm
 import kotlinx.android.synthetic.main.activity_new_task.*
-
+//TODO: OBSOLETE
 class NewTaskActivity : AppCompatActivity(), Taggable {
     private var operatedId = 0L
     private lateinit var operatedTask: Task

@@ -3,7 +3,7 @@ package com.vpe_soft.intime.intime.view
 import android.view.ViewOutlineProvider
 import com.vpe_soft.intime.intime.activity.cardCornerRadius
 import com.vpe_soft.intime.intime.recyclerview.TaskRecyclerViewAdapter.TaskRecyclerViewVH
-
+//TODO: OBSOLETE
 //todo: rewrite this
 class CardViewStateHelper {
     var defaultProvider: ViewOutlineProvider? = null

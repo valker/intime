@@ -19,7 +19,7 @@ import com.vpe_soft.intime.intime.activity.cardIndicatorReady
 import com.vpe_soft.intime.intime.activity.indicatorCornerRadius
 import com.vpe_soft.intime.intime.kotlin.*
 import com.vpe_soft.intime.intime.receiver.getDateFromNextAlarm
-
+//TODO: OBSOLETE
 class TaskRecyclerViewAdapter(context: Context) :
     RecyclerViewCursorAdapter<TaskRecyclerViewAdapter.TaskRecyclerViewVH>(context), Taggable {
 

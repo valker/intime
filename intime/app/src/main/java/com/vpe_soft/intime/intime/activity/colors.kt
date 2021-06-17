@@ -3,7 +3,7 @@ package com.vpe_soft.intime.intime.activity
 import android.content.Context
 import androidx.core.content.ContextCompat
 import com.vpe_soft.intime.intime.R
-
+//TODO: OBSOLETE
 val Context.activityBackground get() = ContextCompat.getColor(this, R.color.activityBackground)
 val Context.contextMenuItem get() = ContextCompat.getColor(this, R.color.contextMenuItem)
 val Context.titleText get() = ContextCompat.getColor(this, R.color.titleText)
