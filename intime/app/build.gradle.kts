@@ -23,6 +23,10 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
         }
     }
+
+    buildFeatures {
+        compose = true
+    }
 }
 
 dependencies {
@@ -43,4 +47,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1-native-mt")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.1-native-mt")
     "kapt"("androidx.room:room-compiler:2.3.0")
+    implementation("androidx.compose.ui:ui:1.1.0-alpha02")
+    implementation("androidx.compose.foundation:foundation:1.1.0-alpha02")
+    implementation("androidx.ui:ui-tooling:1.0.0-alpha07")
+    implementation("androidx.compose.material:material:1.1.0-alpha02")
 }
