@@ -1,8 +1,8 @@
 package com.vpe_soft.intime.intime.dao
 
+import androidx.lifecycle.LiveData
 import androidx.room.*
 import com.vpe_soft.intime.intime.data.Task
-import kotlinx.coroutines.flow.StateFlow
 
 @Dao
 interface TaskDao {
@@ -16,5 +16,5 @@ interface TaskDao {
     suspend fun deleteTask(task: Task)
 
     @Query("SELECT * FROM `main.tasks` ORDER BY id ASC")
-    fun getTasks(): StateFlow<List<Task>>
+    fun getTasks(): LiveData<List<Task>>
 }
