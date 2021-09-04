@@ -26,4 +26,6 @@
     <string name="import_title">Импортировать из файла</string>
     <string name="import_description">Импортируйте Ваши задачи из файла для того, чтобы использовать их на этом устройстве</string>
     <string name="content_description_open_settings">Открыть настройки</string>
+    <string name="channel_name">Просроченные задачи</string>
+    <string name="channel_description">Показывает оповещение о задачах, которые были просрочены</string>
 </resources>
