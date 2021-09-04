@@ -76,7 +76,7 @@ public class AlarmUtil {
                     final PendingIntent pendingIntent = createPendingIntent(
                             context,
                             next_alarm.getString(next_alarm.getColumnIndexOrThrow(DatabaseUtil.DESCRIPTION_FIELD)));
-                    alarmManager.setAndAllowWhileIdle(
+                    alarmManager.setExactAndAllowWhileIdle(
                             AlarmManager.RTC_WAKEUP,
                             nextAlarm,
                             pendingIntent);
