@@ -25,59 +25,55 @@ public class DatabaseUtil {
     public static final String NEXT_CAUTION_FIELD = "next_caution";
     public static final String LAST_ACK_FIELD = "last_ack";
 
-    public static Cursor createCursor(Context context) {
-        SQLiteDatabase database = getReadableDatabaseFromContext(context);
+    public static Cursor createCursor(InTimeOpenHelper openHelper) {
+        SQLiteDatabase database = getReadableDatabaseFromContext(openHelper);
         return database.query(TASK_TABLE,new String[]{DESCRIPTION_FIELD, "id AS _id", NEXT_ALARM_FIELD, NEXT_CAUTION_FIELD}, null, null, null, null, NEXT_ALARM_FIELD);
     }
 
-    public static int getDatabaseLengthFromContext(Context context){
-        try (SQLiteDatabase database = getReadableDatabaseFromContext(context)) {
-            long length;
-            length = DatabaseUtils.queryNumEntries(database, TASK_TABLE);
-            return (int) length;
-        }
+    public static int getDatabaseLengthFromContext(InTimeOpenHelper openHelper){
+        SQLiteDatabase database = getReadableDatabaseFromContext(openHelper);
+        long length;
+        length = DatabaseUtils.queryNumEntries(database, TASK_TABLE);
+        return (int) length;
     }
 
-    public static long getId(Context context, int position) {
-        Cursor cursor = createCursor(context);
+    public static long getId(int position, InTimeOpenHelper openHelper) {
+        Cursor cursor = createCursor(openHelper);
         cursor.moveToPosition(position);
         return cursor.getLong(cursor.getColumnIndex("_id"));
     }
 
-    public static Task findTaskById(Context context, long id) {
+    public static Task findTaskById(long id, InTimeOpenHelper openHelper) {
         Log.d(TAG, "findTaskById");
         //next line may cause an error (not checked yet)
-        try (SQLiteDatabase database = getReadableDatabaseFromContext(context)) {
-            try (Cursor cursor = database.query(TASK_TABLE, new String[]{DESCRIPTION_FIELD, INTERVAL_FIELD, AMOUNT_FIELD, NEXT_ALARM_FIELD, NEXT_CAUTION_FIELD, LAST_ACK_FIELD}, "id=?", withId(id), null, null, null, "1")) {
-                if (cursor.moveToNext()) {
-                    Log.d(TAG, "findTaskById: task was found");
-                    String description = cursor.getString(cursor.getColumnIndexOrThrow(DESCRIPTION_FIELD));
-                    int interval = cursor.getInt(cursor.getColumnIndexOrThrow(INTERVAL_FIELD));
-                    int amount = cursor.getInt(cursor.getColumnIndexOrThrow(AMOUNT_FIELD));
-                    long nextAlarm = cursor.getLong(cursor.getColumnIndexOrThrow(NEXT_ALARM_FIELD));
-                    long nextCaution = cursor.getLong(cursor.getColumnIndexOrThrow(NEXT_CAUTION_FIELD));
-                    long lastAck = cursor.getLong(cursor.getColumnIndexOrThrow(LAST_ACK_FIELD));
-                    return new Task(description, interval, amount, nextAlarm, nextCaution, lastAck);
-                } else {
-                    Log.d(TAG, "findTaskById: task not found");
-                }
+        SQLiteDatabase database = getReadableDatabaseFromContext(openHelper);
+        try (Cursor cursor = database.query(TASK_TABLE, new String[]{DESCRIPTION_FIELD, INTERVAL_FIELD, AMOUNT_FIELD, NEXT_ALARM_FIELD, NEXT_CAUTION_FIELD, LAST_ACK_FIELD}, "id=?", withId(id), null, null, null, "1")) {
+            if (cursor.moveToNext()) {
+                Log.d(TAG, "findTaskById: task was found");
+                String description = cursor.getString(cursor.getColumnIndexOrThrow(DESCRIPTION_FIELD));
+                int interval = cursor.getInt(cursor.getColumnIndexOrThrow(INTERVAL_FIELD));
+                int amount = cursor.getInt(cursor.getColumnIndexOrThrow(AMOUNT_FIELD));
+                long nextAlarm = cursor.getLong(cursor.getColumnIndexOrThrow(NEXT_ALARM_FIELD));
+                long nextCaution = cursor.getLong(cursor.getColumnIndexOrThrow(NEXT_CAUTION_FIELD));
+                long lastAck = cursor.getLong(cursor.getColumnIndexOrThrow(LAST_ACK_FIELD));
+                return new Task(description, interval, amount, nextAlarm, nextCaution, lastAck);
+            } else {
+                Log.d(TAG, "findTaskById: task not found");
             }
         }
 
         return null;
     }
-    public static SQLiteDatabase getReadableDatabaseFromContext(Context context){
-        InTimeOpenHelper helper = new InTimeOpenHelper(context);
-        return helper.getReadableDatabase();
+    public static SQLiteDatabase getReadableDatabaseFromContext(InTimeOpenHelper openHelper){
+        return openHelper.getReadableDatabase();
     }
 
-    public static SQLiteDatabase getWritableDatabaseFromContext(Context context){
-        InTimeOpenHelper helper = new InTimeOpenHelper(context);
-        return helper.getWritableDatabase();
+    public static SQLiteDatabase getWritableDatabaseFromContext(InTimeOpenHelper openHelper){
+        return openHelper.getWritableDatabase();
     }
 
-    public static TaskState acknowledgeTask(long id, long currentTimeMillis, Context context) {
-        Task task = findTaskById(context, id);
+    public static TaskState acknowledgeTask(long id, long currentTimeMillis, Context context, InTimeOpenHelper openHelper) {
+        Task task = findTaskById(id, openHelper);
         if (task == null) {
             Log.w(TAG, "Can't find task with id = " + id);
             return null;
@@ -95,61 +91,56 @@ public class DatabaseUtil {
         values.put(NEXT_CAUTION_FIELD, nextCautionMoment);
         values.put(LAST_ACK_FIELD, currentTimeMillis);
         String whereClause = "id=?";
-        try (SQLiteDatabase database = getWritableDatabaseFromContext(context)) {
-            final int result = database.update(TASK_TABLE, values, whereClause, withId(id));
-            if (result != 1) {
-                Log.w(TAG, "acknowledgeTask: Cannot update task with id=" + id);
-                throw new RuntimeException("cannot update task with id=" + id);
-            }
+        SQLiteDatabase database = getWritableDatabaseFromContext(openHelper);
+        final int result = database.update(TASK_TABLE, values, whereClause, withId(id));
+        if (result != 1) {
+            Log.w(TAG, "acknowledgeTask: Cannot update task with id=" + id);
+            throw new RuntimeException("cannot update task with id=" + id);
         }
 
         return taskState;
     }
 
-    public static long getNumberOfOverDueTasks(Context context, long currentTimeMillis) {
+    public static long getNumberOfOverDueTasks(long currentTimeMillis, InTimeOpenHelper openHelper) {
         return countTasks(
-                context,
                 NEXT_ALARM_FIELD + "<?",
-                new String[]{Long.toString(currentTimeMillis)});
+                new String[]{Long.toString(currentTimeMillis)}, openHelper);
     }
 
-    public static long getNumberOfSkippedTasks(Context context, long lastUsageTimestamp, long currentTimestamp) {
+    public static long getNumberOfSkippedTasks(long lastUsageTimestamp, long currentTimestamp, InTimeOpenHelper openHelper) {
         return countTasks(
-                context,
                 NEXT_ALARM_FIELD + ">?" + " AND " + NEXT_ALARM_FIELD + "<?",
-                new String[]{Long.toString(lastUsageTimestamp), Long.toString(currentTimestamp)});
+                new String[]{Long.toString(lastUsageTimestamp), Long.toString(currentTimestamp)}, openHelper);
     }
-    private static long countTasks(Context context, String selection, String[] selectionArgs) {
-        try (SQLiteDatabase database = getReadableDatabaseFromContext(context)) {
-            long rowsCount = DatabaseUtils.queryNumEntries(
-                    database,
-                    TASK_TABLE,
-                    selection,
-                    selectionArgs);
-            return rowsCount;
+    private static long countTasks(String selection, String[] selectionArgs, InTimeOpenHelper openHelper) {
+        SQLiteDatabase database = getReadableDatabaseFromContext(openHelper);
+        long rowsCount = DatabaseUtils.queryNumEntries(
+                database,
+                TASK_TABLE,
+                selection,
+                selectionArgs);
+        return rowsCount;
+    }
+    public static void deleteTask(long id, InTimeOpenHelper openHelper) {
+        SQLiteDatabase database = getWritableDatabaseFromContext(openHelper);
+        int result = database.delete(TASK_TABLE, "id=?", withId(id));
+        if (result != 1) {
+            throw new RuntimeException();
         }
     }
-    public static void deleteTask(long id, Context context) {
-        try (SQLiteDatabase database = getWritableDatabaseFromContext(context)) {
-            int result = database.delete(TASK_TABLE, "id=?", withId(id));
-            if (result != 1) {
-                throw new RuntimeException();
-            }
-        }
-    }
-    public static void createNewTask(Task task, Context context) {
+    public static void createNewTask(Task task, InTimeOpenHelper openHelper) {
         Log.d(TAG, "createNewTask");
 
-        createTaskImp(null, task, context);
+        createTaskImp(null, task, openHelper);
     }
 
-    public static void createNewTask(long id, Task task, Context context) {
+    public static void createNewTask(long id, Task task, InTimeOpenHelper openHelper) {
         Log.d(TAG, "createNewTask with ID");
 
-        createTaskImp(id, task, context);
+        createTaskImp(id, task, openHelper);
     }
 
-    private static void createTaskImp(Long id, Task task, Context context) {
+    private static void createTaskImp(Long id, Task task, InTimeOpenHelper openHelper) {
         ContentValues contentValues = new ContentValues();
 
         if(id != null) {
@@ -161,19 +152,18 @@ public class DatabaseUtil {
         contentValues.put(NEXT_ALARM_FIELD, task.getNextAlarm());
         contentValues.put(NEXT_CAUTION_FIELD, task.getNextCaution());
 
-        try (SQLiteDatabase db = getWritableDatabaseFromContext(context)) {
-            db.insert(TASK_TABLE, null, contentValues);
-        }
+        SQLiteDatabase db = getWritableDatabaseFromContext(openHelper);
+        db.insert(TASK_TABLE, null, contentValues);
     }
 
-    public static void updateTaskDescription(long id, Task task, Context context)
+    public static void updateTaskDescription(long id, Task task, InTimeOpenHelper openHelper)
     {
         ContentValues contentValues = new ContentValues();
         contentValues.put(DESCRIPTION_FIELD, task.getDescription());
-        updateTaskImpl(id, context, contentValues);
+        updateTaskImpl(id, contentValues, openHelper);
     }
 
-    public static void updateTask(long id, Task task, Context context)
+    public static void updateTask(long id, Task task, InTimeOpenHelper openHelper)
     {
         ContentValues contentValues = new ContentValues();
         contentValues.put(DESCRIPTION_FIELD, task.getDescription());
@@ -181,26 +171,25 @@ public class DatabaseUtil {
         contentValues.put(AMOUNT_FIELD, task.getAmount());
         contentValues.put(NEXT_ALARM_FIELD, task.getNextAlarm());
         contentValues.put(NEXT_CAUTION_FIELD, task.getNextCaution());
-        updateTaskImpl(id, context, contentValues);
+        updateTaskImpl(id, contentValues, openHelper);
     }
 
     /**
      * Roll back the state of task
      * @param id - identifier ot the task
-     * @param context - context to get DB
      * @param taskState - target state of the task
+     * @param openHelper
      */
-    public static void rollBackState(long id, Context context, TaskState taskState) {
+    public static void rollBackState(long id, TaskState taskState, InTimeOpenHelper openHelper) {
         ContentValues contentValues = new ContentValues();
         contentValues.put(NEXT_ALARM_FIELD, taskState.getNextAlarm());
         contentValues.put(NEXT_CAUTION_FIELD, taskState.getNextCaution());
         contentValues.put(LAST_ACK_FIELD, taskState.getLastAck());
-        updateTaskImpl(id, context, contentValues);
+        updateTaskImpl(id, contentValues, openHelper);
     }
 
-    private static void updateTaskImpl(long id, Context context, ContentValues contentValues) {
-        try (SQLiteDatabase db = getWritableDatabaseFromContext(context)) {
-            db.update(TASK_TABLE, contentValues, "id=?", withId(id));
-        }
+    private static void updateTaskImpl(long id, ContentValues contentValues, InTimeOpenHelper openHelper) {
+        SQLiteDatabase db = getWritableDatabaseFromContext(openHelper);
+        db.update(TASK_TABLE, contentValues, "id=?", withId(id));
     }
 }

@@ -15,6 +15,7 @@ import android.util.Log;
 import com.vpe_soft.intime.intime.activity.MainActivity;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
+import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
 
 /** 
  * Created by Valentin on 26.08.2015.
@@ -42,25 +43,27 @@ public class AlarmReceiver extends BroadcastReceiver {
                 : s;
 
         final long currentTimeMillis = System.currentTimeMillis();
-        long overdueCount = DatabaseUtil.getNumberOfOverDueTasks(context, currentTimeMillis);
+        try (InTimeOpenHelper openHelper = new InTimeOpenHelper(context)) {
+            long overdueCount = DatabaseUtil.getNumberOfOverDueTasks(currentTimeMillis, openHelper);
 
-        // if there are other overdue tasks, modify notification text to let user know about that
-        if(overdueCount > 1) {
-            s = AlarmUtil.getNotificationString(context, s, overdueCount);
+            // if there are other overdue tasks, modify notification text to let user know about that
+            if(overdueCount > 1) {
+                s = AlarmUtil.getNotificationString(context, s, overdueCount);
+            }
+
+            Intent broadcastIntent = new Intent(AlarmUtil.TASK_OVERDUE_ACTION);
+            broadcastIntent.putExtra("task_description", s);
+            context.sendOrderedBroadcast(broadcastIntent, null);
+
+            if(!MainActivity.isOnScreen) {
+                Log.d(TAG, "onReceive: will show notification");
+                showNotification(context, s);
+            } else {
+                Log.d(TAG, "onReceive: won't show notification");
+            }
+
+            AlarmUtil.setupAlarmIfRequired(context, openHelper);
         }
-
-        Intent broadcastIntent = new Intent(AlarmUtil.TASK_OVERDUE_ACTION);
-        broadcastIntent.putExtra("task_description", s);
-        context.sendOrderedBroadcast(broadcastIntent, null);
-
-        if(!MainActivity.isOnScreen) {
-            Log.d(TAG, "onReceive: will show notification");
-            showNotification(context, s);
-        } else {
-            Log.d(TAG, "onReceive: won't show notification");
-        }
-
-        AlarmUtil.setupAlarmIfRequired(context);
     }
 
     private static void showNotification(Context context, String s) {

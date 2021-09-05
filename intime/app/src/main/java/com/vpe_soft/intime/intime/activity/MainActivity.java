@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
+import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
 import com.vpe_soft.intime.intime.database.Task;
 import com.vpe_soft.intime.intime.database.TaskState;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
@@ -49,12 +50,16 @@ public class MainActivity extends AppCompatActivity {
     public boolean isDefaultViewOutlineProviderSet = false;
 
     private TaskRecyclerViewAdapter adapter;
+    private InTimeOpenHelper openHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
         colors = new Colors(this);
         super.onCreate(savedInstanceState);
+
+        openHelper = new InTimeOpenHelper(this);
+
         setContentView(R.layout.activity_main);
         TextView title = findViewById(R.id.title_text);
         title.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
@@ -75,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-        Cursor cursor = DatabaseUtil.createCursor(this);
+        Cursor cursor = DatabaseUtil.createCursor(openHelper);
 
         //TODO: create empty view after deleting old empty view
 
@@ -147,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
                 Log.d(TAG, viewHolder.itemView.toString());
                 int pos = viewHolder.getAdapterPosition();
-                acknowledgeTask(DatabaseUtil.getId(getContext(), pos), pos);
+                acknowledgeTask(DatabaseUtil.getId(pos, openHelper), pos);
             }
         };
         new ItemTouchHelper(simpleItemTouchCallback).attachToRecyclerView(recyclerView);
@@ -181,10 +186,16 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         Log.d(TAG, "onResume");
         isOnScreen = true;
-        adapter.swapCursor(DatabaseUtil.createCursor(this));
+        adapter.swapCursor(DatabaseUtil.createCursor(openHelper));
         refreshRecyclerView();
         createAlarm();
         super.onResume();
+    }
+
+    @Override
+    protected void onDestroy() {
+        openHelper.close();
+        super.onDestroy();
     }
 
     private void editTask(long id) {
@@ -204,21 +215,21 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG,"id " + id);
         Log.d(TAG,"pos " + pos);
         final long currentTimeMillis = System.currentTimeMillis();
-        final TaskState previousTaskState = DatabaseUtil.acknowledgeTask(id, currentTimeMillis, this);
+        final TaskState previousTaskState = DatabaseUtil.acknowledgeTask(id, currentTimeMillis, this, openHelper);
         if (previousTaskState == null) {
             return;
         }
 
         createAlarm();
         final Context context = getContext();
-        adapter.swapCursor(DatabaseUtil.createCursor(context));
+        adapter.swapCursor(DatabaseUtil.createCursor(openHelper));
         adapter.notifyItemChanged(pos);
         SnackbarHelper.showOnAcknowledged(context, recyclerView, new SnackbarHelper.Listener() {
             @Override
             public void onCancelled() {
-                DatabaseUtil.rollBackState(id, context, previousTaskState);
+                DatabaseUtil.rollBackState(id, previousTaskState, openHelper);
                 createAlarm();
-                adapter.swapCursor(DatabaseUtil.createCursor(context));
+                adapter.swapCursor(DatabaseUtil.createCursor(openHelper));
             }
         });
     }
@@ -227,20 +238,20 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "createAlarm");
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(AlarmUtil.NOTIFICATION_TAG, 1);
-        AlarmUtil.setupAlarmIfRequired(this);
+        AlarmUtil.setupAlarmIfRequired(this, openHelper);
     }
 
     private void refreshRecyclerView() {
         Log.d(TAG, "refreshListView");
-        adapter.notifyItemRangeChanged(0, DatabaseUtil.getDatabaseLengthFromContext(this));
+        adapter.notifyItemRangeChanged(0, DatabaseUtil.getDatabaseLengthFromContext(openHelper));
     }
 
     private Task deleteTask(long id) {
         Log.d(TAG, "deleteTask");
         Task task = null;
         try {
-            task = DatabaseUtil.findTaskById(this, id);
-            DatabaseUtil.deleteTask(id, this);
+            task = DatabaseUtil.findTaskById(id, openHelper);
+            DatabaseUtil.deleteTask(id, openHelper);
         } catch (Exception ex) {
             Log.e(TAG, "deleteTask: cannot delete task", ex);
         }
@@ -284,15 +295,15 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG,"pos " + pos);
                 final Task task = deleteTask(id);
                 createAlarm();
-                adapter.swapCursor(DatabaseUtil.createCursor(getContext()));
+                adapter.swapCursor(DatabaseUtil.createCursor(openHelper));
                 adapter.notifyItemRemoved(pos);
-                adapter.notifyItemRangeChanged(pos, DatabaseUtil.getDatabaseLengthFromContext(getContext()));
+                adapter.notifyItemRangeChanged(pos, DatabaseUtil.getDatabaseLengthFromContext(openHelper));
                 SnackbarHelper.showOnDeleted(getContext(), recyclerView, new SnackbarHelper.Listener() {
                     @Override
                     public void onCancelled() {
-                        DatabaseUtil.createNewTask(id, task, getContext());
+                        DatabaseUtil.createNewTask(id, task, openHelper);
                         createAlarm();
-                        adapter.swapCursor(DatabaseUtil.createCursor(getContext()));
+                        adapter.swapCursor(DatabaseUtil.createCursor(openHelper));
                         adapter.notifyItemInserted(pos);
                     }
                 });

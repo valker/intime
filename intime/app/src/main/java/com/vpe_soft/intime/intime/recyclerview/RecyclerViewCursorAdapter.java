@@ -52,7 +52,8 @@ public abstract class RecyclerViewCursorAdapter<T extends RecyclerViewCursorView
     }
 
     public void swapCursor(Cursor cursor) {
-        this.cursorAdapter.swapCursor(cursor);
+        Cursor old = this.cursorAdapter.swapCursor(cursor);
+        old.close(); // this should prevent leakage of DB connections
         notifyDataSetChanged();
     }
 

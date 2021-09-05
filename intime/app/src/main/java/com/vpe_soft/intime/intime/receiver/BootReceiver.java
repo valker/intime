@@ -14,6 +14,7 @@ import androidx.core.app.NotificationCompat;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.activity.MainActivity;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
+import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
 
 /**
  * Created by Valentin on 26.08.2015.
@@ -36,27 +37,29 @@ public class BootReceiver extends BroadcastReceiver {
             final long lastUsageTimestamp = sharedPreferences.getLong("LastUsageTimestamp", 0);
             final long currentTimestamp = System.currentTimeMillis();
             // number of tasks were overdue during phone was off
-            final long tasksCount = DatabaseUtil.getNumberOfSkippedTasks(context, lastUsageTimestamp, currentTimestamp);
-            //2. if this list is not empty, generate notification
-            if(tasksCount > 0) {
-                Log.d(TAG, "onReceive: overdue tasks were found");
-                // we will raise a notification
-                NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
-                builder.setContentTitle(context.getResources().getString(R.string.app_name));
-                builder.setContentText(context.getString(R.string.boot_completed_overdue_tasks_notification));
-                builder.setSmallIcon(R.drawable.notification_icon);
-                Intent mainActIntent = new Intent(context, MainActivity.class);
-                PendingIntent mainActivityIntent = PendingIntent.getActivity(context, 0, mainActIntent, 0);
-                builder.setContentIntent(mainActivityIntent);
-                Notification notification = builder.build();
-                notificationManager.notify(AlarmUtil.NOTIFICATION_TAG, 1, notification);
-            } else {
-                Log.d(TAG, "onReceive: not found overdue tasks");
-            }
+            try (InTimeOpenHelper openHelper = new InTimeOpenHelper(context)) {
+                final long tasksCount = DatabaseUtil.getNumberOfSkippedTasks(lastUsageTimestamp, currentTimestamp, openHelper);
+                //2. if this list is not empty, generate notification
+                if(tasksCount > 0) {
+                    Log.d(TAG, "onReceive: overdue tasks were found");
+                    // we will raise a notification
+                    NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+                    NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
+                    builder.setContentTitle(context.getResources().getString(R.string.app_name));
+                    builder.setContentText(context.getString(R.string.boot_completed_overdue_tasks_notification));
+                    builder.setSmallIcon(R.drawable.notification_icon);
+                    Intent mainActIntent = new Intent(context, MainActivity.class);
+                    PendingIntent mainActivityIntent = PendingIntent.getActivity(context, 0, mainActIntent, 0);
+                    builder.setContentIntent(mainActivityIntent);
+                    Notification notification = builder.build();
+                    notificationManager.notify(AlarmUtil.NOTIFICATION_TAG, 1, notification);
+                } else {
+                    Log.d(TAG, "onReceive: not found overdue tasks");
+                }
 
-            //3. create alarm (if required for future task)
-            AlarmUtil.setupAlarmIfRequired(context);
+                //3. create alarm (if required for future task)
+                AlarmUtil.setupAlarmIfRequired(context, openHelper);
+            }
         }
     }
 }

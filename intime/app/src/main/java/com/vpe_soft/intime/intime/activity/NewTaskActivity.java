@@ -20,6 +20,7 @@ import android.widget.NumberPicker;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
+import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
 import com.vpe_soft.intime.intime.database.Task;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 import com.vpe_soft.intime.intime.view.ViewUtil;
@@ -38,12 +39,14 @@ public class NewTaskActivity extends AppCompatActivity{
     private NumberPicker numberPicker;
     private AppCompatSpinner spinner;
     private EditText description;
+    private InTimeOpenHelper openHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        colors = new Colors(this);
         Log.d(TAG, "onCreate");
+        openHelper = new InTimeOpenHelper(this);
+        colors = new Colors(this);
         setContentView(R.layout.activity_new_task);
         TextView title = findViewById(R.id.newtask_title);
         TextView description_text = findViewById(R.id.textView4);
@@ -95,7 +98,7 @@ public class NewTaskActivity extends AppCompatActivity{
                         if(description.getText().length() == 0) {
                             setEditTextState(1);
                         } else {
-                            DatabaseUtil.createNewTask(connectInfo(System.currentTimeMillis()), getContext());
+                            DatabaseUtil.createNewTask(connectInfo(System.currentTimeMillis()), openHelper);
                             finish();
                         }
                     }
@@ -106,7 +109,7 @@ public class NewTaskActivity extends AppCompatActivity{
                 title.setText(R.string.edit_task_activity_title);
                 long id = extras.getLong("id");
                 _id = id;
-                _task = DatabaseUtil.findTaskById(this, id);
+                _task = DatabaseUtil.findTaskById(id, openHelper);
                 description.setText(_task.getDescription());
                 spinner.setSelection(_task.getInterval());
                 numberPicker.setMaxValue(10);
@@ -130,6 +133,12 @@ public class NewTaskActivity extends AppCompatActivity{
                 finish();
                 break;
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        openHelper.close();
+        super.onDestroy();
     }
 
     private void setEditTextState (int state) {
@@ -160,9 +169,9 @@ public class NewTaskActivity extends AppCompatActivity{
         Log.d(TAG, "updateTask");
 
         if(wasIntervalOrAmountChanged(task.getInterval(), task.getAmount())) {
-            DatabaseUtil.updateTask(_id, task, this);
+            DatabaseUtil.updateTask(_id, task, openHelper);
         } else {
-            DatabaseUtil.updateTaskDescription(_id, task, this);
+            DatabaseUtil.updateTaskDescription(_id, task, openHelper);
         }
     }
 

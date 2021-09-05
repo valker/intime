@@ -11,6 +11,7 @@ import android.util.Log;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
+import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
 
 import java.text.ChoiceFormat;
 import java.text.MessageFormat;
@@ -64,25 +65,24 @@ public class AlarmUtil {
         return format.format(date);
     }
 
-    public static void setupAlarmIfRequired(Context context) {
+    public static void setupAlarmIfRequired(Context context, InTimeOpenHelper openHelper) {
         Log.d(TAG, "setupAlarmIfRequired");
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        try (SQLiteDatabase database = DatabaseUtil.getReadableDatabaseFromContext(context)) {
-            final long currentTimestamp = System.currentTimeMillis();
-            try (Cursor next_alarm = database.query(DatabaseUtil.TASK_TABLE, new String[]{"id", DatabaseUtil.NEXT_ALARM_FIELD, DatabaseUtil.DESCRIPTION_FIELD}, "next_alarm>?", new String[]{Long.toString(currentTimestamp)}, null, null, DatabaseUtil.NEXT_ALARM_FIELD, "1")) {
-                if (next_alarm.moveToNext()) {
-                    Log.d(TAG, "setupAlarmIfRequired: task was found. going to setup alarm");
-                    long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow(DatabaseUtil.NEXT_ALARM_FIELD));
-                    final PendingIntent pendingIntent = createPendingIntent(
-                            context,
-                            next_alarm.getString(next_alarm.getColumnIndexOrThrow(DatabaseUtil.DESCRIPTION_FIELD)));
-                    alarmManager.setExactAndAllowWhileIdle(
-                            AlarmManager.RTC_WAKEUP,
-                            nextAlarm,
-                            pendingIntent);
-                } else {
-                    Log.d(TAG, "setupAlarmIfRequired: no task with alarm in future found");
-                }
+        SQLiteDatabase database = DatabaseUtil.getReadableDatabaseFromContext(openHelper);
+        final long currentTimestamp = System.currentTimeMillis();
+        try (Cursor next_alarm = database.query(DatabaseUtil.TASK_TABLE, new String[]{"id", DatabaseUtil.NEXT_ALARM_FIELD, DatabaseUtil.DESCRIPTION_FIELD}, "next_alarm>?", new String[]{Long.toString(currentTimestamp)}, null, null, DatabaseUtil.NEXT_ALARM_FIELD, "1")) {
+            if (next_alarm.moveToNext()) {
+                Log.d(TAG, "setupAlarmIfRequired: task was found. going to setup alarm");
+                long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow(DatabaseUtil.NEXT_ALARM_FIELD));
+                final PendingIntent pendingIntent = createPendingIntent(
+                        context,
+                        next_alarm.getString(next_alarm.getColumnIndexOrThrow(DatabaseUtil.DESCRIPTION_FIELD)));
+                alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        nextAlarm,
+                        pendingIntent);
+            } else {
+                Log.d(TAG, "setupAlarmIfRequired: no task with alarm in future found");
             }
         }
     }
