@@ -4,3 +4,4 @@ intime/.idea/
 /intime/app/release/output.json
 *.iml
 .idea
+*/.idea/*
