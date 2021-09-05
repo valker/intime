@@ -5,3 +5,4 @@ intime/.idea/
 *.iml
 .idea
 */.idea/*
+/intime/app/release/*
