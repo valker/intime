@@ -9,7 +9,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="65dp"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:paddingLeft="16dp"
         android:paddingRight="16dp"
         android:paddingBottom="4.5dp">
@@ -28,6 +28,11 @@
                 android:textSize="30sp"
                 android:textColor="@color/titleText"/>
         </LinearLayout>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/version_txt"
+            />
     </LinearLayout>
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
