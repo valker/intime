@@ -11,6 +11,11 @@ def getGitHash = { ->
 
 android {
     compileSdkVersion 30
+
+    buildFeatures {
+        dataBinding true
+    }
+
     defaultConfig {
         applicationId "com.vpe_soft.intime.intime"
         minSdkVersion 23
