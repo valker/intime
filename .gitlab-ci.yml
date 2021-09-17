@@ -72,7 +72,7 @@ assembleDebug:
   interruptible: true
   stage: build
   script:
-    - echo JAVA_HOME -> ${JAVA_HOME}
+    - echo "JAVA_HOME - ${JAVA_HOME}"
     - ./gradlew assembleDebug
   artifacts:
     paths:
