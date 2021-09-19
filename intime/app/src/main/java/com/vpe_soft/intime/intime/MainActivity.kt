@@ -16,7 +16,9 @@ class MainActivity : AppCompatActivity(), Taggable {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setupActionBarWithNavController(findNavController(R.id.fragment))
+        setContent {
+
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu) = true.also {
