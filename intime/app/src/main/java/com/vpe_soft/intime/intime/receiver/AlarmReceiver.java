@@ -12,6 +12,7 @@ import androidx.core.app.NotificationCompat;
 import android.os.Build;
 import android.util.Log;
 
+import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.activity.MainActivity;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
@@ -24,23 +25,24 @@ import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
 public class AlarmReceiver extends BroadcastReceiver {
 
     private static final String TAG = "AlarmReceiver";
-    private static String CHANNEL_ID = "DefaultChannelId";
 
     @Override
     public void onReceive(Context context, Intent intent) {
         Log.d(TAG, "onReceive");
-        String s = null;
+        String notificationString = null;
+        long overdueTaskId = -1;
         try {
-            s = intent.getStringExtra("task_description");
+            notificationString = intent.getStringExtra(Constants.EXTRA_TASK_DESCRIPTION);
+            overdueTaskId = intent.getLongExtra(Constants.EXTRA_TASK_ID, -1);
         } catch( Exception e) {
             Log.e(TAG, "onReceive: unexpected error", e);
         }
 
 
         // prevent empty description
-        s = s == null || s.length() == 0
+        notificationString = notificationString == null || notificationString.length() == 0
                 ? "unknown"
-                : s;
+                : notificationString;
 
         final long currentTimeMillis = System.currentTimeMillis();
         try (InTimeOpenHelper openHelper = new InTimeOpenHelper(context)) {
@@ -48,16 +50,16 @@ public class AlarmReceiver extends BroadcastReceiver {
 
             // if there are other overdue tasks, modify notification text to let user know about that
             if(overdueCount > 1) {
-                s = AlarmUtil.getNotificationString(context, s, overdueCount);
+                notificationString = AlarmUtil.getNotificationString(context, notificationString, overdueCount);
             }
 
-            Intent broadcastIntent = new Intent(AlarmUtil.TASK_OVERDUE_ACTION);
-            broadcastIntent.putExtra("task_description", s);
+            Intent broadcastIntent = new Intent(Constants.TASK_OVERDUE_ACTION);
+            broadcastIntent.putExtra(Constants.EXTRA_TASK_DESCRIPTION, notificationString);
             context.sendOrderedBroadcast(broadcastIntent, null);
 
             if(!MainActivity.isOnScreen) {
                 Log.d(TAG, "onReceive: will show notification");
-                showNotification(context, s);
+                showNotification(context, notificationString, overdueTaskId);
             } else {
                 Log.d(TAG, "onReceive: won't show notification");
             }
@@ -66,7 +68,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         }
     }
 
-    private static void showNotification(Context context, String s) {
+    private static void showNotification(Context context, String notificationString, long overdueTaskId) {
         Log.d(TAG, "showNotification");
 
         NotificationCompat.Builder builder;
@@ -78,25 +80,25 @@ public class AlarmReceiver extends BroadcastReceiver {
             CharSequence name = context.getString(R.string.channel_name);
             String description = context.getString(R.string.channel_description);
             int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            NotificationChannel channel = new NotificationChannel(Constants.TASK_OVERDUE_CHANNEL_ID, name, importance);
             channel.setDescription(description);
             // Register the channel with the system; you can't change the importance
             // or other notification behaviors after this
             notificationManager = context.getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
-            builder = new NotificationCompat.Builder(context, CHANNEL_ID);
+            builder = new NotificationCompat.Builder(context, Constants.TASK_OVERDUE_CHANNEL_ID);
         } else {
             // gets notification manager (old style) and creates notification builder
             notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             builder = new NotificationCompat.Builder(context);
         }
 
-        Notification notification = createNotification(context, s, builder);
+        Notification notification = createNotification(context, notificationString, builder, overdueTaskId);
         notificationManager.notify(AlarmUtil.NOTIFICATION_TAG, 1, notification);
 
     }
 
-    private static Notification createNotification(Context context, String contentText, NotificationCompat.Builder builder) {
+    private static Notification createNotification(Context context, String contentText, NotificationCompat.Builder builder, long overdueTaskId) {
         builder.setContentTitle(context.getResources().getString(R.string.app_name));
         builder.setContentText(contentText);
         builder.setSmallIcon(R.drawable.notification_icon);
@@ -105,6 +107,14 @@ public class AlarmReceiver extends BroadcastReceiver {
         Intent mainActIntent = new Intent(context, MainActivity.class);
         PendingIntent mainActivityIntent = PendingIntent.getActivity(context, 0, mainActIntent, 0);
         builder.setContentIntent(mainActivityIntent);
+        if(overdueTaskId >= 0) {
+            Intent ackTaskIntent = new Intent(context, AckReceiver.class);
+            ackTaskIntent.setAction(Constants.ACTION_ACKNOWLEDGE);
+            ackTaskIntent.putExtra(Constants.EXTRA_TASK_ID, overdueTaskId);
+            PendingIntent acknowledgePendingIntent = PendingIntent.getBroadcast(context, 0, ackTaskIntent, 0);
+            builder.addAction(R.drawable.acknowledge, "Acknowledge", acknowledgePendingIntent);
+        }
+
         return builder.build();
     }
 }

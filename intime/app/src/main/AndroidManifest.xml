@@ -15,6 +15,7 @@
         <activity android:name=".activity.SettingsActivity"></activity>
 
         <receiver android:name=".receiver.AlarmReceiver" />
+        <receiver android:name=".receiver.AckReceiver" />
         <receiver
             android:name=".receiver.BootReceiver"
             android:directBootAware="true"

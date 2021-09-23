@@ -9,6 +9,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.text.format.DateFormat;
 import android.util.Log;
 
+import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
 import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
@@ -28,7 +29,6 @@ public class AlarmUtil {
 
     private static final String SKELETON = "jjmm ddMMyyyy";
 
-    public static final String TASK_OVERDUE_ACTION = "com.vpe_soft.intime.intime.TaskOverdue";
     public static final String NOTIFICATION_TAG = "com.vpe_soft.intime.intime.NotificationTag";
 
     private static final int[] fields= new int[]{
@@ -70,13 +70,15 @@ public class AlarmUtil {
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         SQLiteDatabase database = DatabaseUtil.getReadableDatabaseFromContext(openHelper);
         final long currentTimestamp = System.currentTimeMillis();
-        try (Cursor next_alarm = database.query(DatabaseUtil.TASK_TABLE, new String[]{"id", DatabaseUtil.NEXT_ALARM_FIELD, DatabaseUtil.DESCRIPTION_FIELD}, "next_alarm>?", new String[]{Long.toString(currentTimestamp)}, null, null, DatabaseUtil.NEXT_ALARM_FIELD, "1")) {
+        try (Cursor next_alarm = database.query(DatabaseUtil.TASK_TABLE, new String[]{DatabaseUtil.ID_FIELD, DatabaseUtil.NEXT_ALARM_FIELD, DatabaseUtil.DESCRIPTION_FIELD}, "next_alarm>?", new String[]{Long.toString(currentTimestamp)}, null, null, DatabaseUtil.NEXT_ALARM_FIELD, "1")) {
             if (next_alarm.moveToNext()) {
                 Log.d(TAG, "setupAlarmIfRequired: task was found. going to setup alarm");
                 long nextAlarm = next_alarm.getLong(next_alarm.getColumnIndexOrThrow(DatabaseUtil.NEXT_ALARM_FIELD));
                 final PendingIntent pendingIntent = createPendingIntent(
                         context,
-                        next_alarm.getString(next_alarm.getColumnIndexOrThrow(DatabaseUtil.DESCRIPTION_FIELD)));
+                        next_alarm.getString(next_alarm.getColumnIndexOrThrow(DatabaseUtil.DESCRIPTION_FIELD)),
+                        next_alarm.getLong(next_alarm.getColumnIndexOrThrow(DatabaseUtil.ID_FIELD))
+                        );
                 alarmManager.setExactAndAllowWhileIdle(
                         AlarmManager.RTC_WAKEUP,
                         nextAlarm,
@@ -111,10 +113,11 @@ public class AlarmUtil {
         }
     }
 
-    private static PendingIntent createPendingIntent(Context context, String taskDescription) {
+    private static PendingIntent createPendingIntent(Context context, String taskDescription, long taskId) {
         Log.d(TAG, "createPendingIntent");
         Intent intent = new Intent(context, AlarmReceiver.class);
-        intent.putExtra("task_description", taskDescription);
+        intent.putExtra(Constants.EXTRA_TASK_DESCRIPTION, taskDescription);
+        intent.putExtra(Constants.EXTRA_TASK_ID, taskId);
         return PendingIntent.getBroadcast(context, 199709, intent, PendingIntent.FLAG_CANCEL_CURRENT);
     }
 }
