@@ -1,6 +1,5 @@
 package com.vpe_soft.intime.intime.activity;
 
-import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -22,12 +21,13 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.vpe_soft.intime.intime.Constants;
+import com.vpe_soft.intime.intime.OneTask;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
 import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
 import com.vpe_soft.intime.intime.database.Task;
 import com.vpe_soft.intime.intime.database.TaskState;
-import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 import com.vpe_soft.intime.intime.recyclerview.TaskRecyclerViewAdapter;
 import com.vpe_soft.intime.intime.view.CardViewStateHelper;
 import com.vpe_soft.intime.intime.view.ManageDialogView;
@@ -160,7 +160,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onStart() {
-        IntentFilter filter = new IntentFilter(AlarmUtil.TASK_OVERDUE_ACTION);
+        IntentFilter filter = new IntentFilter(Constants.TASK_OVERDUE_ACTION);
         registerReceiver(getReceiver(), filter);
         super.onStart();
     }
@@ -188,7 +188,7 @@ public class MainActivity extends AppCompatActivity {
         isOnScreen = true;
         adapter.swapCursor(DatabaseUtil.createCursor(openHelper));
         refreshRecyclerView();
-        createAlarm();
+        OneTask.createAlarm(this, openHelper);
         super.onResume();
     }
 
@@ -214,31 +214,23 @@ public class MainActivity extends AppCompatActivity {
     private void acknowledgeTask(final long id, final int pos) {
         Log.d(TAG,"id " + id);
         Log.d(TAG,"pos " + pos);
-        final long currentTimeMillis = System.currentTimeMillis();
-        final TaskState previousTaskState = DatabaseUtil.acknowledgeTask(id, currentTimeMillis, this, openHelper);
+
+        final TaskState previousTaskState = OneTask.acknowledge(id, this, openHelper);
+
         if (previousTaskState == null) {
             return;
         }
 
-        createAlarm();
-        final Context context = getContext();
         adapter.swapCursor(DatabaseUtil.createCursor(openHelper));
         adapter.notifyItemChanged(pos);
-        SnackbarHelper.showOnAcknowledged(context, recyclerView, new SnackbarHelper.Listener() {
+        SnackbarHelper.showOnAcknowledged(getContext(), recyclerView, new SnackbarHelper.Listener() {
             @Override
             public void onCancelled() {
                 DatabaseUtil.rollBackState(id, previousTaskState, openHelper);
-                createAlarm();
+                OneTask.createAlarm(getContext(), openHelper);
                 adapter.swapCursor(DatabaseUtil.createCursor(openHelper));
             }
         });
-    }
-
-    private void createAlarm() {
-        Log.d(TAG, "createAlarm");
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.cancel(AlarmUtil.NOTIFICATION_TAG, 1);
-        AlarmUtil.setupAlarmIfRequired(this, openHelper);
     }
 
     private void refreshRecyclerView() {
@@ -294,7 +286,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG,"id " + id);
                 Log.d(TAG,"pos " + pos);
                 final Task task = deleteTask(id);
-                createAlarm();
+                OneTask.createAlarm(getContext(), openHelper);
                 adapter.swapCursor(DatabaseUtil.createCursor(openHelper));
                 adapter.notifyItemRemoved(pos);
                 adapter.notifyItemRangeChanged(pos, DatabaseUtil.getDatabaseLengthFromContext(openHelper));
@@ -302,7 +294,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onCancelled() {
                         DatabaseUtil.createNewTask(id, task, openHelper);
-                        createAlarm();
+                        OneTask.createAlarm(getContext(), openHelper);
                         adapter.swapCursor(DatabaseUtil.createCursor(openHelper));
                         adapter.notifyItemInserted(pos);
                     }

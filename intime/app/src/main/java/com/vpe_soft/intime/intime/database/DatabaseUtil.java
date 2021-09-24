@@ -7,6 +7,7 @@ import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
+import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 
 public class DatabaseUtil {
@@ -84,7 +85,7 @@ public class DatabaseUtil {
         Log.d(TAG, "task_desc " + task.getDescription());
         Log.d(TAG, "millis " + currentTimeMillis);
         final long nextAlarmMoment = AlarmUtil.getNextAlarm(task.getInterval(), task.getAmount(), currentTimeMillis, context.getResources().getConfiguration().locale);
-        final long cautionPeriod = (long) ((nextAlarmMoment - currentTimeMillis) * 0.95);
+        final long cautionPeriod = (long) ((nextAlarmMoment - currentTimeMillis) * Constants.CAUTION_FACTOR);
         final long nextCautionMoment = currentTimeMillis + cautionPeriod;
         ContentValues values = new ContentValues();
         values.put(NEXT_ALARM_FIELD, nextAlarmMoment);
