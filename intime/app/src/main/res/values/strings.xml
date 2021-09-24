@@ -28,4 +28,5 @@
     <string name="channel_name">Overdue tasks</string>
     <string name="channel_description">Shows notification about tasks that were overdue recently</string>
     <string name="version_format_string">Version: %1$s (%2$s)</string>
+    <string name="acknowledge_from_notification">Acknowledge</string>
 </resources>

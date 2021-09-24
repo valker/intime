@@ -29,4 +29,5 @@
     <string name="channel_name">Просроченные задачи</string>
     <string name="channel_description">Показывает оповещение о задачах, которые были просрочены</string>
     <string name="version_format_string">Версия: %1$s (%2$s)</string>
+    <string name="acknowledge_from_notification">Подтвердить</string>
 </resources>
