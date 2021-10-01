@@ -11,6 +11,7 @@ import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
+import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.activity.MainActivity;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
@@ -33,8 +34,8 @@ public class BootReceiver extends BroadcastReceiver {
             Log.d(TAG, "onReceive: " + intentAction);
             //1. get list of tasks that have next alarm between last-run and current time
             // 1.1 get last usage timestamp
-            SharedPreferences sharedPreferences = context.getSharedPreferences("SessionInfo", Context.MODE_PRIVATE);
-            final long lastUsageTimestamp = sharedPreferences.getLong("LastUsageTimestamp", 0);
+            SharedPreferences sharedPreferences = context.getSharedPreferences(Constants.SESSION_INFO_SP_NAME, Context.MODE_PRIVATE);
+            final long lastUsageTimestamp = sharedPreferences.getLong(Constants.LAST_USAGE_TIMESTAMP_KEY, 0);
             final long currentTimestamp = System.currentTimeMillis();
             // number of tasks were overdue during phone was off
             try (InTimeOpenHelper openHelper = new InTimeOpenHelper(context)) {

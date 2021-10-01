@@ -18,6 +18,7 @@ import android.widget.TextView;
 import android.widget.EditText;
 import android.widget.NumberPicker;
 
+import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
 import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
@@ -83,10 +84,10 @@ public class NewTaskActivity extends AppCompatActivity{
         });
         final Bundle extras = getIntent().getExtras();
         final String action = extras != null
-                ? extras.getString("action")
-                : "create"; // default action if nothing provided via extras
+                ? extras.getString(Constants.ACTION_EXTRA_NAME)
+                : Constants.CREATE_EXTRA_VALUE; // default action if nothing provided via extras
         switch (action) {
-            case "create": {
+            case Constants.CREATE_EXTRA_VALUE: {
                 title.setText(R.string.new_task_activity_title);
                 numberPicker.setMaxValue(10);
                 numberPicker.setMinValue(1);
@@ -105,9 +106,9 @@ public class NewTaskActivity extends AppCompatActivity{
                 });
                 break;
             }
-            case "edit": {
+            case Constants.EDIT_EXTRA_VALUE: {
                 title.setText(R.string.edit_task_activity_title);
-                long id = extras.getLong("id");
+                long id = extras.getLong(Constants.ID_EXTRA_NAME);
                 _id = id;
                 _task = DatabaseUtil.findTaskById(id, openHelper);
                 description.setText(_task.getDescription());

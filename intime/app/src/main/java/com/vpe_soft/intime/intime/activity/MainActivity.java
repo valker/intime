@@ -76,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(MainActivity.this, NewTaskActivity.class);
-                intent.putExtra("action", "create");
+                intent.putExtra(Constants.ACTION_EXTRA_NAME, Constants.CREATE_EXTRA_VALUE);
                 startActivity(intent);
             }
         });
@@ -175,9 +175,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         Log.d(TAG, "onPause");
         isOnScreen = false;
-        SharedPreferences sharedPreferences = getSharedPreferences("SessionInfo", Context.MODE_PRIVATE);
+        SharedPreferences sharedPreferences = getSharedPreferences(Constants.SESSION_INFO_SP_NAME, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putLong("LastUsageTimestamp", System.currentTimeMillis());
+        editor.putLong(Constants.LAST_USAGE_TIMESTAMP_KEY, System.currentTimeMillis());
         editor.apply();
         super.onPause();
     }
@@ -201,8 +201,8 @@ public class MainActivity extends AppCompatActivity {
     private void editTask(long id) {
         Log.d(TAG, "editTask");
         Intent intent = new Intent(this, NewTaskActivity.class);
-        intent.putExtra("action", "edit");
-        intent.putExtra("id", id);
+        intent.putExtra(Constants.ACTION_EXTRA_NAME, Constants.EDIT_EXTRA_VALUE);
+        intent.putExtra(Constants.ID_EXTRA_NAME, id);
         startActivity(intent);
     }
 

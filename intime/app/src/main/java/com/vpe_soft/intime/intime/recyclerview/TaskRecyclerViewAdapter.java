@@ -16,6 +16,7 @@ import androidx.cardview.widget.CardView;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.activity.Dimensions;
+import com.vpe_soft.intime.intime.database.DatabaseUtil;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 import com.vpe_soft.intime.intime.view.ViewUtil;
 
@@ -48,7 +49,7 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
         public CardView card;
         public LinearLayout indicator;
         public LinearLayout help;
-        private String TAG = "TaskRecyclerViewVH";
+        private final String TAG = "TaskRecyclerViewVH";
 
         public TaskRecyclerViewVH(View itemView) {
             super(itemView);
@@ -62,9 +63,9 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
         @Override
         public void bindCursor(Cursor cursor) {
             Log.d(TAG, "bindCursor");
-            String description = cursor.getString(cursor.getColumnIndexOrThrow("description"));
-            long nextAlarm = cursor.getLong(cursor.getColumnIndexOrThrow("next_alarm"));
-            long nextCaution = cursor.getLong(cursor.getColumnIndexOrThrow("next_caution"));
+            String description = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseUtil.DESCRIPTION_FIELD));
+            long nextAlarm = cursor.getLong(cursor.getColumnIndexOrThrow(DatabaseUtil.NEXT_ALARM_FIELD));
+            long nextCaution = cursor.getLong(cursor.getColumnIndexOrThrow(DatabaseUtil.NEXT_CAUTION_FIELD));
             final long id = cursor.getLong(cursor.getColumnIndexOrThrow("_id"));
             final int pos = cursor.getPosition();
             // 0 - not ready (white), 1 - almost (yellow), 2 - ready (red)

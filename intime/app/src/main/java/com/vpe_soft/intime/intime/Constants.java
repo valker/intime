@@ -30,4 +30,34 @@ public class Constants {
      * Factor to calculate time interval for cautions
      */
     public static final double CAUTION_FACTOR = 0.95;
+
+    /**
+     * Key in SharedPreferences that points to last usage timestamp
+     */
+    public static final String LAST_USAGE_TIMESTAMP_KEY = "LastUsageTimestamp";
+
+    /**
+     * Name of SharedPreferences section
+     */
+    public static final String SESSION_INFO_SP_NAME = "SessionInfo";
+
+    /**
+     * 
+     */
+    public static final String ACTION_EXTRA_NAME = "action";
+
+    /**
+     *
+     */
+    public static final String ID_EXTRA_NAME = "id";
+
+    /**
+     *
+     */
+    public static final String EDIT_EXTRA_VALUE = "edit";
+
+    /**
+     *
+     */
+    public static final String CREATE_EXTRA_VALUE = "create";
 }
