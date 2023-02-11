@@ -18,7 +18,9 @@
         <receiver
             android:name=".receiver.BootReceiver"
             android:directBootAware="true"
-            android:enabled="true">
+            android:enabled="true"
+            android:exported="true"
+            >
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
@@ -29,7 +31,8 @@
 
         <activity
             android:name=".activity.MainActivity"
-            android:label="@string/app_name">
+            android:label="@string/app_name"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
