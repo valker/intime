@@ -13,7 +13,7 @@ public class InTimeOpenHelper extends SQLiteOpenHelper {
     private static final String TAG = "InTimeOpenHelper";
 
     public InTimeOpenHelper(Context context) {
-        super(context, "main", null, 4);
+        super(context, "main", null, 5);
     }
 
     @Override
@@ -27,6 +27,7 @@ public class InTimeOpenHelper extends SQLiteOpenHelper {
                 ", next_alarm INTEGER NOT NULL DEFAULT 0" +                 // next alarm timestamp
                 ", next_caution INTEGER NOT NULL DEFAULT 0" +               // next caution timestamp
                 ", last_ack INTEGER NOT NULL DEFAULT 0" +                   // last acknowledge timestamp
+                ", quant INTEGER NOT NULL DEFAULT 1" +                      // divider of interval
                 ")");
     }
 
@@ -49,6 +50,12 @@ public class InTimeOpenHelper extends SQLiteOpenHelper {
         if(oldVersion < 4) {
             Log.d(TAG, "onUpgrade: up to version 4");
             String sqlCommand = "ALTER TABLE main.tasks ADD COLUMN last_ack INTEGER NOT NULL DEFAULT 0;";
+            db.execSQL(sqlCommand);
+        }
+
+        if(oldVersion <5) {
+            Log.d(TAG, "onUpgrade: up to version 5");
+            String sqlCommand = "ALTER TABLE main.tasks ADD COLUMN quant INTEGER NOT NULL DEFAULT 1;";
             db.execSQL(sqlCommand);
         }
     }
