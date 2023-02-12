@@ -34,6 +34,9 @@ import com.vpe_soft.intime.intime.view.ManageDialogView;
 import com.vpe_soft.intime.intime.view.SnackbarHelper;
 import com.vpe_soft.intime.intime.view.ViewUtil;
 
+/**
+ * Главный экран приложения
+ */
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";

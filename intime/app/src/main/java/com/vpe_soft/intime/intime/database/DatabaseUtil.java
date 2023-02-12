@@ -25,6 +25,7 @@ public class DatabaseUtil {
     public static final String AMOUNT_FIELD = "amount";
     public static final String NEXT_CAUTION_FIELD = "next_caution";
     public static final String LAST_ACK_FIELD = "last_ack";
+    public static final String QUANT_FIELD = "quant";
 
     public static Cursor createCursor(InTimeOpenHelper openHelper) {
         SQLiteDatabase database = getReadableDatabaseFromContext(openHelper);
@@ -48,7 +49,7 @@ public class DatabaseUtil {
         Log.d(TAG, "findTaskById");
         //next line may cause an error (not checked yet)
         SQLiteDatabase database = getReadableDatabaseFromContext(openHelper);
-        try (Cursor cursor = database.query(TASK_TABLE, new String[]{DESCRIPTION_FIELD, INTERVAL_FIELD, AMOUNT_FIELD, NEXT_ALARM_FIELD, NEXT_CAUTION_FIELD, LAST_ACK_FIELD}, "id=?", withId(id), null, null, null, "1")) {
+        try (Cursor cursor = database.query(TASK_TABLE, new String[]{DESCRIPTION_FIELD, INTERVAL_FIELD, AMOUNT_FIELD, NEXT_ALARM_FIELD, NEXT_CAUTION_FIELD, LAST_ACK_FIELD, QUANT_FIELD}, "id=?", withId(id), null, null, null, "1")) {
             if (cursor.moveToNext()) {
                 Log.d(TAG, "findTaskById: task was found");
                 String description = cursor.getString(cursor.getColumnIndexOrThrow(DESCRIPTION_FIELD));
@@ -57,7 +58,9 @@ public class DatabaseUtil {
                 long nextAlarm = cursor.getLong(cursor.getColumnIndexOrThrow(NEXT_ALARM_FIELD));
                 long nextCaution = cursor.getLong(cursor.getColumnIndexOrThrow(NEXT_CAUTION_FIELD));
                 long lastAck = cursor.getLong(cursor.getColumnIndexOrThrow(LAST_ACK_FIELD));
-                return new Task(description, interval, amount, nextAlarm, nextCaution, lastAck);
+                int quant = cursor.getInt(cursor.getColumnIndexOrThrow(QUANT_FIELD));
+                return new Task(description, interval, amount, nextAlarm, nextCaution, lastAck,
+                        quant);
             } else {
                 Log.d(TAG, "findTaskById: task not found");
             }
@@ -84,7 +87,11 @@ public class DatabaseUtil {
         Log.d(TAG, "id " + id);
         Log.d(TAG, "task_desc " + task.getDescription());
         Log.d(TAG, "millis " + currentTimeMillis);
-        final long nextAlarmMoment = AlarmUtil.getNextAlarm(task.getInterval(), task.getAmount(), currentTimeMillis, context.getResources().getConfiguration().locale);
+        final long nextAlarmMoment = AlarmUtil.getNextAlarm(task.getInterval(),
+                                                            task.getAmount(),
+                                                            currentTimeMillis,
+                                                            task.getQuant(),
+                                                            context.getResources().getConfiguration().locale);
         final long cautionPeriod = (long) ((nextAlarmMoment - currentTimeMillis) * Constants.CAUTION_FACTOR);
         final long nextCautionMoment = currentTimeMillis + cautionPeriod;
         ContentValues values = new ContentValues();
@@ -152,6 +159,7 @@ public class DatabaseUtil {
         contentValues.put(AMOUNT_FIELD, task.getAmount());
         contentValues.put(NEXT_ALARM_FIELD, task.getNextAlarm());
         contentValues.put(NEXT_CAUTION_FIELD, task.getNextCaution());
+        contentValues.put(QUANT_FIELD, task.getQuant());
 
         SQLiteDatabase db = getWritableDatabaseFromContext(openHelper);
         db.insert(TASK_TABLE, null, contentValues);
@@ -172,6 +180,7 @@ public class DatabaseUtil {
         contentValues.put(AMOUNT_FIELD, task.getAmount());
         contentValues.put(NEXT_ALARM_FIELD, task.getNextAlarm());
         contentValues.put(NEXT_CAUTION_FIELD, task.getNextCaution());
+        contentValues.put(QUANT_FIELD, task.getQuant());
         updateTaskImpl(id, contentValues, openHelper);
     }
 

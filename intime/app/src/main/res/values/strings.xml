@@ -5,6 +5,7 @@
     <string name="label_description_text">Description:</string>
     <string name="label_intervals_text">Intervals:</string>
     <string name="label_amount_text">Amount:</string>
+    <string name="label_quant_text">Quant:</string>
     <string name="context_menu_acknowledge">Acknowledge</string>
     <string name="context_menu_edit">Edit</string>
     <string name="context_menu_delete">Delete</string>

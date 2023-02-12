@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 /**
- * Created by Valentin on 19.08.2015.
+ * Адаптер доступа к базе данных
  */
 public class InTimeOpenHelper extends SQLiteOpenHelper {
 

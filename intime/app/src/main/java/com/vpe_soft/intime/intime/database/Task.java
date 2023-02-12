@@ -12,14 +12,16 @@ public class Task {
     private final long nextAlarm;
     private final long nextCaution;
     private final long lastAck;
+    private final int quant;
 
-    public Task(String description, int interval, int amount, long nextAlarm, long nextCaution, long lastAck) {
+    public Task(String description, int interval, int amount, long nextAlarm, long nextCaution, long lastAck, int quant) {
         this.description = description;
         this.interval = interval;
         this.amount = amount;
         this.nextAlarm = nextAlarm;
         this.nextCaution = nextCaution;
         this.lastAck = lastAck;
+        this.quant = quant;
     }
 
     public int getInterval() {
@@ -44,5 +46,9 @@ public class Task {
 
     public long getLastAcknowledge() {
         return lastAck;
+    }
+
+    public int getQuant() {
+        return quant;
     }
 }

@@ -58,8 +58,9 @@
             android:textSize="18sp"
             android:textColor="@color/staticText"
             android:text="@string/label_description_text"
-            app:layout_constraintBaseline_toBaselineOf="@+id/description"
-            app:layout_constraintEnd_toStartOf="@+id/guideline" />
+            app:layout_constraintBottom_toBottomOf="@+id/description"
+            app:layout_constraintEnd_toStartOf="@+id/guideline"
+            app:layout_constraintTop_toTopOf="@+id/description" />
 
         <EditText
             android:id="@+id/description"
@@ -86,8 +87,9 @@
             android:textSize="18sp"
             android:textColor="@color/staticText"
             android:text="@string/label_intervals_text"
-            app:layout_constraintBaseline_toBaselineOf="@+id/spinner"
-            app:layout_constraintEnd_toStartOf="@+id/guideline" />
+            app:layout_constraintBottom_toBottomOf="@+id/spinner"
+            app:layout_constraintEnd_toStartOf="@+id/guideline"
+            app:layout_constraintTop_toTopOf="@+id/spinner" />
 
         <androidx.appcompat.widget.AppCompatSpinner
             android:id="@+id/spinner"
@@ -105,35 +107,55 @@
             android:id="@+id/textView6"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:text="@string/label_amount_text"
             android:layout_marginEnd="8dp"
             android:textSize="18sp"
             android:textColor="@color/staticText"
-            android:text="@string/label_amount_text"
-            app:layout_constraintBottom_toBottomOf="@+id/numberPicker"
+            app:layout_constraintBottom_toBottomOf="@+id/numberPickerAmount"
             app:layout_constraintEnd_toStartOf="@+id/guideline"
-            app:layout_constraintTop_toTopOf="@+id/numberPicker" />
+            app:layout_constraintTop_toBottomOf="@+id/spinner" />
 
         <NumberPicker
-            android:id="@+id/numberPicker"
+            android:id="@+id/numberPickerAmount"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
-            android:layout_marginBottom="8dp"
-            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.06"
             app:layout_constraintStart_toStartOf="@+id/guideline"
-            app:layout_constraintTop_toBottomOf="@+id/spinner"
-            app:layout_constraintVertical_bias="0.0" />
+            app:layout_constraintTop_toBottomOf="@+id/spinner" />
+
+        <TextView
+            android:id="@+id/textView7"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:text="@string/label_quant_text"
+            android:textColor="@color/staticText"
+            android:textSize="18sp"
+            app:layout_constraintBottom_toBottomOf="@+id/numberPickerQuant"
+            app:layout_constraintEnd_toStartOf="@+id/guideline"
+            app:layout_constraintTop_toTopOf="@+id/numberPickerQuant" />
+
+        <NumberPicker
+            android:id="@+id/numberPickerQuant"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="@+id/guideline"
+            app:layout_constraintTop_toBottomOf="@+id/numberPickerAmount" />
 
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/guideline"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            app:layout_constraintGuide_percent="0.32" />
+            app:layout_constraintGuide_percent="0.36" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </LinearLayout>

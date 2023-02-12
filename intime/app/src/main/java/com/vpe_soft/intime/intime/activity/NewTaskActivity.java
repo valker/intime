@@ -37,7 +37,8 @@ public class NewTaskActivity extends AppCompatActivity{
 
     private boolean editTextError = false;
 
-    private NumberPicker numberPicker;
+    private NumberPicker numberPickerAmount;
+    private NumberPicker numberPickerQuant;
     private AppCompatSpinner spinner;
     private EditText description;
     private InTimeOpenHelper openHelper;
@@ -53,14 +54,17 @@ public class NewTaskActivity extends AppCompatActivity{
         TextView description_text = findViewById(R.id.textView4);
         TextView intervals_text = findViewById(R.id.textView5);
         TextView amount_text = findViewById(R.id.textView6);
+        TextView quant_text = findViewById(R.id.textView7);
         View next = findViewById(R.id.newtask_action);
         description = findViewById(R.id.description);
-        numberPicker = findViewById(R.id.numberPicker);
+        numberPickerAmount = findViewById(R.id.numberPickerAmount);
+        numberPickerQuant = findViewById(R.id.numberPickerQuant);
         spinner = findViewById(R.id.spinner);
         title.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
         description_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
         intervals_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
         amount_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
+        quant_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
         description_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
         description.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
         spinner.setAdapter(new SpinnerAdapter(this, R.layout.spinner_item, getResources().getStringArray(R.array.spinnerItems)));
@@ -89,9 +93,12 @@ public class NewTaskActivity extends AppCompatActivity{
         switch (action) {
             case Constants.CREATE_EXTRA_VALUE: {
                 title.setText(R.string.new_task_activity_title);
-                numberPicker.setMaxValue(10);
-                numberPicker.setMinValue(1);
-                numberPicker.setValue(1);
+                numberPickerAmount.setMaxValue(10);
+                numberPickerAmount.setMinValue(1);
+                numberPickerAmount.setValue(1);
+                numberPickerQuant.setMaxValue(10);
+                numberPickerQuant.setMinValue(1);
+                numberPickerQuant.setValue(1);
                 next.setContentDescription(getString(R.string.content_description_add_task));
                 next.setOnClickListener(new View.OnClickListener(){
                     @Override
@@ -113,9 +120,13 @@ public class NewTaskActivity extends AppCompatActivity{
                 _task = DatabaseUtil.findTaskById(id, openHelper);
                 description.setText(_task.getDescription());
                 spinner.setSelection(_task.getInterval());
-                numberPicker.setMaxValue(10);
-                numberPicker.setMinValue(1);
-                numberPicker.setValue(_task.getAmount());
+                numberPickerAmount.setMaxValue(10);
+                numberPickerAmount.setMinValue(1);
+                numberPickerAmount.setValue(_task.getAmount());
+                numberPickerQuant.setMaxValue(10);
+                numberPickerQuant.setMinValue(1);
+                final int quant = _task.getQuant();
+                numberPickerQuant.setValue(quant);
                 next.setContentDescription(getString(R.string.content_description_update_task));
                 next.setOnClickListener(new View.OnClickListener(){
                     @Override
@@ -156,20 +167,21 @@ public class NewTaskActivity extends AppCompatActivity{
     }
 
     private Task connectInfo(long lastAck) {
-        int amount = numberPicker.getValue();
+        int amount = numberPickerAmount.getValue();
         int interval = spinner.getSelectedItemPosition();
         String taskDescription = description.getText().toString();
-        long nextAlarm = AlarmUtil.getNextAlarm(interval, amount, lastAck, getResources().getConfiguration().locale);
+        int quant = numberPickerQuant.getValue();
+        long nextAlarm = AlarmUtil.getNextAlarm(interval, amount, lastAck, quant,
+                getResources().getConfiguration().locale);
         long cautionPeriod = (long) ((nextAlarm - lastAck) * 0.95);
         long nextCaution  = lastAck + cautionPeriod;
-        final Task task = new Task(taskDescription, interval, amount, nextAlarm, nextCaution, lastAck);
-        return task;
+        return new Task(taskDescription, interval, amount, nextAlarm, nextCaution, lastAck, quant);
     }
 
     private void updateTask(Task task) {
         Log.d(TAG, "updateTask");
 
-        if(wasIntervalOrAmountChanged(task.getInterval(), task.getAmount())) {
+        if(wasIntervalOrAmountChanged(task.getInterval(), task.getAmount(), task.getQuant())) {
             DatabaseUtil.updateTask(_id, task, openHelper);
         } else {
             DatabaseUtil.updateTaskDescription(_id, task, openHelper);
@@ -180,8 +192,8 @@ public class NewTaskActivity extends AppCompatActivity{
         return this;
     }
 
-    private boolean wasIntervalOrAmountChanged(int interval, int amount) {
-        return _task.getInterval() != interval || _task.getAmount() != amount;
+    private boolean wasIntervalOrAmountChanged(int interval, int amount, int quant) {
+        return _task.getInterval() != interval || _task.getAmount() != amount || _task.getQuant() != quant;
     }
 
     private class SpinnerAdapter extends ArrayAdapter<String> {

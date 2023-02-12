@@ -40,11 +40,12 @@ public class AlarmUtil {
             Calendar.FIELD_COUNT //substitute for YEAR
     };
 
-    public static long getNextAlarm(int interval, int amount, long lastAck, Locale locale) {
+    public static long getNextAlarm(int interval, int amount, long lastAck, int quant,
+                                    Locale locale) {
         Log.d(TAG, "getNextAlarm");
         Date date = new Date(lastAck);
         Calendar calendar = new GregorianCalendar(locale);
-        calendar.setTime(date);
+        calendar.setTime(date); // время последнего подтверждения
         int field = fields[interval];
         if(field == Calendar.FIELD_COUNT) {
             // YEAR is not supported by calendar.add, so emulate it as 12 months
@@ -53,8 +54,10 @@ public class AlarmUtil {
         }
         //noinspection ResourceType
         calendar.add(field, amount);
-        date = calendar.getTime();
-        return date.getTime();
+        date = calendar.getTime(); // время срабатывания без учёта квантов
+        long time = date.getTime();
+        long delta = (time - lastAck) / quant;
+        return lastAck + delta;
     }
 
     public static String getDateFromNextAlarm(Locale locale, long nextAlarm){
