@@ -30,4 +30,5 @@
     <string name="channel_description">Shows notification about tasks that were overdue recently</string>
     <string name="version_format_string">Version: %1$s (%2$s)</string>
     <string name="acknowledge_from_notification">Acknowledge</string>
+    <string name="privacy_policy_url">Privacy policy: https://valker.github.io/intime_privacy_policy.html</string>
 </resources>
