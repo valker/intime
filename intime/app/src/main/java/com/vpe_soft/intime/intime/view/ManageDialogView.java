@@ -12,8 +12,8 @@ import java.util.ArrayList;
 
 public class ManageDialogView {
 
-    private Context context;
-    private Actions actions;
+    private final Context context;
+    private final Actions actions;
 
     public ManageDialogView(Context context, Actions actions){
         this.context = context;

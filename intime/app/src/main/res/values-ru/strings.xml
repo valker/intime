@@ -11,7 +11,6 @@
     <string name="context_menu_edit">Редактировать</string>
     <string name="new_task_description_hint">Введите описание задачи</string>
     <string name="boot_completed_overdue_tasks_notification">Пока устройство было выключено, задачи были просрочены</string>
-    <string name="no_tasks_were_added_yet">Задачи не были добавлены</string>
     <string name="edit_task_activity_title">Редактировать задачу</string>
     <string name="main_activity_title">Задачи</string>
     <string name="notification_format">{0} и ещё {1,number} {2,choice}</string>
@@ -31,4 +30,5 @@
     <string name="version_format_string">Версия: %1$s (%2$s)</string>
     <string name="acknowledge_from_notification">Подтвердить</string>
     <string name="label_quant_text">Сколько раз:</string>
+    <string name="privacy_policy_url">Политика конфиденциальности: https://valker.github.io/intime_privacy_policy.html</string>
 </resources>

@@ -105,14 +105,20 @@ public class AlarmReceiver extends BroadcastReceiver {
         builder.setDefaults(Notification.DEFAULT_ALL);
 
         Intent mainActIntent = new Intent(context, MainActivity.class);
-        PendingIntent mainActivityIntent = PendingIntent.getActivity(context, 0, mainActIntent, 0);
+        PendingIntent mainActivityIntent =
+                PendingIntent.getActivity(context, 0, mainActIntent, PendingIntent.FLAG_IMMUTABLE);
         builder.setContentIntent(mainActivityIntent);
         if(overdueTaskId >= 0) {
             Intent ackTaskIntent = new Intent(context, AckReceiver.class);
             ackTaskIntent.setAction(Constants.ACTION_ACKNOWLEDGE);
             ackTaskIntent.putExtra(Constants.EXTRA_TASK_ID, overdueTaskId);
-            PendingIntent acknowledgePendingIntent = PendingIntent.getBroadcast(context, 0, ackTaskIntent, 0);
-            builder.addAction(R.drawable.acknowledge, context.getString(R.string.acknowledge_from_notification), acknowledgePendingIntent);
+            PendingIntent acknowledgePendingIntent = PendingIntent.getBroadcast(context,
+                                                                                0,
+                                                                                ackTaskIntent,
+                                                                                PendingIntent.FLAG_IMMUTABLE);
+            builder.addAction(R.drawable.acknowledge,
+                              context.getString(R.string.acknowledge_from_notification),
+                              acknowledgePendingIntent);
         }
 
         return builder.build();

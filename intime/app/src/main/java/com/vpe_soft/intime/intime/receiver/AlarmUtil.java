@@ -98,29 +98,33 @@ public class AlarmUtil {
         ChoiceFormat cfn = getTaskChoiceFormat(locale.getISO3Language());
         format.setFormatByArgumentIndex(2, cfn);
         Object[] args = {taskDescription, overdueTasksCount - 1, overdueTasksCount - 1};
-        taskDescription = format.format(args);
-        return taskDescription;
+        return format.format(args);
     }
 
     public static ChoiceFormat getTaskChoiceFormat(String iso3Language) {
+        double[] limits;
+        String[] texts;
         if(iso3Language.equals("rus")) {
-            double[] limits = {1,2,5,21,22,25};
-            String[] texts = {"задача","задачи", "задач", "задача", "задачи", "задач"};
-            return new ChoiceFormat(limits, texts);
+            limits = new double[]{1, 2, 5, 21, 22, 25};
+            texts = new String[]{"задача", "задачи", "задач", "задача", "задачи", "задач"};
         }
         else {
             // other language - english by default
-            double[] limits = {1,2};
-            String[] texts = {"task", "tasks"};
-            return new ChoiceFormat(limits, texts);
+            limits = new double[]{1, 2};
+            texts = new String[]{"task", "tasks"};
         }
+        return new ChoiceFormat(limits, texts);
     }
 
-    private static PendingIntent createPendingIntent(Context context, String taskDescription, long taskId) {
+    private static PendingIntent createPendingIntent(Context context,
+                                                     String taskDescription,
+                                                     long taskId) {
         Log.d(TAG, "createPendingIntent");
         Intent intent = new Intent(context, AlarmReceiver.class);
         intent.putExtra(Constants.EXTRA_TASK_DESCRIPTION, taskDescription);
         intent.putExtra(Constants.EXTRA_TASK_ID, taskId);
-        return PendingIntent.getBroadcast(context, 199709, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+        return PendingIntent.getBroadcast(context, 199709, intent,
+                                          PendingIntent.FLAG_IMMUTABLE |
+                                          PendingIntent.FLAG_CANCEL_CURRENT);
     }
 }

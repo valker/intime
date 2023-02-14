@@ -42,14 +42,27 @@ public class DatabaseUtil {
     public static long getId(int position, InTimeOpenHelper openHelper) {
         Cursor cursor = createCursor(openHelper);
         cursor.moveToPosition(position);
-        return cursor.getLong(cursor.getColumnIndex("_id"));
+        final int columnIndex = cursor.getColumnIndex("_id");
+        if(columnIndex == -1) throw new RuntimeException("Column '_id' not found in the table " +
+                                                         "tasks");
+        return cursor.getLong(columnIndex);
     }
 
     public static Task findTaskById(long id, InTimeOpenHelper openHelper) {
         Log.d(TAG, "findTaskById");
         //next line may cause an error (not checked yet)
         SQLiteDatabase database = getReadableDatabaseFromContext(openHelper);
-        try (Cursor cursor = database.query(TASK_TABLE, new String[]{DESCRIPTION_FIELD, INTERVAL_FIELD, AMOUNT_FIELD, NEXT_ALARM_FIELD, NEXT_CAUTION_FIELD, LAST_ACK_FIELD, QUANT_FIELD}, "id=?", withId(id), null, null, null, "1")) {
+        try (Cursor cursor = database.query(TASK_TABLE,
+                                            new String[]{DESCRIPTION_FIELD, INTERVAL_FIELD,
+                                                    AMOUNT_FIELD, NEXT_ALARM_FIELD,
+                                                    NEXT_CAUTION_FIELD, LAST_ACK_FIELD,
+                                                    QUANT_FIELD},
+                                            "id=?",
+                                            withId(id),
+                                            null,
+                                            null,
+                                            null,
+                                            "1")) {
             if (cursor.moveToNext()) {
                 Log.d(TAG, "findTaskById: task was found");
                 String description = cursor.getString(cursor.getColumnIndexOrThrow(DESCRIPTION_FIELD));
