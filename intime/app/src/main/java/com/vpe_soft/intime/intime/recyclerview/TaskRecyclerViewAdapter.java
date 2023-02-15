@@ -104,8 +104,6 @@ public class TaskRecyclerViewAdapter extends RecyclerViewCursorAdapter<TaskRecyc
                     + "id " + id + "\n"
                     + "pos " + pos + "\n"
                     + "phase " + phase + "\n");*/
-            title.setTypeface(ViewUtil.getTypeface(context), Typeface.NORMAL);
-            date.setTypeface(ViewUtil.getTypeface(context), Typeface.NORMAL);
             card.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View view) {

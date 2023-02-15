@@ -6,14 +6,12 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Canvas;
-import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewOutlineProvider;
-import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -49,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Colors colors;
 
-    private CardViewStateHelper cardViewStateHelper = new CardViewStateHelper();
+    private final CardViewStateHelper cardViewStateHelper = new CardViewStateHelper();
     public boolean isDefaultViewOutlineProviderSet = false;
 
     private TaskRecyclerViewAdapter adapter;
@@ -64,8 +62,6 @@ public class MainActivity extends AppCompatActivity {
         openHelper = new InTimeOpenHelper(this);
 
         setContentView(R.layout.activity_main);
-        TextView title = findViewById(R.id.title_text);
-        title.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
         View settings = findViewById(R.id.open_settings);
         View addTask = findViewById(R.id.add_task);
         settings.setOnClickListener(new View.OnClickListener() {

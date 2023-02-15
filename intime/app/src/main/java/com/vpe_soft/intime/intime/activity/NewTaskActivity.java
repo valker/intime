@@ -51,22 +51,11 @@ public class NewTaskActivity extends AppCompatActivity{
         colors = new Colors(this);
         setContentView(R.layout.activity_new_task);
         TextView title = findViewById(R.id.newtask_title);
-        TextView description_text = findViewById(R.id.textView4);
-        TextView intervals_text = findViewById(R.id.textView5);
-        TextView amount_text = findViewById(R.id.textView6);
-        TextView quant_text = findViewById(R.id.textView7);
         View next = findViewById(R.id.newtask_action);
         description = findViewById(R.id.description);
         numberPickerAmount = findViewById(R.id.numberPickerAmount);
         numberPickerQuant = findViewById(R.id.numberPickerQuant);
         spinner = findViewById(R.id.spinner);
-        title.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
-        description_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
-        intervals_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
-        amount_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
-        quant_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
-        description_text.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
-        description.setTypeface(ViewUtil.getTypeface(this), Typeface.NORMAL);
         spinner.setAdapter(new SpinnerAdapter(this, R.layout.spinner_item, getResources().getStringArray(R.array.spinnerItems)));
         description.addTextChangedListener(new TextWatcher() {
             @Override
@@ -204,16 +193,12 @@ public class NewTaskActivity extends AppCompatActivity{
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            TextView textView = (TextView) super.getView(position, convertView, parent);
-            textView.setTypeface(ViewUtil.getTypeface(getContext()));
-            return textView;
+            return (TextView) super.getView(position, convertView, parent);
         }
 
         @Override
         public View getDropDownView(int position, View convertView, ViewGroup parent) {
-            TextView textView = (TextView) super.getDropDownView(position, convertView, parent);
-            textView.setTypeface(ViewUtil.getTypeface(getContext()));
-            return textView;
+            return super.getDropDownView(position, convertView, parent);
         }
     }
 }
