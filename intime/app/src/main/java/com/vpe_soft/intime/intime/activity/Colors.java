@@ -26,7 +26,6 @@ public class Colors {
     public int spinnerItemColor;
     public int snackbarActionColor;
     public int snackbarBackgroundColor;
-    public int settingsGroupTitle;
     public int settingsDivider;
     public int settingsItemTitle;
     public int settingsItemDescription;
@@ -50,7 +49,6 @@ public class Colors {
         spinnerItemColor = getColor(context, R.color.spinnerItem);
         snackbarActionColor = getColor(context, R.color.snackbarAction);
         snackbarBackgroundColor = getColor(context, R.color.snackbarBackground);
-        settingsGroupTitle = getColor(context, R.color.settingsGroupTitle);
         settingsDivider = getColor(context, R.color.settingsDivider);
         settingsItemTitle = getColor(context, R.color.settingsItemTitle);
         settingsItemDescription = getColor(context, R.color.settingsItemDescription);

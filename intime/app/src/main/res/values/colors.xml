@@ -23,7 +23,6 @@
     <color	name="spinnerItem">#000000</color>
     <color  name="snackbarAction">#8AB4F8</color>
     <color  name="snackbarBackground">#202124</color>
-    <color  name="settingsGroupTitle">#8AB4F8</color>
     <color  name="settingsDivider">#E0E0E0</color>
     <color  name="settingsItemTitle">#000000</color>
     <color  name="settingsItemDescription">#595959</color>
