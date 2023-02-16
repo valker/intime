@@ -20,10 +20,6 @@
     <string name="task_deleted">Task deleted</string>
     <string name="task_acknowledged">Task acknowledged</string>
     <string name="settings_group_dbwork">Database work</string>
-    <string name="export_title">Export to file</string>
-    <string name="export_description">Export your tasks to file for future using</string>
-    <string name="import_title">Import from file</string>
-    <string name="import_description">Import your tasks from file to use them on current device</string>
     <string name="content_description_open_settings">Open settings</string>
     <string name="channel_name">Overdue tasks</string>
     <string name="channel_description">Shows notification about tasks that were overdue recently</string>

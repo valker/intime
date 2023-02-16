@@ -20,10 +20,6 @@
     <string name="task_deleted">Задача удалена</string>
     <string name="task_acknowledged">Задача подтверждена</string>
     <string name="settings_group_dbwork">Работа с базой</string>
-    <string name="export_title">Экспортировать в файл</string>
-    <string name="export_description">Экспортируйте Ваши задачи в файл для последующего использования</string>
-    <string name="import_title">Импортировать из файла</string>
-    <string name="import_description">Импортируйте Ваши задачи из файла для того, чтобы использовать их на этом устройстве</string>
     <string name="content_description_open_settings">Открыть настройки</string>
     <string name="channel_name">Просроченные задачи</string>
     <string name="channel_description">Показывает оповещение о задачах, которые были просрочены</string>
