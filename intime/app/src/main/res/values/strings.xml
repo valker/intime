@@ -30,4 +30,5 @@
     <string name="version_format_string">Version: %1$s (%2$s)</string>
     <string name="acknowledge_from_notification">Acknowledge</string>
     <string name="privacy_policy_url">Privacy policy: https://valker.github.io/intime_privacy_policy.html</string>
+    <string name="go_to_google_play_button_text">This application in Google Play</string>
 </resources>
