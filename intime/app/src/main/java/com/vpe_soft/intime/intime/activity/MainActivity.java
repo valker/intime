@@ -64,20 +64,14 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         View settings = findViewById(R.id.open_settings);
         View addTask = findViewById(R.id.add_task);
-        settings.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
-                startActivity(intent);
-            }
+        settings.setOnClickListener(view -> {
+            Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
+            startActivity(intent);
         });
-        addTask.setOnClickListener(new View.OnClickListener(){
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this, NewTaskActivity.class);
-                intent.putExtra(Constants.ACTION_EXTRA_NAME, Constants.CREATE_EXTRA_VALUE);
-                startActivity(intent);
-            }
+        addTask.setOnClickListener(view -> {
+            Intent intent = new Intent(MainActivity.this, NewTaskActivity.class);
+            intent.putExtra(Constants.ACTION_EXTRA_NAME, Constants.CREATE_EXTRA_VALUE);
+            startActivity(intent);
         });
         Cursor cursor = DatabaseUtil.createCursor(openHelper);
 
@@ -87,17 +81,22 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setBackgroundColor(colors.cardSwipeBackground);
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
-        adapter = new TaskRecyclerViewAdapter(this, cursor, getResources().getConfiguration().locale);
+        adapter =
+                new TaskRecyclerViewAdapter(this, cursor, getResources().getConfiguration().locale);
         recyclerView.setAdapter(adapter);
-        ItemTouchHelper.SimpleCallback simpleItemTouchCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+        ItemTouchHelper.SimpleCallback simpleItemTouchCallback = new ItemTouchHelper.SimpleCallback(
+                0,
+                ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
             @Override
-            public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+            public boolean onMove(RecyclerView recyclerView,
+                                  RecyclerView.ViewHolder viewHolder,
+                                  RecyclerView.ViewHolder target) {
                 return false;
             }
 
             @Override
-            public void onSelectedChanged (RecyclerView.ViewHolder viewHolder, int actionState) {
-                if(actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+            public void onSelectedChanged(RecyclerView.ViewHolder viewHolder, int actionState) {
+                if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
                     cardViewStateHelper.setOnSwipeState((TaskRecyclerViewAdapter.TaskRecyclerViewVH) viewHolder);
                 }
                 super.onSelectedChanged(viewHolder, actionState);
@@ -110,7 +109,13 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onChildDraw(Canvas canvas, RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
+            public void onChildDraw(Canvas canvas,
+                                    RecyclerView recyclerView,
+                                    RecyclerView.ViewHolder viewHolder,
+                                    float dX,
+                                    float dY,
+                                    int actionState,
+                                    boolean isCurrentlyActive) {
                 if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
                     int dx = (int) dX;
                     int cardLeft = viewHolder.itemView.getLeft();
@@ -144,7 +149,13 @@ public class MainActivity extends AppCompatActivity {
                     img.setBounds(imgLeft, imgTop, imgRight, imgTop + imgSize);
                     img.draw(canvas);
                 }
-                super.onChildDraw(canvas, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
+                super.onChildDraw(canvas,
+                                  recyclerView,
+                                  viewHolder,
+                                  dX,
+                                  dY,
+                                  actionState,
+                                  isCurrentlyActive);
             }
 
             @Override
@@ -174,7 +185,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         Log.d(TAG, "onPause");
         isOnScreen = false;
-        SharedPreferences sharedPreferences = getSharedPreferences(Constants.SESSION_INFO_SP_NAME, Context.MODE_PRIVATE);
+        SharedPreferences sharedPreferences =
+                getSharedPreferences(Constants.SESSION_INFO_SP_NAME, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putLong(Constants.LAST_USAGE_TIMESTAMP_KEY, System.currentTimeMillis());
         editor.apply();
@@ -207,13 +219,15 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Acknowledges the task with given ID and position with ability to roll-back unwanted ack
-     * @param id - ID of the task
+     *
+     * @param id  - ID of the task
      * @param pos - position of the task in the list
      */
     private void acknowledgeTask(final long id, final int pos) {
-        Log.d(TAG,"id " + id);
-        Log.d(TAG,"pos " + pos);
+        Log.d(TAG, "id " + id);
+        Log.d(TAG, "pos " + pos);
 
+        // подтверждаем задачу, возвращая и сохраняя в переменной её предыдущее состояние
         final TaskState previousTaskState = OneTask.acknowledge(id, this, openHelper);
 
         if (previousTaskState == null) {
@@ -222,14 +236,18 @@ public class MainActivity extends AppCompatActivity {
 
         adapter.swapCursor(DatabaseUtil.createCursor(openHelper));
         adapter.notifyItemChanged(pos);
-        SnackbarHelper.showOnAcknowledged(getContext(), recyclerView, new SnackbarHelper.Listener() {
-            @Override
-            public void onCancelled() {
-                DatabaseUtil.rollBackState(id, previousTaskState, openHelper);
-                OneTask.createAlarm(getContext(), openHelper);
-                adapter.swapCursor(DatabaseUtil.createCursor(openHelper));
-            }
-        });
+        // показываем внизу полоску с кнопкой отмены
+        SnackbarHelper.showOnAcknowledged(getContext(),
+                                          recyclerView,
+                                          () -> {
+                                              // отменяем изменение задачи
+                                              DatabaseUtil.rollBackState(id,
+                                                                         previousTaskState,
+                                                                         openHelper);
+                                              OneTask.createAlarm(getContext(), openHelper);
+                                              adapter.swapCursor(DatabaseUtil.createCursor(
+                                                      openHelper));
+                                          });
     }
 
     private void refreshRecyclerView() {
@@ -249,7 +267,7 @@ public class MainActivity extends AppCompatActivity {
         return task;
     }
 
-    private Context getContext(){
+    private Context getContext() {
         return this;
     }
 
@@ -264,52 +282,86 @@ public class MainActivity extends AppCompatActivity {
         cardViewStateHelper.setDefaultProvider(viewOutlineProvider);
     }
 
+
+    /**
+     * Реакция на долгое нажание на элемент
+     * @param id TODO: заполнить
+     * @param pos TODO: заполнить
+     */
     public void onItemLongClicked(final long id, final int pos) {
         ManageDialogView dialog = new ManageDialogView(this, new ManageDialogView.Actions() {
             private final static String TAG = "ManageViewDialog";
+
+            /**
+             * Подтвердить задачу
+             */
             @Override
             public void acknowledge() {
                 // re-route the call to activity's method
                 acknowledgeTask(id, pos);
             }
 
+
+            /**
+             * Редактировать задачу
+             */
             @Override
             public void edit() {
-                Log.d(TAG,"id " + id);
-                Log.d(TAG,"pos " + pos);
+                Log.d(TAG, "id " + id);
+                Log.d(TAG, "pos " + pos);
                 editTask(id);
             }
 
+
+            /**
+             * Удалить задачу
+             */
             @Override
             public void delete() {
-                Log.d(TAG,"id " + id);
-                Log.d(TAG,"pos " + pos);
+                Log.d(TAG, "id " + id);
+                Log.d(TAG, "pos " + pos);
                 final Task task = deleteTask(id);
                 OneTask.createAlarm(getContext(), openHelper);
                 adapter.swapCursor(DatabaseUtil.createCursor(openHelper));
                 adapter.notifyItemRemoved(pos);
-                adapter.notifyItemRangeChanged(pos, DatabaseUtil.getDatabaseLengthFromContext(openHelper));
-                SnackbarHelper.showOnDeleted(getContext(), recyclerView, new SnackbarHelper.Listener() {
-                    @Override
-                    public void onCancelled() {
-                        DatabaseUtil.createNewTask(id, task, openHelper);
-                        OneTask.createAlarm(getContext(), openHelper);
-                        adapter.swapCursor(DatabaseUtil.createCursor(openHelper));
-                        adapter.notifyItemInserted(pos);
-                    }
-                });
+                adapter.notifyItemRangeChanged(pos,
+                                               DatabaseUtil.getDatabaseLengthFromContext(openHelper));
+                SnackbarHelper.showOnDeleted(getContext(),
+                                             recyclerView,
+                                             () -> {
+                                                 DatabaseUtil.createNewTask(id,
+                                                                            task,
+                                                                            openHelper);
+                                                 OneTask.createAlarm(getContext(), openHelper);
+                                                 adapter.swapCursor(DatabaseUtil.createCursor(
+                                                         openHelper));
+                                                 adapter.notifyItemInserted(pos);
+                                             });
             }
         });
         dialog.show();
     }
 
+
+    /**
+     * Получатель уведомления о срабатывании задачи
+     */
     class MyBroadcastReceiver extends android.content.BroadcastReceiver {
         private static final String TAG = "MyBroadcastReceiver";
-        public MyBroadcastReceiver(){}
+
+        public MyBroadcastReceiver() {
+        }
+
+
+        /**
+         * Пришло уведомление о срабатывании задачи
+         */
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.d(TAG, "onReceive");
+            // если главный экран приложения активен на экране
             if (isOnScreen) {
+                // перерисовать главный экран
                 refreshRecyclerView();
             }
         }

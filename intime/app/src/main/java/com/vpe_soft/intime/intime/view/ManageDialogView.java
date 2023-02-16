@@ -44,9 +44,25 @@ public class ManageDialogView {
         });
         dialog.create().show();
     }
+
+
+    /**
+     * Интерфейс для того, кто будет делать действие над задачей
+     */
     public interface Actions {
+        /**
+         * Подтвердить
+         */
         void acknowledge();
+
+        /**
+         * Редактировать
+         */
         void edit();
+
+        /**
+         * Удалить
+         */
         void delete();
     }
 }
