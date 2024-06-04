@@ -1,5 +1,9 @@
 apply plugin: 'com.android.application'
 
+def gitHash = providers.exec {
+    commandLine('git', 'rev-parse', '--short', 'HEAD')
+}.standardOutput.asText.get().toString().trim()
+
 android {
     compileSdk 34
 
@@ -14,11 +18,7 @@ android {
         targetSdkVersion 34
         versionCode 20
         versionName "1.1.7"
-	def gitCommitHash = System.getenv("GIT_COMMIT_HASH")
-	if (gitCommitHash == null) {
-		gitCommitHash = "unknown"
-	}
-        buildConfigField("String", "GitHash", "\"${gitCommitHash}\"")
+        buildConfigField "String", "GitHash", "\"${gitHash}\""
     }
     buildTypes {
         release {
