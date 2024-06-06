@@ -1,15 +1,8 @@
-intime/.idea/
-/intime/app/app.iml
-/intime/app/release/app-release.apk
-/intime/app/release/output.json
 *.iml
 .idea
-*/.idea/*
-/intime/app/release/*
 .gradle
 /local.properties
-/.idea/workspace.xml
-/.idea/libraries
 .DS_Store
 /build
 /captures
+/app/release/
