@@ -74,7 +74,7 @@ public class AlarmUtil {
         Log.d(TAG, "setupAlarmIfRequired");
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (!alarmManager.canScheduleExactAlarms()){
+            if (!alarmManager.canScheduleExactAlarms()) {
                 Intent intent = new Intent().setAction(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
                 context.startActivity(intent);
             }

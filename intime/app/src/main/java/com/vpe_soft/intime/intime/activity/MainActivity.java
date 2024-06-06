@@ -174,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
         IntentFilter filter = new IntentFilter(Constants.TASK_OVERDUE_ACTION);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(getReceiver(), filter, Context.RECEIVER_NOT_EXPORTED);
-        }else {
+        } else {
             registerReceiver(getReceiver(), filter);
         }
         super.onStart();
