@@ -6,6 +6,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Build;
+import android.provider.Settings;
 import android.text.format.DateFormat;
 import android.util.Log;
 
@@ -71,6 +73,12 @@ public class AlarmUtil {
     public static void setupAlarmIfRequired(Context context, InTimeOpenHelper openHelper) {
         Log.d(TAG, "setupAlarmIfRequired");
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (!alarmManager.canScheduleExactAlarms()){
+                Intent intent = new Intent().setAction(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                context.startActivity(intent);
+            }
+        }
         SQLiteDatabase database = DatabaseUtil.getReadableDatabaseFromContext(openHelper);
         final long currentTimestamp = System.currentTimeMillis();
         try (Cursor next_alarm = database.query(DatabaseUtil.TASK_TABLE, new String[]{DatabaseUtil.ID_FIELD, DatabaseUtil.NEXT_ALARM_FIELD, DatabaseUtil.DESCRIPTION_FIELD}, "next_alarm>?", new String[]{Long.toString(currentTimestamp)}, null, null, DatabaseUtil.NEXT_ALARM_FIELD, "1")) {

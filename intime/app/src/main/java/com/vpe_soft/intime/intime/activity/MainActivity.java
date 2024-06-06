@@ -8,6 +8,7 @@ import android.database.Cursor;
 import android.graphics.Canvas;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -171,7 +172,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         IntentFilter filter = new IntentFilter(Constants.TASK_OVERDUE_ACTION);
-        registerReceiver(getReceiver(), filter);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(getReceiver(), filter, Context.RECEIVER_NOT_EXPORTED);
+        }else {
+            registerReceiver(getReceiver(), filter);
+        }
         super.onStart();
     }
 
