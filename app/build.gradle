@@ -37,6 +37,4 @@ dependencies {
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'androidx.legacy:legacy-support-v13:1.0.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-
-    implementation fileTree(include: ['*.jar'], dir: 'libs')
 }
