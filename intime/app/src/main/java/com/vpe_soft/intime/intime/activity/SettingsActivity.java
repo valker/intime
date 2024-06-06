@@ -23,7 +23,7 @@ public class SettingsActivity extends AppCompatActivity {
                 DataBindingUtil.setContentView(this, R.layout.activity_settings);
         binding.setAppVersion(String.format(getString(R.string.version_format_string),
                                             BuildConfig.VERSION_NAME,
-                                            BuildConfig.GitHash));
+                                            BuildConfig.GIT_LAST_COMMIT_HASH));
 
         // taken from here https://stackoverflow.com/a/11753070
         View gotoGoogleBtn = findViewById(R.id.goto_google_play_btn);
