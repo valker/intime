@@ -6,3 +6,10 @@ intime/.idea/
 .idea
 */.idea/*
 /intime/app/release/*
+.gradle
+/local.properties
+/.idea/workspace.xml
+/.idea/libraries
+.DS_Store
+/build
+/captures
