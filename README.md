@@ -1,31 +1,9 @@
-# README #
-
 Intime.
-
-This README would normally document whatever steps are necessary to get your application up and running.
-
-### What is this repository for? ###
-
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
-
-### How do I get set up? ###
-
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
-
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
+Простое и надёжное приложение для напоминания задач, которые надо делать периодически: сделать перерыв в работе каждый час, полить цветы раз в три дня, ввести показания счётчиков раз в месяц, продлить договор раз в год.
+При запуске приложения на экране список задач, упорядоченный по времени. Сверху будут задачи, которые наступят раньше других.
+Когда наступает время задачи, приложение уведомит об этом. При следующем запуске, задачи, срок которых наступил будут выделены красным цветом.
+Длительное нажатие задачи в списке открывает меню: Подтвердить, Редактировать, Удалить.
+Подтвердить - срок наступления задачи будет отсчитан от текущего момента плюс заданный интервал.
+Редактировать - возможно обновить название задачи или её интервал.
+Удалить - задача будет удалена.
+Приложение полностью бесплатное, не содержит рекламы, платных функций и не требует доступа в интернет.
