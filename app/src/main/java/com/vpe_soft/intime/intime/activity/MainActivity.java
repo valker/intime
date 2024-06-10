@@ -1,9 +1,11 @@
 package com.vpe_soft.intime.intime.activity;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Canvas;
 import android.graphics.drawable.ColorDrawable;
@@ -14,6 +16,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewOutlineProvider;
 
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.ItemTouchHelper;
@@ -59,6 +62,15 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate");
         colors = new Colors(this);
         super.onCreate(savedInstanceState);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+                    PackageManager.PERMISSION_DENIED
+            ) {
+                //todo: this is a quick fix, improve: https://stackoverflow.com/questions/75383552/notification-not-being-shown-in-android-13
+                registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {}).launch(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
 
         openHelper = new InTimeOpenHelper(this);
 
