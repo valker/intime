@@ -16,8 +16,8 @@ android {
         applicationId "com.vpe_soft.intime.intime"
         minSdkVersion 23
         targetSdkVersion 34
-        versionCode 20
-        versionName "1.1.7"
+        versionCode 21
+        versionName "1.1.8"
         buildConfigField "String", "GIT_LAST_COMMIT_HASH", "\"${gitLastCommitHash}\""
     }
     buildTypes {

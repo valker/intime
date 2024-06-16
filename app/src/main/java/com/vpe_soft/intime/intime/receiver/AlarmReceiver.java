@@ -45,6 +45,7 @@ public class AlarmReceiver extends BroadcastReceiver {
                 : notificationString;
 
         final long currentTimeMillis = System.currentTimeMillis();
+        //todo переписать: вызывать goAsync() https://developer.android.com/develop/background-work/background-tasks/broadcasts
         try (InTimeOpenHelper openHelper = new InTimeOpenHelper(context)) {
             long overdueCount = DatabaseUtil.getNumberOfOverDueTasks(currentTimeMillis, openHelper);
 
