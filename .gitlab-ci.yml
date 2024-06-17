@@ -26,6 +26,8 @@ variables:
   # when the script was last modified for latest compileSdkVersion, it was which is written down below
   ANDROID_SDK_TOOLS: "8092744"
 
+  ANDROID_HOME: "/sdk"
+
 # Packages installation before running script
 before_script:
   - apt-get --quiet update --yes
