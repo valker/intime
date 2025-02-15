@@ -1,8 +1,11 @@
 package com.vpe_soft.intime.intime.database.entities;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
+
+import java.util.Objects;
 
 @Entity(tableName = "tasks")
 public class TaskEntity {
@@ -18,4 +21,51 @@ public class TaskEntity {
     public long nextCaution;
     public long lastAck;
     public int quant;
+
+    // Добавляем DiffUtil для ListAdapter
+    public static final DiffUtil.ItemCallback<TaskEntity> DIFF_CALLBACK = new DiffUtil.ItemCallback<TaskEntity>() {
+        @Override
+        public boolean areItemsTheSame(@NonNull TaskEntity oldItem, @NonNull TaskEntity newItem) {
+            return oldItem.getId() == newItem.getId();
+        }
+
+        @Override
+        public boolean areContentsTheSame(@NonNull TaskEntity oldItem, @NonNull TaskEntity newItem) {
+            return oldItem.equals(newItem);
+        }
+    };
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TaskEntity task = (TaskEntity) o;
+        return id == task.id &&
+                interval == task.interval &&
+                amount == task.amount &&
+                nextAlarm == task.nextAlarm &&
+                nextCaution == task.nextCaution &&
+                lastAck == task.lastAck &&
+                quant == task.quant &&
+                description.equals(task.description);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, description, interval, amount, nextAlarm, nextCaution, lastAck, quant);
+    }
+
+    // Геттеры
+    public int getId() {
+        return id;
+    }
+
+    @NonNull
+    public String getDescription() {
+        return description;
+    }
+
+    public long getNextAlarm() {
+        return nextAlarm;
+    }
 }
