@@ -5,6 +5,7 @@ import android.app.Application;
 import androidx.lifecycle.LiveData;
 import androidx.room.Room;
 
+import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.database.AppDatabase;
 import com.vpe_soft.intime.intime.database.dao.TaskDao;
 import com.vpe_soft.intime.intime.database.entities.TaskEntity;
@@ -16,8 +17,8 @@ public class TaskRepository {
     private final TaskDao taskDao;
 
     public TaskRepository(Application application) {
-        AppDatabase db = Room.databaseBuilder(application, AppDatabase.class, "tasks.db")
-                .fallbackToDestructiveMigration()
+        AppDatabase db = Room.databaseBuilder(application, AppDatabase.class, Constants.dbName)
+                .fallbackToDestructiveMigrationFrom(5)
                 .build();
         taskDao = db.taskDao();
     }

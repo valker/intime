@@ -17,7 +17,7 @@ public class DatabaseUtil {
         return new String[]{Long.toString(id)};
     }
 
-    public static final String TASK_TABLE = "main.tasks";
+    public static final String TASK_TABLE = Constants.dbName + ".tasks";
     public static final String NEXT_ALARM_FIELD = "next_alarm";
     public static final String DESCRIPTION_FIELD = "description";
     public static final String ID_FIELD = "id";

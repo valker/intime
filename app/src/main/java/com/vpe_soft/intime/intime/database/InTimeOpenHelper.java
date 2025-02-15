@@ -5,6 +5,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
+import com.vpe_soft.intime.intime.Constants;
+
 /**
  * Адаптер доступа к базе данных
  */
@@ -13,13 +15,13 @@ public class InTimeOpenHelper extends SQLiteOpenHelper {
     private static final String TAG = "InTimeOpenHelper";
 
     public InTimeOpenHelper(Context context) {
-        super(context, "main", null, 5);
+        super(context, Constants.dbName, null, 5);
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
         Log.d(TAG, "onCreate");
-        db.execSQL("CREATE TABLE main.tasks (" +
+        db.execSQL("CREATE TABLE " + Constants.dbName + ".tasks (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE" +    // unique id of the task
                 ", description TEXT NOT NULL" +                             // description for user
                 ", interval INTEGER NOT NULL" +                             // type of interval : minutes/hours/etc...
@@ -37,25 +39,25 @@ public class InTimeOpenHelper extends SQLiteOpenHelper {
 
         if(oldVersion < 2) {
             Log.d(TAG, "onUpgrade: up to version 2");
-            String sqlCommand = "ALTER TABLE main.tasks ADD COLUMN next_alarm INTEGER NOT NULL DEFAULT 0;";
+            String sqlCommand = "ALTER TABLE " + Constants.dbName + ".tasks ADD COLUMN next_alarm INTEGER NOT NULL DEFAULT 0;";
             db.execSQL(sqlCommand);
         }
 
         if(oldVersion < 3) {
             Log.d(TAG, "onUpgrade: up to version 3");
-            String sqlCommand = "ALTER TABLE main.tasks ADD COLUMN next_caution INTEGER NOT NULL DEFAULT 0;";
+            String sqlCommand = "ALTER TABLE " + Constants.dbName + ".tasks ADD COLUMN next_caution INTEGER NOT NULL DEFAULT 0;";
             db.execSQL(sqlCommand);
         }
 
         if(oldVersion < 4) {
             Log.d(TAG, "onUpgrade: up to version 4");
-            String sqlCommand = "ALTER TABLE main.tasks ADD COLUMN last_ack INTEGER NOT NULL DEFAULT 0;";
+            String sqlCommand = "ALTER TABLE " + Constants.dbName + ".tasks ADD COLUMN last_ack INTEGER NOT NULL DEFAULT 0;";
             db.execSQL(sqlCommand);
         }
 
         if(oldVersion <5) {
             Log.d(TAG, "onUpgrade: up to version 5");
-            String sqlCommand = "ALTER TABLE main.tasks ADD COLUMN quant INTEGER NOT NULL DEFAULT 1;";
+            String sqlCommand = "ALTER TABLE " + Constants.dbName + ".tasks ADD COLUMN quant INTEGER NOT NULL DEFAULT 1;";
             db.execSQL(sqlCommand);
         }
     }

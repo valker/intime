@@ -60,4 +60,6 @@ public class Constants {
      *
      */
     public static final String CREATE_EXTRA_VALUE = "create";
+
+    public static final String dbName = "main";
 }
