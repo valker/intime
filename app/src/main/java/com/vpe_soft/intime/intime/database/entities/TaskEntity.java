@@ -9,6 +9,17 @@ import java.util.Objects;
 
 @Entity(tableName = "tasks")
 public class TaskEntity {
+
+    public TaskEntity(@NonNull String description, long nextAlarm) {
+        this.description = description;
+        this.nextAlarm = nextAlarm;
+        this.interval = 0;
+        this.amount = 1;
+        this.nextCaution = 0;
+        this.lastAck = 0;
+        this.quant = 1;
+    }
+
     @PrimaryKey(autoGenerate = true)
     public int id;
 
