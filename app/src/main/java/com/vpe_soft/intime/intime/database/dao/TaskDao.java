@@ -23,9 +23,9 @@ public interface TaskDao {
     @Delete
     void delete(TaskEntity task);
 
-    @Query("SELECT * FROM main.tasks ORDER BY nextAlarm ASC")
+    @Query("SELECT * FROM tasks ORDER BY next_alarm ASC")
     LiveData<List<TaskEntity>> getAllTasks();
 
-    @Query("SELECT * FROM main.tasks WHERE id = :taskId LIMIT 1")
+    @Query("SELECT * FROM tasks WHERE id = :taskId LIMIT 1")
     TaskEntity getTaskById(int taskId);
 }

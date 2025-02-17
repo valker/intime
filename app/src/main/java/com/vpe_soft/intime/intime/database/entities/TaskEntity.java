@@ -2,12 +2,13 @@ package com.vpe_soft.intime.intime.database.entities;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
 import java.util.Objects;
 
-@Entity(tableName = "main.tasks")
+@Entity(tableName = "tasks")
 public class TaskEntity {
 
     public TaskEntity(@NonNull String description, long nextAlarm) {
@@ -28,9 +29,16 @@ public class TaskEntity {
 
     public int interval;  // Тип интервала: минуты, часы и т. д.
     public int amount;    // Количество интервалов
+
+    @ColumnInfo(name="next_alarm")
     public long nextAlarm;
+
+    @ColumnInfo(name="next_caution")
     public long nextCaution;
+
+    @ColumnInfo(name="last_ack")
     public long lastAck;
+
     public int quant;
 
     // Добавляем DiffUtil для ListAdapter

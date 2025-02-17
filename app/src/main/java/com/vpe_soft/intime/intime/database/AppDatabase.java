@@ -6,6 +6,7 @@ import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
+import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.database.dao.TaskDao;
 import com.vpe_soft.intime.intime.database.entities.TaskEntity;
 
@@ -21,7 +22,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(
                                     context.getApplicationContext(),
-                                    AppDatabase.class, "main"
+                                    AppDatabase.class, Constants.dbName
                             )
 //                            .fallbackToDestructiveMigration() // Удалять данные при смене версии
                             .build();
