@@ -21,7 +21,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(
                                     context.getApplicationContext(),
-                                    AppDatabase.class, "tasks.db"
+                                    AppDatabase.class, "main"
                             )
 //                            .fallbackToDestructiveMigration() // Удалять данные при смене версии
                             .build();

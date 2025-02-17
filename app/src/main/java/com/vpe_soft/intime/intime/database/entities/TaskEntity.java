@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey;
 
 import java.util.Objects;
 
-@Entity(tableName = "tasks")
+@Entity(tableName = "main.tasks")
 public class TaskEntity {
 
     public TaskEntity(@NonNull String description, long nextAlarm) {
