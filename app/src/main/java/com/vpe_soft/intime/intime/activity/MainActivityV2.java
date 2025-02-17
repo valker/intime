@@ -13,6 +13,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.adapters.TaskAdapter;
 import com.vpe_soft.intime.intime.database.AppDatabase;
+import com.vpe_soft.intime.intime.database.AppDatabase_Impl;
 import com.vpe_soft.intime.intime.database.dao.TaskDao;
 import com.vpe_soft.intime.intime.view_models.TaskViewModel;
 
@@ -34,7 +35,7 @@ public class MainActivityV2 extends AppCompatActivity {
         recyclerView.setAdapter(taskAdapter);
 
         // Инициализируем ViewModel
-        AppDatabase db = Room.databaseBuilder(getApplicationContext(), AppDatabase.class, "tasks.db").build();
+        AppDatabase db = AppDatabase.getInstance(this);
         TaskDao taskDao = db.taskDao();
         taskViewModel = new ViewModelProvider(this, new TaskViewModel.Factory(taskDao)).get(TaskViewModel.class);
 
