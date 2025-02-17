@@ -29,8 +29,7 @@ public class AddTaskActivity extends AppCompatActivity {
 
         TaskDao taskDao = AppDatabase.getInstance(this).taskDao(); // Получаем DAO
         TaskViewModel.Factory factory = new TaskViewModel.Factory(taskDao); // Передаем DAO в фабрику
-        TaskViewModel taskViewModel = new ViewModelProvider(this, factory).get(TaskViewModel.class);
-
+        taskViewModel = new ViewModelProvider(this, factory).get(TaskViewModel.class);
 
         btnSaveTask.setOnClickListener(view -> saveTask());
     }
