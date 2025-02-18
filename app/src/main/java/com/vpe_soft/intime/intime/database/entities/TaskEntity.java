@@ -1,10 +1,13 @@
 package com.vpe_soft.intime.intime.database.entities;
 
+import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 
@@ -27,18 +30,26 @@ public class TaskEntity {
     @NonNull
     public String description;
 
+    @NotNull
     public int interval;  // Тип интервала: минуты, часы и т. д.
+
+    @NotNull
     public int amount;    // Количество интервалов
 
-    @ColumnInfo(name="next_alarm")
+    @ColumnInfo(name="next_alarm", defaultValue = "0")
+    @NotNull
     public long nextAlarm;
 
-    @ColumnInfo(name="next_caution")
+    @ColumnInfo(name="next_caution", defaultValue = "0")
+    @NotNull
     public long nextCaution;
 
-    @ColumnInfo(name="last_ack")
+    @ColumnInfo(name="last_ack", defaultValue = "0")
+    @NotNull
     public long lastAck;
 
+    @ColumnInfo(defaultValue = "0")
+    @NotNull
     public int quant;
 
     // Добавляем DiffUtil для ListAdapter
