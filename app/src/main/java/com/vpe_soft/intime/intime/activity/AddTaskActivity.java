@@ -42,7 +42,7 @@ public class AddTaskActivity extends AppCompatActivity {
         }
 
         TaskEntity newTask = new TaskEntity(description, System.currentTimeMillis());
-        taskViewModel.insert(newTask);
+        taskViewModel.insertTask(newTask);
 
         finish(); // Закрываем экран после сохранения
     }

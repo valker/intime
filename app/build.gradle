@@ -30,6 +30,7 @@ android {
 }
 
 dependencies {
+    //implementation 'androidx.activity:activity:1.10.0'
     def room_version = "2.6.1"  // Актуальная версия на февраль 2025
     implementation("androidx.room:room-runtime:$room_version")
     annotationProcessor("androidx.room:room-compiler:$room_version")  // Для Java

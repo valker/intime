@@ -30,7 +30,9 @@ public class MainActivityV2 extends AppCompatActivity {
 
         // Создаём адаптер и передаём обработчик кликов
         taskAdapter = new TaskAdapter(task -> {
-            // TODO: открыть экран редактирования
+            Intent intent = new Intent(MainActivityV2.this, TaskDetailsActivity.class);
+            intent.putExtra("task_id", task.getId()); // Передаём ID задачи
+            startActivity(intent);
         });
         recyclerView.setAdapter(taskAdapter);
 

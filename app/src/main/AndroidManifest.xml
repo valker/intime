@@ -10,11 +10,13 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
+            android:name=".activity.TaskDetailsActivity"
+            android:exported="false" />
+        <activity
             android:name=".activity.AddTaskActivity"
             android:exported="false"
             android:label="@string/title_activity_add_task_v2"
-            android:theme="@style/AppTheme" />
-        <!-- <receiver android:name=".receiver.AlarmReceiver" /> -->
+            android:theme="@style/AppTheme" /> <!-- <receiver android:name=".receiver.AlarmReceiver" /> -->
         <!-- <receiver android:name=".receiver.AckReceiver" /> -->
         <!-- <receiver -->
         <!-- android:name=".receiver.BootReceiver" -->

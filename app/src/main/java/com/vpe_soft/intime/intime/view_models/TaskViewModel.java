@@ -37,9 +37,6 @@ public class TaskViewModel extends ViewModel {
         executor.execute(() -> taskDao.delete(task));
     }
 
-    public void insert(TaskEntity newTask) {
-    }
-
     public static class Factory implements ViewModelProvider.Factory {
         private final TaskDao taskDao;
 
