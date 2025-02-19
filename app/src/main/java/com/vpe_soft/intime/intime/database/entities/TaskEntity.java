@@ -1,6 +1,5 @@
 package com.vpe_soft.intime.intime.database.entities;
 
-import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.room.ColumnInfo;
@@ -26,32 +25,32 @@ public class TaskEntity {
     }
 
     @PrimaryKey(autoGenerate = true)
-    public int id;
+    public long id;
 
     @NonNull
     public String description;
 
     @NotNull
-    public int interval;  // Тип интервала: минуты, часы и т. д.
+    public Integer interval;  // Тип интервала: минуты, часы и т. д.
 
     @NotNull
-    public int amount;    // Количество интервалов
+    public Integer amount;    // Количество интервалов
 
     @ColumnInfo(name="next_alarm", defaultValue = "0")
     @NotNull
-    public long nextAlarm;
+    public Long nextAlarm;
 
     @ColumnInfo(name="next_caution", defaultValue = "0")
     @NotNull
-    public long nextCaution;
+    public Long nextCaution;
 
     @ColumnInfo(name="last_ack", defaultValue = "0")
     @NotNull
-    public long lastAck;
+    public Long lastAck;
 
     @ColumnInfo(defaultValue = "0")
     @NotNull
-    public int quant;
+    public Integer quant;
 
     // Добавляем DiffUtil для ListAdapter
     public static final DiffUtil.ItemCallback<TaskEntity> DIFF_CALLBACK = new DiffUtil.ItemCallback<TaskEntity>() {
@@ -87,7 +86,7 @@ public class TaskEntity {
     }
 
     // Геттеры
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
@@ -96,7 +95,7 @@ public class TaskEntity {
         return description;
     }
 
-    public long getNextAlarm() {
+    public Long getNextAlarm() {
         return nextAlarm;
     }
 }
