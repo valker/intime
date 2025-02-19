@@ -14,14 +14,15 @@ import java.util.Objects;
 @Entity(tableName = "tasks")
 public class TaskEntity {
 
-    public TaskEntity(@NonNull String description, long nextAlarm) {
+    public TaskEntity(@NonNull String description, int interval, int amount, long nextAlarm, long nextCaution, long lastAck
+    ,int quant) {
         this.description = description;
+        this.interval = interval;
+        this.amount = amount;
         this.nextAlarm = nextAlarm;
-        this.interval = 0;
-        this.amount = 1;
-        this.nextCaution = 0;
-        this.lastAck = 0;
-        this.quant = 1;
+        this.nextCaution = nextCaution;
+        this.lastAck = lastAck;
+        this.quant = quant;
     }
 
     @PrimaryKey(autoGenerate = true)

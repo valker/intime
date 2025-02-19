@@ -15,6 +15,49 @@
         android:layout_height="wrap_content"
         android:hint="@string/task_description" />
 
+    <!-- Заголовок -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Настройка повторения"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:paddingBottom="8dp"/>
+
+    <!-- Выбор единицы времени (interval) -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Единица времени:"/>
+
+    <Spinner
+        android:id="@+id/spinner_interval"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <!-- Количество единиц (amount) -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Сколько таких единиц?"/>
+
+    <NumberPicker
+        android:id="@+id/number_picker_amount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <!-- Разделение на части (quant) -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Разделить на части:"/>
+
+    <NumberPicker
+        android:id="@+id/number_picker_quant"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:value="1"/>
+
     <Button
         android:id="@+id/btn_save_task"
         android:layout_width="match_parent"

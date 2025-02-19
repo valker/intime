@@ -31,4 +31,12 @@
     <string name="task_description">Task Description</string>
     <string name="save">Save</string>
     <string name="title_activity_add_task_v2">AddTaskActivityV2</string>
+    <string-array name="interval_options">
+        <item>Минута</item>
+        <item>Час</item>
+        <item>День</item>
+        <item>Неделя</item>
+        <item>Месяц</item>
+        <item>Год</item>
+    </string-array>
 </resources>

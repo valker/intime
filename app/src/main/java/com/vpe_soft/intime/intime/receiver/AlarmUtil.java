@@ -10,6 +10,7 @@ import android.os.Build;
 import android.provider.Settings;
 import android.text.format.DateFormat;
 import android.util.Log;
+import android.util.Pair;
 
 import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.R;
@@ -41,6 +42,13 @@ public class AlarmUtil {
             Calendar.MONTH,
             Calendar.FIELD_COUNT //substitute for YEAR
     };
+
+    public static Pair<Long, Long> getNextAlarmAndCaution(int interval, int amount, long lastAck, int quant, Locale locale) {
+        long nextAlarm = AlarmUtil.getNextAlarm(interval, amount, lastAck, quant,locale);
+        long cautionPeriod = (long) ((nextAlarm - lastAck) * 0.95);
+        long nextCaution  = lastAck + cautionPeriod;
+        return new Pair<>(nextAlarm, nextCaution);
+    }
 
     public static long getNextAlarm(int interval, int amount, long lastAck, int quant,
                                     Locale locale) {
