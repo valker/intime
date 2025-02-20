@@ -3,6 +3,7 @@ package com.vpe_soft.intime.intime.activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
@@ -38,9 +39,8 @@ public class MainActivityV2 extends AppCompatActivity {
         recyclerView.setAdapter(taskAdapter);
 
         // Инициализируем ViewModel
-        AppDatabase db = AppDatabase.getInstance(this);
-        TaskDao taskDao = db.taskDao();
-        taskViewModel = new ViewModelProvider(this, new TaskViewModel.Factory(getApplication())).get(TaskViewModel.class);
+        taskViewModel = new ViewModelProvider(this, new TaskViewModel.Factory(getApplication()))
+                .get(TaskViewModel.class);
 
         // Подписываемся на обновления списка задач
         taskViewModel.getTasks().observe(this, tasks -> {
@@ -53,6 +53,5 @@ public class MainActivityV2 extends AppCompatActivity {
             Intent intent = new Intent(MainActivityV2.this, AddTaskActivity.class);
             startActivity(intent);
         });
-
     }
 }

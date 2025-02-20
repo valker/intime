@@ -20,13 +20,16 @@ public class TaskViewModel extends AndroidViewModel {
 
     public TaskViewModel(@NonNull Application application) {
         super(application);
-        AppDatabase db = AppDatabase.getInstance(application);
         taskRepository = new TaskRepository(application);
         tasks = taskRepository.getAllTasks();
     }
 
     public LiveData<List<TaskEntity>> getTasks() {
         return tasks;
+    }
+
+    public LiveData<TaskEntity> getTaskById(long taskId) {
+        return taskRepository.getTaskById(taskId);
     }
 
     public  void addTask(TaskEntity task) {
@@ -39,6 +42,10 @@ public class TaskViewModel extends AndroidViewModel {
 
     public void deleteTask(TaskEntity task) {
         taskRepository.delete(task);
+    }
+
+    public void deleteTaskById(long taskId) {
+        taskRepository.deleteTaskById(taskId);
     }
 
     public static class Factory implements ViewModelProvider.Factory {

@@ -3,23 +3,44 @@ package com.vpe_soft.intime.intime.activity;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.vpe_soft.intime.intime.R;
+import com.vpe_soft.intime.intime.view_models.TaskViewModel;
 
 public class TaskDetailsActivity extends AppCompatActivity {
+
+    private TaskViewModel taskViewModel;
+    private long taskId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_task_details);
 
-        long taskId = getIntent().getLongExtra("task_id", -1);
+        taskId = getIntent().getLongExtra("task_id", -1);
 
-        TextView textView = findViewById(R.id.task_details_text);
-        textView.setText("Task ID: " + taskId);
+        TaskViewModel.Factory factory = new TaskViewModel.Factory(getApplication());
+        taskViewModel = new ViewModelProvider(this, factory)
+                .get(TaskViewModel.class);
+
+        taskViewModel.getTaskById(taskId).observe(this, task -> {
+            if (task != null) {
+                // Обновляем UI данными из task
+                TextView textView = findViewById(R.id.task_details_text);
+//                textView.setText("Task ID: " + taskId);
+                textView.setText(task.getDescription());
+
+//                textViewTitle.setText(task.getTitle());
+//                textViewDescription.setText(task.getDescription());
+                // Заполняем другие поля...
+            }
+        });
+
 
         Button btnDelete = findViewById(R.id.btnDeleteTask);
         btnDelete.setOnClickListener(v -> showDeleteConfirmationDialog());
@@ -35,12 +56,10 @@ public class TaskDetailsActivity extends AppCompatActivity {
     }
 
     private void deleteTask() {
-        if (task != null) {
-            taskViewModel.deleteTask(task);
+        if (taskId != -1) {
+            taskViewModel.deleteTaskById(taskId);
             Toast.makeText(this, "Задача удалена", Toast.LENGTH_SHORT).show();
             finish(); // Закрываем экран
         }
     }
-
-
 }

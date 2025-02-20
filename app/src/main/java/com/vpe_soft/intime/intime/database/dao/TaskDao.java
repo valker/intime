@@ -27,5 +27,8 @@ public interface TaskDao {
     LiveData<List<TaskEntity>> getAllTasks();
 
     @Query("SELECT * FROM tasks WHERE id = :taskId LIMIT 1")
-    TaskEntity getTaskById(int taskId);
+    LiveData<TaskEntity> getTaskById(long taskId);
+
+    @Query("SELECT * FROM tasks WHERE id = :taskId LIMIT 1")
+    TaskEntity getRawTaskById(long taskId);
 }

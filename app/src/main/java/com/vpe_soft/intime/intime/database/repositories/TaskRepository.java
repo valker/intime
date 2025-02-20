@@ -15,16 +15,20 @@ import java.util.concurrent.Executors;
 
 public class TaskRepository {
     private final TaskDao taskDao;
+    private LiveData<List<TaskEntity>> allTasks;
 
     public TaskRepository(Application application) {
-        AppDatabase db = Room.databaseBuilder(application, AppDatabase.class, Constants.dbName)
-                .fallbackToDestructiveMigrationFrom(5)
-                .build();
+        AppDatabase db = AppDatabase.getInstance(application);
         taskDao = db.taskDao();
+        allTasks = taskDao.getAllTasks();
     }
 
     public LiveData<List<TaskEntity>> getAllTasks() {
-        return taskDao.getAllTasks();
+        return allTasks;
+    }
+
+    public LiveData<TaskEntity> getTaskById(long taskId) {
+        return taskDao.getTaskById(taskId);
     }
 
     public void insert(TaskEntity task) {
@@ -37,6 +41,13 @@ public class TaskRepository {
 
     public void delete(TaskEntity task) {
         Executors.newSingleThreadExecutor().execute(() -> taskDao.delete(task));
+    }
+
+    public void deleteTaskById(long taskId) {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            final TaskEntity taskById = taskDao.getRawTaskById(taskId);
+            taskDao.delete(taskById);
+        });
     }
 }
 
