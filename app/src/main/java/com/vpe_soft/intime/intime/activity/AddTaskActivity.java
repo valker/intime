@@ -35,8 +35,7 @@ public class AddTaskActivity extends AppCompatActivity {
         editTaskDescription = findViewById(R.id.edit_task_description);
         btnSaveTask = findViewById(R.id.btn_save_task);
 
-        TaskDao taskDao = AppDatabase.getInstance(this).taskDao(); // Получаем DAO
-        TaskViewModel.Factory factory = new TaskViewModel.Factory(taskDao); // Передаем DAO в фабрику
+        TaskViewModel.Factory factory = new TaskViewModel.Factory(getApplication());
         taskViewModel = new ViewModelProvider(this, factory).get(TaskViewModel.class);
 
         // Настроим Spinner (interval)
@@ -79,7 +78,7 @@ public class AddTaskActivity extends AppCompatActivity {
         Pair<Long, Long> next = AlarmUtil.getNextAlarmAndCaution(interval, amount, lastAck, quant, getResources().getConfiguration().locale);
 
         TaskEntity newTask = new TaskEntity(description, interval, amount, next.first, next.second, 0, quant);
-        taskViewModel.insertTask(newTask);
+        taskViewModel.addTask(newTask);
 
         Toast.makeText(this, "Задача добавлена", Toast.LENGTH_SHORT).show();
         finish(); // Закрываем экран после сохранения

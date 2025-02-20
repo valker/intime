@@ -26,4 +26,8 @@
     <color  name="settingsDivider">#E0E0E0</color>
     <color  name="settingsItemTitle">#000000</color>
     <color  name="settingsItemDescription">#595959</color>
+    <color name="red">#D32F2F</color>
+    <color name="light_red">#FFCDD2</color>
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
 </resources>

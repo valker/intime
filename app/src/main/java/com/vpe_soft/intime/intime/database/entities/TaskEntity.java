@@ -71,12 +71,12 @@ public class TaskEntity {
         if (o == null || getClass() != o.getClass()) return false;
         TaskEntity task = (TaskEntity) o;
         return id == task.id &&
-                interval == task.interval &&
-                amount == task.amount &&
-                nextAlarm == task.nextAlarm &&
-                nextCaution == task.nextCaution &&
-                lastAck == task.lastAck &&
-                quant == task.quant &&
+                interval.equals(task.interval) &&
+                amount.equals(task.amount) &&
+                nextAlarm.equals(task.nextAlarm) &&
+                nextCaution.equals(task.nextCaution) &&
+                lastAck.equals(task.lastAck) &&
+                quant.equals(task.quant) &&
                 description.equals(task.description);
     }
 
@@ -95,7 +95,12 @@ public class TaskEntity {
         return description;
     }
 
+    @NonNull
     public Long getNextAlarm() {
         return nextAlarm;
+    }
+
+    public void setId(long newId) {
+        id = newId;
     }
 }

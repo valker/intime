@@ -1,53 +1,57 @@
 package com.vpe_soft.intime.intime.view_models;
 
+import android.app.Application;
+
+import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.vpe_soft.intime.intime.database.dao.TaskDao;
+import com.vpe_soft.intime.intime.database.AppDatabase;
 import com.vpe_soft.intime.intime.database.entities.TaskEntity;
+import com.vpe_soft.intime.intime.database.repositories.TaskRepository;
 
 import java.util.List;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
-public class TaskViewModel extends ViewModel {
-    private final TaskDao taskDao;
+public class TaskViewModel extends AndroidViewModel {
+    private final TaskRepository taskRepository;
     private final LiveData<List<TaskEntity>> tasks;
-    private final Executor executor = Executors.newSingleThreadExecutor();
 
-    public TaskViewModel(TaskDao taskDao) {
-        this.taskDao = taskDao;
-        this.tasks = taskDao.getAllTasks();
+    public TaskViewModel(@NonNull Application application) {
+        super(application);
+        AppDatabase db = AppDatabase.getInstance(application);
+        taskRepository = new TaskRepository(application);
+        tasks = taskRepository.getAllTasks();
     }
 
     public LiveData<List<TaskEntity>> getTasks() {
         return tasks;
     }
 
-    public  void insertTask(TaskEntity task) {
-        executor.execute(() -> taskDao.insert(task));
+    public  void addTask(TaskEntity task) {
+        taskRepository.insert(task);
     }
 
     public void updateTask(TaskEntity task) {
-        executor.execute(() -> taskDao.update(task));
+        taskRepository.update(task);
     }
 
     public void deleteTask(TaskEntity task) {
-        executor.execute(() -> taskDao.delete(task));
+        taskRepository.delete(task);
     }
 
     public static class Factory implements ViewModelProvider.Factory {
-        private final TaskDao taskDao;
+        Application application;
 
-        public Factory(TaskDao taskDao) {
-            this.taskDao = taskDao;
+        public Factory(Application application) {
+            this.application = application;
         }
 
         @Override
         public <T extends ViewModel> T create(Class<T> modelClass) {
             if (modelClass.isAssignableFrom(TaskViewModel.class)) {
-                return (T) new TaskViewModel(taskDao);
+                return (T) new TaskViewModel(application);
             }
             throw new IllegalArgumentException("Unknown ViewModel class");
         }

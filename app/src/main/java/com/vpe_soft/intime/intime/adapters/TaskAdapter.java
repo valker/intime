@@ -1,5 +1,6 @@
 package com.vpe_soft.intime.intime.adapters;
 
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -7,6 +8,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.core.content.ContextCompat;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.entities.TaskEntity;
@@ -53,6 +55,19 @@ public class TaskAdapter extends ListAdapter<TaskEntity, TaskAdapter.TaskViewHol
 
             SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault());
             textNextAlarm.setText(dateFormat.format(task.getNextAlarm()));
+
+            // Проверяем, просрочена ли задача
+            boolean isOverdue = task.getNextAlarm() < System.currentTimeMillis();
+
+            // Меняем стиль в зависимости от просроченности
+            final Context context = itemView.getContext();
+            if (isOverdue) {
+                textDescription.setTextColor(ContextCompat.getColor(context, R.color.red));
+                itemView.setBackgroundColor(ContextCompat.getColor(context, R.color.light_red));
+            } else {
+                textDescription.setTextColor(ContextCompat.getColor(context, R.color.black));
+                itemView.setBackgroundColor(ContextCompat.getColor(context, R.color.white));
+            }
         }
     }
 

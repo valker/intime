@@ -28,7 +28,7 @@ public class TaskRepository {
     }
 
     public void insert(TaskEntity task) {
-        Executors.newSingleThreadExecutor().execute(() -> taskDao.insert(task));
+        Executors.newSingleThreadExecutor().execute(() -> task.setId(taskDao.insert(task)));
     }
 
     public void update(TaskEntity task) {
