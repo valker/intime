@@ -8,7 +8,6 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.vpe_soft.intime.intime.database.AppDatabase;
 import com.vpe_soft.intime.intime.database.entities.TaskEntity;
 import com.vpe_soft.intime.intime.database.repositories.TaskRepository;
 
@@ -46,6 +45,15 @@ public class TaskViewModel extends AndroidViewModel {
 
     public void deleteTaskById(long taskId) {
         taskRepository.deleteTaskById(taskId);
+    }
+
+    public void ack(long taskId, long currentTimeMillis) {
+        LiveData<TaskEntity> task = getTaskById(taskId);
+        final TaskEntity value = task.getValue();
+        if(value != null) {
+            value.nextAlarm = currentTimeMillis + 100000;
+            taskRepository.update(value);
+        }
     }
 
     public static class Factory implements ViewModelProvider.Factory {

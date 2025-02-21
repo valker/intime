@@ -31,9 +31,10 @@ public class TaskDetailsActivity extends AppCompatActivity {
         taskViewModel.getTaskById(taskId).observe(this, task -> {
             if (task != null) {
                 // Обновляем UI данными из task
-                TextView textView = findViewById(R.id.task_details_text);
-//                textView.setText("Task ID: " + taskId);
+                TextView textView = findViewById(R.id.task_description);
                 textView.setText(task.getDescription());
+                textView = findViewById(R.id.task_id);
+                textView.setText("Task ID: " + taskId);
 
 //                textViewTitle.setText(task.getTitle());
 //                textViewDescription.setText(task.getDescription());
@@ -44,6 +45,11 @@ public class TaskDetailsActivity extends AppCompatActivity {
 
         Button btnDelete = findViewById(R.id.btnDeleteTask);
         btnDelete.setOnClickListener(v -> showDeleteConfirmationDialog());
+
+        Button btnAck = findViewById(R.id.btnAckTask);
+        btnAck.setOnClickListener(v -> {
+            taskViewModel.ack(taskId, System.currentTimeMillis());
+        });
     }
 
     private void showDeleteConfirmationDialog() {
