@@ -3,7 +3,6 @@ package com.vpe_soft.intime.intime.activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
@@ -14,8 +13,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.adapters.TaskAdapter;
-import com.vpe_soft.intime.intime.database.AppDatabase;
-import com.vpe_soft.intime.intime.database.dao.TaskDao;
 import com.vpe_soft.intime.intime.view_models.TaskViewModel;
 
 public class MainActivityV2 extends AppCompatActivity {

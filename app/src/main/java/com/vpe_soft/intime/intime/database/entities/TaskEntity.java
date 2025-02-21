@@ -24,6 +24,15 @@ public class TaskEntity {
         this.quant = quant;
     }
 
+    private TaskEntity() {
+    }
+
+    static public TaskEntity CreateWithNextAlarm(long nextAlarm) {
+        TaskEntity item = new TaskEntity();
+        item.nextAlarm = nextAlarm;
+        return item;
+    }
+
     @PrimaryKey(autoGenerate = true)
     public long id;
 
