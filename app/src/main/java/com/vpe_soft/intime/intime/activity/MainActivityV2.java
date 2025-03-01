@@ -45,6 +45,10 @@ public class MainActivityV2 extends AppCompatActivity {
             taskAdapter.submitList(tasks);
         });
 
+        taskViewModel.getCurrentTime().observe(this, currentTime -> {
+            taskAdapter.notifyDataSetChanged();
+        });
+
         FloatingActionButton fabAddTask = findViewById(R.id.fab_add_task);
         fabAddTask.setOnClickListener(view -> {
             Intent intent = new Intent(MainActivityV2.this, AddTaskActivity.class);

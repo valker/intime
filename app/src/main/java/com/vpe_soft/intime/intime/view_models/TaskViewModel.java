@@ -5,6 +5,7 @@ import android.app.Application;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -16,15 +17,36 @@ import java.util.List;
 public class TaskViewModel extends AndroidViewModel {
     private final TaskRepository taskRepository;
     private final LiveData<List<TaskEntity>> tasks;
+    private final MutableLiveData<Long> currentTime = new MutableLiveData<>();
 
     public TaskViewModel(@NonNull Application application) {
         super(application);
         taskRepository = new TaskRepository(application);
         tasks = taskRepository.getAllTasks();
+
+        // Запускаем таймер обновления времени каждую секунду
+        startClock();
+    }
+
+    private void startClock() {
+        new Thread(() -> {
+            while (true) {
+                currentTime.postValue(System.currentTimeMillis());
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 
     public LiveData<List<TaskEntity>> getTasks() {
         return tasks;
+    }
+
+    public LiveData<Long> getCurrentTime() {
+        return currentTime;
     }
 
     public LiveData<TaskEntity> getTaskById(long taskId) {
