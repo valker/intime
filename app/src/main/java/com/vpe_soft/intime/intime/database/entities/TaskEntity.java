@@ -57,7 +57,7 @@ public class TaskEntity {
     @NotNull
     public Long lastAck;
 
-    @ColumnInfo(defaultValue = "0")
+    @ColumnInfo(defaultValue = "1")
     @NotNull
     public Integer quant;
 
