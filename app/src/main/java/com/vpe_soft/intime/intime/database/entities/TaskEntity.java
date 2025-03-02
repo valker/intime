@@ -61,6 +61,8 @@ public class TaskEntity {
     @NotNull
     public Integer quant;
 
+    private Boolean wasNotified = false;
+
     // Добавляем DiffUtil для ListAdapter
     public static final DiffUtil.ItemCallback<TaskEntity> DIFF_CALLBACK = new DiffUtil.ItemCallback<TaskEntity>() {
         @Override
@@ -112,4 +114,9 @@ public class TaskEntity {
     public void setId(long newId) {
         id = newId;
     }
+
+    // Геттеры и сеттеры
+    public Boolean isWasNotified() { return wasNotified; }
+
+    public void setWasNotified(Boolean wasNotified) { this.wasNotified = wasNotified; }
 }
