@@ -61,6 +61,7 @@ public class TaskEntity {
     @NotNull
     public Integer quant;
 
+    @NotNull
     private Boolean wasNotified = false;
 
     // Добавляем DiffUtil для ListAdapter

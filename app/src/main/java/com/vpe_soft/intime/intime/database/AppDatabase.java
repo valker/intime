@@ -22,7 +22,7 @@ public abstract class AppDatabase extends RoomDatabase {
     static final Migration MIGRATION_5_6 = new Migration(5, 6) {
         @Override
         public void migrate(@NonNull SupportSQLiteDatabase database) {
-            database.execSQL("ALTER TABLE tasks ADD COLUMN wasNotified INTEGER NOT NULL DEFAULT false");
+            database.execSQL("ALTER TABLE tasks ADD COLUMN wasNotified INTEGER NOT NULL DEFAULT 0");
         }
     };
 
@@ -34,7 +34,6 @@ public abstract class AppDatabase extends RoomDatabase {
                                     context.getApplicationContext(),
                                     AppDatabase.class, Constants.dbName
                             )
-//                            .fallbackToDestructiveMigration() // Удалять данные при смене версии
                             .addMigrations(MIGRATION_5_6)
                             .build();
                 }
