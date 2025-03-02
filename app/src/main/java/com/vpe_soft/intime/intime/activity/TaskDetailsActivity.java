@@ -10,16 +10,21 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.vpe_soft.intime.intime.R;
+import com.vpe_soft.intime.intime.database.repositories.TaskRepository;
 import com.vpe_soft.intime.intime.view_models.TaskViewModel;
+
+import java.util.Locale;
 
 public class TaskDetailsActivity extends AppCompatActivity {
 
     private TaskViewModel taskViewModel;
     private long taskId;
+    private TaskRepository taskRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        taskRepository = new TaskRepository(getApplication());
         setContentView(R.layout.activity_task_details);
 
         taskId = getIntent().getLongExtra("task_id", -1);
@@ -49,6 +54,15 @@ public class TaskDetailsActivity extends AppCompatActivity {
         Button btnAck = findViewById(R.id.btnAckTask);
         btnAck.setOnClickListener(v -> {
             taskViewModel.ack(taskId, System.currentTimeMillis());
+            finish();
+        });
+
+        taskViewModel.taskToAcknowledge.observe(this, task->{
+            if (task != null) {
+                long currentTimeMillis = System.currentTimeMillis();
+                Locale locale = Locale.getDefault();
+                new Thread(() -> taskRepository.acknowledgeTask(task.id, currentTimeMillis, task.interval, task.amount, task.quant, locale)).start();
+            }
         });
     }
 

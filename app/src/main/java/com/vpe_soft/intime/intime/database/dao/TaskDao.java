@@ -17,6 +17,9 @@ public interface TaskDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     long insert(TaskEntity task);
 
+    @Query("UPDATE tasks SET last_ack = :ackTime, next_alarm = :nextAlarm, next_caution = :nextCaution, wasNotified = 0 WHERE id = :taskId")
+    void acknowledgeTask(long taskId, long ackTime, long nextAlarm, long nextCaution);
+
     @Update
     void update(TaskEntity task);
 

@@ -6,6 +6,7 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Transformations;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -13,11 +14,16 @@ import com.vpe_soft.intime.intime.database.entities.TaskEntity;
 import com.vpe_soft.intime.intime.database.repositories.TaskRepository;
 
 import java.util.List;
+import java.util.Locale;
 
 public class TaskViewModel extends AndroidViewModel {
     private final TaskRepository taskRepository;
     private final LiveData<List<TaskEntity>> tasks;
     private final MutableLiveData<Long> currentTime = new MutableLiveData<>();
+    private final MutableLiveData<Long> taskIdLiveData = new MutableLiveData<>();
+
+    // LiveData, содержащая задачу, которую мы должны подтвердить
+    public final LiveData<TaskEntity> taskToAcknowledge = Transformations.switchMap(taskIdLiveData, this::getTaskById);
 
     public TaskViewModel(@NonNull Application application) {
         super(application);
@@ -70,12 +76,13 @@ public class TaskViewModel extends AndroidViewModel {
     }
 
     public void ack(long taskId, long currentTimeMillis) {
-        LiveData<TaskEntity> task = getTaskById(taskId);
-        final TaskEntity value = task.getValue();
-        if(value != null) {
-            value.nextAlarm = currentTimeMillis + 100000;
-            taskRepository.update(value);
-        }
+//        LiveData<TaskEntity> task = getTaskById(taskId);
+//        final TaskEntity value = task.getValue();
+//        if(value != null) {
+//            Locale locale = Locale.getDefault();
+//            new Thread(() -> taskRepository.acknowledgeTask(taskId, currentTimeMillis, value.interval, value.amount, value.quant, locale)).start();
+//        }
+        taskIdLiveData.setValue(taskId);
     }
 
     public static class Factory implements ViewModelProvider.Factory {

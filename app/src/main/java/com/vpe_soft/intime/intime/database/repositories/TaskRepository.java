@@ -1,16 +1,17 @@
 package com.vpe_soft.intime.intime.database.repositories;
 
 import android.app.Application;
+import android.util.Pair;
 
 import androidx.lifecycle.LiveData;
-import androidx.room.Room;
 
-import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.database.AppDatabase;
 import com.vpe_soft.intime.intime.database.dao.TaskDao;
 import com.vpe_soft.intime.intime.database.entities.TaskEntity;
+import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Executors;
 
 public class TaskRepository {
@@ -48,6 +49,14 @@ public class TaskRepository {
             final TaskEntity taskById = taskDao.getRawTaskById(taskId);
             taskDao.delete(taskById);
         });
+    }
+
+    public void acknowledgeTask(long taskId, long currentTimeMillis, int interval, int amount, int quant, Locale locale) {
+        //long nextAlarm = calculateNextTime(currentTimeMillis, interval, amount, quant);
+        //long nextCaution = calculateNextTime(currentTimeMillis, interval, amount, quant / 2);
+        final Pair<Long, Long> nextAlarmAndCaution = AlarmUtil.getNextAlarmAndCaution(interval, amount, currentTimeMillis, quant, locale);
+
+        taskDao.acknowledgeTask(taskId, currentTimeMillis, nextAlarmAndCaution.first, nextAlarmAndCaution.second);
     }
 }
 
