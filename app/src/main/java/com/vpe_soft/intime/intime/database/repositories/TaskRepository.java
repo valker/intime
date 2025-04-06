@@ -1,6 +1,7 @@
 package com.vpe_soft.intime.intime.database.repositories;
 
 import android.app.Application;
+import android.content.Context;
 import android.util.Pair;
 
 import androidx.lifecycle.LiveData;
@@ -18,8 +19,8 @@ public class TaskRepository {
     private final TaskDao taskDao;
     private LiveData<List<TaskEntity>> allTasks;
 
-    public TaskRepository(Application application) {
-        AppDatabase db = AppDatabase.getInstance(application);
+    public TaskRepository(Context context) {
+        AppDatabase db = AppDatabase.getInstance(context);
         taskDao = db.taskDao();
         allTasks = taskDao.getAllTasks();
     }
@@ -57,6 +58,10 @@ public class TaskRepository {
         final Pair<Long, Long> nextAlarmAndCaution = AlarmUtil.getNextAlarmAndCaution(interval, amount, currentTimeMillis, quant, locale);
 
         taskDao.acknowledgeTask(taskId, currentTimeMillis, nextAlarmAndCaution.first, nextAlarmAndCaution.second);
+    }
+
+    public List<TaskEntity> getTasksForNotification(long now) {
+        return taskDao.getTasksForNotification(now);
     }
 }
 

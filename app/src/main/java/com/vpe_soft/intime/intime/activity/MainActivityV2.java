@@ -1,19 +1,35 @@
 package com.vpe_soft.intime.intime.activity;
 
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import android.widget.Toast;
+import android.os.Build;
+
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.work.Constraints;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.adapters.TaskAdapter;
 import com.vpe_soft.intime.intime.view_models.TaskViewModel;
+import com.vpe_soft.intime.intime.workers.TaskNotificationWorker;
+
+import java.util.concurrent.TimeUnit;
 
 public class MainActivityV2 extends AppCompatActivity {
     private TaskViewModel taskViewModel;
@@ -54,5 +70,50 @@ public class MainActivityV2 extends AppCompatActivity {
             Intent intent = new Intent(MainActivityV2.this, AddTaskActivity.class);
             startActivity(intent);
         });
+
+        // проверяем наличие разрешений, на отправку уведомлений
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        REQUEST_CODE_NOTIFICATIONS);
+            }
+        }
+
+        WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData(TaskNotificationWorker.class.getName())
+                .observe(this, workInfos -> {
+                    if (workInfos != null && !workInfos.isEmpty()) {
+                        Log.d("WorkManager", "Worker state: " + workInfos.get(0).getState());
+                    } else {
+                        Log.d("WorkManager", "Worker не запущен!");
+                    }
+                });
+
+        // запускаем воркер отправки уведомлений
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(TaskNotificationWorker.class.getName(), ExistingPeriodicWorkPolicy.KEEP,
+                new PeriodicWorkRequest.Builder(TaskNotificationWorker.class, 15, TimeUnit.MINUTES)
+                        .setConstraints(new Constraints.Builder()
+                                .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
+                                .setRequiresBatteryNotLow(true)
+                                .build())
+                        .build()
+        );
+
     }
+
+    // обработка результата о запросе уведомлений
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_CODE_NOTIFICATIONS) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.d("MainActivity", "Разрешение на уведомления получено");
+            } else {
+                Toast.makeText(this, "Уведомления отключены. Вы можете включить их в настройках.", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private static final int REQUEST_CODE_NOTIFICATIONS = 1;
 }
