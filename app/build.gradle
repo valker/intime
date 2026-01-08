@@ -5,7 +5,14 @@ def gitLastCommitHash = providers.exec {
 }.standardOutput.asText.get().toString().trim()
 
 android {
-    compileSdk 36
+    compileOptions {
+        // компилируем под Java 21
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+
+    compileSdk = 36
+    buildToolsVersion = "36.0.0"
 
     buildFeatures {
         dataBinding true
@@ -23,7 +30,7 @@ android {
     buildTypes {
         release {
             minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
     namespace 'com.vpe_soft.intime.intime'
