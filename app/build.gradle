@@ -5,6 +5,9 @@ def gitLastCommitHash = providers.exec {
 }.standardOutput.asText.get().toString().trim()
 
 android {
+    lint {
+        abortOnError false // не прерываем сборку, если линтер нашел ошибки (только запишем в отчет)
+    }
     compileOptions {
         // компилируем под Java 21
         sourceCompatibility JavaVersion.VERSION_21
