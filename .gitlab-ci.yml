@@ -15,9 +15,10 @@ stages:
   - test
 
 variables:
-  # Версия Android SDK, которые будут установлены через sdkmanager.
+  # Версия Android SDK и Android Build Tools, которые будут установлены через sdkmanager.
   # Должны совпадать с версиями, указанными в build.gradle.
   ANDROID_COMPILE_SDK: "36"
+  ANDROID_BUILD_TOOLS: "36.0.0"
 
   # Версия Android commandline-tools.
   # Берётся из официальной страницы загрузок: https://developer.android.com/studio#command-tools
@@ -86,14 +87,10 @@ before_script:
   # Пишем версию sdkmanager в лог.
   - sdkmanager --version
 
-  # Принятие лицензий.
+  # Принимаем лицензионные соглашения.
   - yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses >/dev/null || true
 
-  # Определяем последнюю версию Android Build Tools и пишем в лог.
-  - ANDROID_BUILD_TOOLS=$(sdkmanager --list | grep "build-tools;" | awk -F";" '{print $2}' | sort -V | tail -1)
-  - echo "Using build-tools $LATEST_BUILD_TOOLS"
-
-  # Установка конкретных компонентов SDK.
+  # Установка компонентов SDK.
   # Если они уже есть в кэше android-sdk/, sdkmanager быстро пропустит.
   - sdkmanager --sdk_root="$ANDROID_SDK_ROOT" "platforms;android-${ANDROID_COMPILE_SDK}" "platform-tools" "build-tools;${ANDROID_BUILD_TOOLS}"
 
