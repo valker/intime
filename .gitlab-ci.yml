@@ -28,7 +28,7 @@ variables:
 
   ANDROID_HOME: "/sdk"
 
-  JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-amd64"
+  JAVA_HOME: "/opt/java/openjdk"
 
 # Packages installation before running script
 before_script:
