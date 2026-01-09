@@ -1,11 +1,19 @@
-apply plugin: 'com.android.application'
+apply plugin: "com.android.application"
 
 def gitLastCommitHash = providers.exec {
-    commandLine('git', 'rev-parse', '--short', 'HEAD')
-}.standardOutput.asText.get().toString().trim()
+    commandLine("git", "rev-parse", "--short", "HEAD")
+}.standardOutput.asText.map {
+    it.trim()
+}.orElse("nogit")
 
 android {
-    compileSdk 36
+    // компилируем под Java 21
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+
+    compileSdk = 36 // NOTICE: обновить в .gitlab-ci.yml при обновлении
 
     buildFeatures {
         dataBinding true
@@ -20,21 +28,26 @@ android {
         versionName "1.1.11"
         buildConfigField "String", "GIT_LAST_COMMIT_HASH", "\"${gitLastCommitHash}\""
     }
+
     buildTypes {
+        debug {
+            lint {
+                abortOnError false // не прерываем сборку, если линтер нашел ошибки (только запишем в отчет)
+            }
+        }
+
         release {
             minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
-    namespace 'com.vpe_soft.intime.intime'
+
+    namespace "com.vpe_soft.intime.intime"
 }
 
 dependencies {
-    implementation 'com.google.android.material:material:1.13.0'
-    implementation 'androidx.appcompat:appcompat:1.7.1'
-    implementation 'androidx.recyclerview:recyclerview:1.4.0'
-    implementation 'androidx.cardview:cardview:1.0.0'
-    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-    implementation 'androidx.legacy:legacy-support-v13:1.0.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    implementation "com.google.android.material:material:1.13.0"
+    implementation "androidx.appcompat:appcompat:1.7.1"
+    implementation "androidx.recyclerview:recyclerview:1.4.0"
+    implementation "androidx.constraintlayout:constraintlayout:2.2.1"
 }
