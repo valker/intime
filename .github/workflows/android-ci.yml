@@ -1,4 +1,4 @@
-# Intime GitLab CI Pipeline
+# Intime GitHub Actions Pipeline
 # Цели:
 #  - собрать APK (assembleDebug)
 #  - прогнать lint (lintDebug)
@@ -17,17 +17,6 @@ on:
 
   # Автозапуск при изменениях в указанных путях.
   push:
-    paths:
-      - "app/**"
-      - "gradle/**"
-      - "**/*.gradle"
-      - "gradle.properties"
-      - "settings.gradle"
-      - "build.gradle"
-      - ".github/workflows/**"
-      - ".github/actions/**"
-
-  pull_request:
     paths:
       - "app/**"
       - "gradle/**"
@@ -63,7 +52,7 @@ env:
   GRADLE_USER_HOME: ${{ github.workspace }}/.gradle
 
   # Аргументы для gradlew:
-  # --console=plain: читаемые логи в GitLab.
+  # --console=plain: читаемые логи.
   # --stacktrace: печатать stacktrace при падении.
   # -Pci: тип сборки=ci, чтобы в build.gradle можно было менять поведение под CI.
   CI_GRADLE_ARGS: "--console=plain --stacktrace -Pci"
@@ -83,6 +72,7 @@ jobs:
         uses: ./.github/actions/android-setup
         with:
           java-version: ${{ env.JAVA_VERSION }}
+          android-sdk-root: ${{ env.ANDROID_SDK_ROOT }}
           android-compile-sdk: ${{ env.ANDROID_COMPILE_SDK }}
           android-build-tools: ${{ env.ANDROID_BUILD_TOOLS }}
           android-sdk-tools: ${{ env.ANDROID_SDK_TOOLS }}
@@ -116,6 +106,7 @@ jobs:
         uses: ./.github/actions/android-setup
         with:
           java-version: ${{ env.JAVA_VERSION }}
+          android-sdk-root: ${{ env.ANDROID_SDK_ROOT }}
           android-compile-sdk: ${{ env.ANDROID_COMPILE_SDK }}
           android-build-tools: ${{ env.ANDROID_BUILD_TOOLS }}
           android-sdk-tools: ${{ env.ANDROID_SDK_TOOLS }}
@@ -148,6 +139,7 @@ jobs:
         uses: ./.github/actions/android-setup
         with:
           java-version: ${{ env.JAVA_VERSION }}
+          android-sdk-root: ${{ env.ANDROID_SDK_ROOT }}
           android-compile-sdk: ${{ env.ANDROID_COMPILE_SDK }}
           android-build-tools: ${{ env.ANDROID_BUILD_TOOLS }}
           android-sdk-tools: ${{ env.ANDROID_SDK_TOOLS }}
