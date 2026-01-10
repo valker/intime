@@ -70,13 +70,11 @@ runs:
         sudo apt-get --quiet update --yes
         sudo apt-get --quiet install --yes unzip git wget ca-certificates
 
-    # Установка Android SDK.
-    - name: Install Android SDK (commandline-tools + packages)
+    # Установка sdkmanager.
+    - name: Install sdkmanager
       shell: bash
       env:
         ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
-        ANDROID_COMPILE_SDK: ${{ inputs.android-compile-sdk }}
-        ANDROID_BUILD_TOOLS: ${{ inputs.android-build-tools }}
         ANDROID_SDK_TOOLS: ${{ inputs.android-sdk-tools }}
       run: |
         # Строгий режим bash.
@@ -101,10 +99,20 @@ runs:
         # Приводим структуру к ожидаемой: cmdline-tools/latest/bin
         mv "${ANDROID_SDK_ROOT}/cmdline-tools/cmdline-tools" "${ANDROID_SDK_ROOT}/cmdline-tools/latest"
         fi
-        
         # Добавляем sdkmanager и platform-tools в PATH.
         echo "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin" >> "${GITHUB_PATH}"
         echo "${ANDROID_SDK_ROOT}/platform-tools" >> "${GITHUB_PATH}"
+
+    # Установка Android SDK компонентов.
+    - name: Install Android SDK components
+      shell: bash
+      env:
+        ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+        ANDROID_COMPILE_SDK: ${{ inputs.android-compile-sdk }}
+        ANDROID_BUILD_TOOLS: ${{ inputs.android-build-tools }}
+      run: |
+        # Строгий режим bash.
+        set -euo pipefail
         
         # Пишем версию sdkmanager в лог.
         sdkmanager --version
