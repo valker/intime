@@ -6,11 +6,17 @@ def gitLastCommitHashProvider = providers.exec {
     it.trim()
 }.orElse("nogit")
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 android {
-    // компилируем под Java 25
+    // компилируем под Java 21
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_25
-        targetCompatibility = JavaVersion.VERSION_25
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 
     compileSdk = 36 // NOTICE: обновить в .gitlab-ci.yml при обновлении
