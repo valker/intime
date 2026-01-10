@@ -1,0 +1,168 @@
+# Intime GitLab CI Pipeline
+# Цели:
+#  - собрать APK (assembleDebug)
+#  - прогнать lint (lintDebug)
+#  - прогнать unit-тесты (debugTests)
+# Версии (09.01.2026):
+#  - compileSdk 36
+#  - buildTools 36.0.0
+#  - commandline-tools 13114758
+#  - JDK 21 (на базе Ubuntu 24.04)
+
+name: "Android lintDebug, assembleDebug, debugTests workflow"
+
+on:
+  # Возможность запуска по кнопке.
+  workflow_dispatch: { }
+
+  # Автозапуск при изменениях в указанных путях.
+  push:
+    paths:
+      - "app/**"
+      - "gradle/**"
+      - "**/*.gradle"
+      - "gradle.properties"
+      - "settings.gradle"
+      - "build.gradle"
+      - ".github/workflows/**"
+      - ".github/actions/**"
+
+  pull_request:
+    paths:
+      - "app/**"
+      - "gradle/**"
+      - "**/*.gradle"
+      - "gradle.properties"
+      - "settings.gradle"
+      - "build.gradle"
+      - ".github/workflows/**"
+      - ".github/actions/**"
+
+# Можем отменить предыдущий запуск workflow, если прилетел новый push в ту же ветку.
+# Это экономит минуты CI и снижает очередь.
+concurrency:
+  group: android-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Версия JDK.
+  JAVA_VERSION: "21"
+
+  # Версия Android SDK и Android Build Tools, которые будут установлены через sdkmanager.
+  # Должны совпадать с версиями, указанными в build.gradle.
+  ANDROID_COMPILE_SDK: "36"
+  ANDROID_BUILD_TOOLS: "36.0.0"
+
+  # Версия Android commandline-tools.
+  # Берётся из официальной страницы загрузок: https://developer.android.com/studio#command-tools
+  ANDROID_SDK_TOOLS: "13114758"
+
+  # Кладём SDK и Gradle user home в workspace, чтобы их можно было кэшировать.
+  ANDROID_HOME: ${{ github.workspace }}/android-sdk
+  ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+  GRADLE_USER_HOME: ${{ github.workspace }}/.gradle
+
+  # Аргументы для gradlew:
+  # --console=plain: читаемые логи в GitLab.
+  # --stacktrace: печатать stacktrace при падении.
+  # -Pci: тип сборки=ci, чтобы в build.gradle можно было менять поведение под CI.
+  CI_GRADLE_ARGS: "--console=plain --stacktrace -Pci"
+
+jobs:
+  # Линтер.
+  lintDebug:
+    name: lintDebug
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Подготовка окружения.
+      - name: Android setup
+        uses: ./.github/actions/android-setup
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          android-compile-sdk: ${{ env.ANDROID_COMPILE_SDK }}
+          android-build-tools: ${{ env.ANDROID_BUILD_TOOLS }}
+          android-sdk-tools: ${{ env.ANDROID_SDK_TOOLS }}
+
+      # Запускаем линтер.
+      - name: Gradle lintDebug
+        run: ./gradlew ${{ env.CI_GRADLE_ARGS }} :app:lintDebug
+
+      # Загружаем артефакты с отчётами линтера.
+      - name: Upload lint reports
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: lint-reports
+          retention-days: 7 # Храним артефакты 7 дней.
+          path: |
+            app/build/reports/lint-results-*.html
+            app/build/reports/lint-results-*.xml
+
+  # Сборка debug-версии APK и AAB.
+  assembleDebug:
+    name: assembleDebug
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Подготовка окружения.
+      - name: Android setup
+        uses: ./.github/actions/android-setup
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          android-compile-sdk: ${{ env.ANDROID_COMPILE_SDK }}
+          android-build-tools: ${{ env.ANDROID_BUILD_TOOLS }}
+          android-sdk-tools: ${{ env.ANDROID_SDK_TOOLS }}
+
+      # Сборка debug-версии.
+      - name: Gradle assembleDebug
+        run: ./gradlew ${{ env.CI_GRADLE_ARGS }} assembleDebug
+
+      # Загружаем артефакты с собранными APK и AAB.
+      - name: Upload build outputs
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-outputs
+          retention-days: 7 # Храним артефакты 7 дней.
+          path: |
+            app/build/outputs/apk/
+            app/build/outputs/bundle/
+
+  # Запуск unit-тестов для debug-сборки.
+  debugTests:
+    name: debugTests
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Подготовка окружения.
+      - name: Android setup
+        uses: ./.github/actions/android-setup
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          android-compile-sdk: ${{ env.ANDROID_COMPILE_SDK }}
+          android-build-tools: ${{ env.ANDROID_BUILD_TOOLS }}
+          android-sdk-tools: ${{ env.ANDROID_SDK_TOOLS }}
+
+      # Запуск unit-тестов.
+      - name: Gradle testDebug
+        run: ./gradlew ${{ env.CI_GRADLE_ARGS }} :app:testDebug
+
+      # Загружаем артефакты с отчётами unit-тестов.
+      - name: Upload unit test reports
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: unit-test-reports
+          retention-days: 7 # Храним артефакты 7 дней.
+          path: |
+            app/build/test-results/testDebugUnitTest/*.xml
+            app/build/reports/tests/

@@ -1,0 +1,130 @@
+# Общая подготовка окружения для Android CI
+name: "Android setup (JDK, Gradle cache, Android SDK)"
+description: "Общая подготовка окружения для Android в GitHub Actions: JDK, Android SDK, кэш Gradle/SDK"
+
+inputs:
+  java-version:
+    description: "Версия JDK"
+    required: true
+
+  android-compile-sdk:
+    description: "Версия compileSdk"
+    required: true
+
+  android-build-tools:
+    description: "Версия buildTools (buildToolsVersion)"
+    required: true
+
+  android-sdk-tools:
+    description: "Версия Android commandline-tools"
+    required: true
+
+  gradle-opts:
+    description: "Аргументы Gradle"
+    required: false
+    # Аргументы для Gradle:
+    #  - daemon=false: чтобы не держать фоновые процессы в контейнере
+    #  - Xmx3g: ограничение памяти для JVM Gradle
+    default: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx3g"
+
+runs:
+  using: "composite"
+  # Настройка JDK
+  steps:
+    - name: Setup JDK
+      uses: actions/setup-java@v5
+      with:
+        distribution: temurin
+        java-version: ${{ inputs.java-version }}
+
+    # Кэширование Gradle.
+    - name: Restore cache (gradle)
+      uses: actions/cache@v5
+      with:
+        path: |
+          .gradle/caches
+          .gradle/wrapper
+        # Ключ кэша завязан на файлы конфигурации Gradle
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', 'gradle.properties', 'settings.gradle*') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    # Кэширование Android SDK.
+    - name: Restore cache (android sdk)
+      uses: actions/cache@v5
+      with:
+        path: android-sdk
+        # Ключ кэша завязан на версии Android SDK и build-tools.
+        key: ${{ runner.os }}-android-sdk-${{ inputs.android-compile-sdk }}-${{ inputs.android-build-tools }}-${{ inputs.android-sdk-tools }}
+        restore-keys: |
+          ${{ runner.os }}-android-sdk-${{ inputs.android-compile-sdk }}-
+          ${{ runner.os }}-android-sdk-
+
+    # Усановка необходимых пакетов.
+    - name: Install prerequisites
+      shell: bash
+      run: |
+        # Строгий режим bash.
+        set -euo pipefail
+        # Минимальная подготовка окружения.
+        sudo apt-get --quiet update --yes
+        sudo apt-get --quiet install --yes unzip git wget ca-certificates
+
+    # Установка Android SDK.
+    - name: Install Android SDK (commandline-tools + packages)
+      shell: bash
+      env:
+        ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+        ANDROID_COMPILE_SDK: ${{ inputs.android-compile-sdk }}
+        ANDROID_BUILD_TOOLS: ${{ inputs.android-build-tools }}
+        ANDROID_SDK_TOOLS: ${{ inputs.android-sdk-tools }}
+      run: |
+        # Строгий режим bash.
+        set -euo pipefail
+        
+        # Готовим директорию под Android SDK.
+        install -d "${ANDROID_SDK_ROOT}"
+
+        # Если sdkmanager уже есть (из кэша), пропускаем установку commandline-tools.
+        if [[ -x "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" ]]; then # sdkmanager уже установлен
+        echo "sdkmanager is already installed."
+        else # sdkmanager не найден
+        echo "sdkmanager not found. Installing commandline-tools..."
+        
+        # Скачиваем Android commandline-tools и кладём в ANDROID_SDK_ROOT (если нет в кэше).
+        wget --quiet --output-document="${ANDROID_SDK_ROOT}/cmdline-tools.zip" "https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_SDK_TOOLS}_latest.zip"
+        rm -rf "${ANDROID_SDK_ROOT}/cmdline-tools"
+        install -d "${ANDROID_SDK_ROOT}/cmdline-tools"
+        unzip -q -d "${ANDROID_SDK_ROOT}/cmdline-tools" "${ANDROID_SDK_ROOT}/cmdline-tools.zip"
+        rm -f "${ANDROID_SDK_ROOT}/cmdline-tools.zip"
+        
+        # Приводим структуру к ожидаемой: cmdline-tools/latest/bin
+        mv "${ANDROID_SDK_ROOT}/cmdline-tools/cmdline-tools" "${ANDROID_SDK_ROOT}/cmdline-tools/latest"
+        fi
+        
+        # Добавляем sdkmanager и platform-tools в PATH.
+        echo "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin" >> "${GITHUB_PATH}"
+        echo "${ANDROID_SDK_ROOT}/platform-tools" >> "${GITHUB_PATH}"
+        
+        # Пишем версию sdkmanager в лог.
+        sdkmanager --version
+        # Принимаем лицензионные соглашения.
+        yes | sdkmanager --sdk_root="${ANDROID_SDK_ROOT}" --licenses >/dev/null || true
+
+        # Установка компонентов SDK.
+        # Если уже установлены в android-sdk из кэша — будет быстро.
+        sdkmanager --sdk_root="${ANDROID_SDK_ROOT}" \
+        "platforms;android-${ANDROID_COMPILE_SDK}" \
+        "platform-tools" \
+        "build-tools;${ANDROID_BUILD_TOOLS}"
+
+    # Задаем аргументы Gradle.
+    - name: Set GRADLE_OPTS
+      shell: bash
+      run: |
+        echo "GRADLE_OPTS=${{ inputs.gradle-opts }}" >> "$GITHUB_ENV"
+
+    # Удостоверяемся, что скрипт gradlew имеет права на исполнение.
+    - name: Ensure gradlew is executable
+      shell: bash
+      run: chmod +x ./gradlew
