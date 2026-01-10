@@ -7,7 +7,7 @@
 #  - compileSdk 36
 #  - buildTools 36.0.0
 #  - commandline-tools 13114758
-#  - JDK 25 (на базе Ubuntu 24.04)
+#  - JDK 21 (на базе Ubuntu 24.04)
 
 name: "Android lintDebug, assembleDebug, debugTests workflow"
 
@@ -35,7 +35,7 @@ concurrency:
 
 env:
   # Версия JDK.
-  JAVA_VERSION: "25"
+  JAVA_VERSION: "21"
 
   # Версия Android SDK и Android Build Tools, которые будут установлены через sdkmanager.
   # Должны совпадать с версиями, указанными в build.gradle.
