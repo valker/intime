@@ -7,10 +7,10 @@ def gitLastCommitHashProvider = providers.exec {
 }.orElse("nogit")
 
 android {
-    // компилируем под Java 21
+    // компилируем под Java 25
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.VERSION_25
+        targetCompatibility = JavaVersion.VERSION_25
     }
 
     compileSdk = 36 // NOTICE: обновить в .gitlab-ci.yml при обновлении
