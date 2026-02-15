@@ -26,6 +26,12 @@ public interface TaskDao {
     @Delete
     void delete(TaskEntity task);
 
+    @Query("DELETE FROM tasks")
+    void deleteAll();
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertAll(List<TaskEntity> tasks);
+
     @Query("SELECT * FROM tasks ORDER BY next_alarm ASC")
     LiveData<List<TaskEntity>> getAllTasks();
 

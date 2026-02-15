@@ -2,6 +2,8 @@ package com.vpe_soft.intime.intime.database.repositories;
 
 import android.app.Application;
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Pair;
 
 import androidx.lifecycle.LiveData;
@@ -9,6 +11,7 @@ import androidx.lifecycle.LiveData;
 import com.vpe_soft.intime.intime.database.AppDatabase;
 import com.vpe_soft.intime.intime.database.dao.TaskDao;
 import com.vpe_soft.intime.intime.database.entities.TaskEntity;
+import com.vpe_soft.intime.intime.import_export.BackupImport;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 
 import java.util.List;
@@ -62,6 +65,25 @@ public class TaskRepository {
 
     public List<TaskEntity> getTasksForNotification(long now) {
         return taskDao.getTasksForNotification(now);
+    }
+
+    /**
+     * Replaces all tasks with those from backup JSON. Runs on background; callbacks are invoked on main thread.
+     */
+    public void replaceAllWithImportFromJson(Context context, String jsonContent, Runnable onSuccess, java.util.function.Consumer<Exception> onError) {
+        Handler mainHandler = new Handler(Looper.getMainLooper());
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                List<TaskEntity> tasks = BackupImport.parseTasks(jsonContent);
+                taskDao.deleteAll();
+                if (!tasks.isEmpty()) {
+                    taskDao.insertAll(tasks);
+                }
+                mainHandler.post(onSuccess);
+            } catch (Exception e) {
+                mainHandler.post(() -> onError.accept(e));
+            }
+        });
     }
 }
 

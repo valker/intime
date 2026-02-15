@@ -31,6 +31,9 @@
     <string name="task_description">Task Description</string>
     <string name="save">Save</string>
     <string name="title_activity_add_task_v2">AddTaskActivityV2</string>
+    <string name="import_tasks_from_json">Import tasks from JSON</string>
+    <string name="import_tasks_success">Tasks imported successfully</string>
+    <string name="import_tasks_error">Import failed: %1$s</string>
     <string-array name="interval_options">
         <item>Минута</item>
         <item>Час</item>
