@@ -27,4 +27,7 @@
     <string name="acknowledge_from_notification">Acknowledge</string>
     <string name="privacy_policy_url">Privacy policy: https://valker.github.io/intime_privacy_policy.html</string>
     <string name="go_to_google_play_button_text">This application in Google Play</string>
+    <string name="export_button_text">Export</string>
+    <string name="export_success">Export completed</string>
+    <string name="export_error">Export failed</string>
 </resources>

@@ -28,4 +28,7 @@
     <string name="label_quant_text">Сколько раз:</string>
     <string name="privacy_policy_url">Политика конфиденциальности: https://valker.github.io/intime_privacy_policy.html</string>
     <string name="go_to_google_play_button_text">Это приложение в Google Play</string>
+    <string name="export_button_text">Экспорт</string>
+    <string name="export_success">Экспорт выполнен</string>
+    <string name="export_error">Ошибка экспорта</string>
 </resources>

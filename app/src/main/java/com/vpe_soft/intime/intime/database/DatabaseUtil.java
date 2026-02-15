@@ -27,9 +27,24 @@ public class DatabaseUtil {
     public static final String LAST_ACK_FIELD = "last_ack";
     public static final String QUANT_FIELD = "quant";
 
+    /** Column names for tasks table in export order: id, description, interval, amount, next_alarm, next_caution, last_ack, quant */
+    public static final String[] TASK_EXPORT_COLUMNS = new String[]{
+            ID_FIELD, DESCRIPTION_FIELD, INTERVAL_FIELD, AMOUNT_FIELD,
+            NEXT_ALARM_FIELD, NEXT_CAUTION_FIELD, LAST_ACK_FIELD, QUANT_FIELD
+    };
+
     public static Cursor createCursor(InTimeOpenHelper openHelper) {
         SQLiteDatabase database = getReadableDatabaseFromContext(openHelper);
         return database.query(TASK_TABLE,new String[]{DESCRIPTION_FIELD, "id AS _id", NEXT_ALARM_FIELD, NEXT_CAUTION_FIELD}, null, null, null, null, NEXT_ALARM_FIELD);
+    }
+
+    /**
+     * Cursor over all tasks with all columns for export. Order: by id.
+     * Caller must close the cursor.
+     */
+    public static Cursor createExportCursor(InTimeOpenHelper openHelper) {
+        SQLiteDatabase database = getReadableDatabaseFromContext(openHelper);
+        return database.query(TASK_TABLE, TASK_EXPORT_COLUMNS, null, null, null, null, ID_FIELD);
     }
 
     public static int getDatabaseLengthFromContext(InTimeOpenHelper openHelper){
