@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Базовая иконка -->
+    <item>
+        <bitmap
+            android:src="@drawable/app_icon"
+            android:gravity="fill" />
+    </item>
+    <!-- Цветной индикатор DEV в правом нижнем углу -->
+    <item
+        android:gravity="bottom|end"
+        android:bottom="4dp"
+        android:end="4dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/green" />
+            <size
+                android:width="24dp"
+                android:height="24dp" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+</layer-list>
