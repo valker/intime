@@ -71,6 +71,10 @@ public class MainActivityV2 extends AppCompatActivity {
             startActivity(intent);
         });
 
+        findViewById(R.id.btn_open_settings).setOnClickListener(view -> {
+            startActivity(new Intent(MainActivityV2.this, SettingsActivity.class));
+        });
+
         // проверяем наличие разрешений, на отправку уведомлений
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
