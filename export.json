@@ -1,0 +1,44 @@
+{
+  "meta": {
+    "app": "com.vpe_soft.intime.intime",
+    "backup_version": 1,
+    "db_version": 5,
+    "created_at": 1771177637948
+  },
+  "tables": {
+    "tasks": {
+      "columns": [
+        "id",
+        "description",
+        "interval",
+        "amount",
+        "next_alarm",
+        "next_caution",
+        "last_ack",
+        "quant"
+      ],
+      "rows": [
+        [
+          1,
+          "test task",
+          0,
+          1,
+          1771177650304,
+          1771177647304,
+          0,
+          1
+        ],
+        [
+          2,
+          "тестовая задача",
+          1,
+          2,
+          1771184815131,
+          1771184455131,
+          0,
+          1
+        ]
+      ]
+    }
+  }
+}

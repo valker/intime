@@ -1,6 +1,8 @@
 package com.vpe_soft.intime.intime.view_models;
 
 import android.app.Application;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
@@ -21,6 +23,14 @@ public class TaskViewModel extends AndroidViewModel {
     private final LiveData<List<TaskEntity>> tasks;
     private final MutableLiveData<Long> currentTime = new MutableLiveData<>();
     private final MutableLiveData<Long> taskIdLiveData = new MutableLiveData<>();
+    private final Handler clockHandler = new Handler(Looper.getMainLooper());
+    private final Runnable clockTick = new Runnable() {
+        @Override
+        public void run() {
+            currentTime.setValue(System.currentTimeMillis());
+            clockHandler.postDelayed(this, 1000);
+        }
+    };
 
     // LiveData, содержащая задачу, которую мы должны подтвердить
     public final LiveData<TaskEntity> taskToAcknowledge = Transformations.switchMap(taskIdLiveData, this::getTaskById);
@@ -35,16 +45,13 @@ public class TaskViewModel extends AndroidViewModel {
     }
 
     private void startClock() {
-        new Thread(() -> {
-            while (true) {
-                currentTime.postValue(System.currentTimeMillis());
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
+        clockTick.run();
+    }
+
+    @Override
+    protected void onCleared() {
+        clockHandler.removeCallbacks(clockTick);
+        super.onCleared();
     }
 
     public LiveData<List<TaskEntity>> getTasks() {

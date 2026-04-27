@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Build;
-import android.provider.Settings;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.util.Pair;
@@ -16,13 +15,12 @@ import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
 import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
+import com.vpe_soft.intime.intime.domain.ReminderCalculator;
 
 import java.text.ChoiceFormat;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -34,40 +32,21 @@ public class AlarmUtil {
 
     public static final String NOTIFICATION_TAG = "com.vpe_soft.intime.intime.NotificationTag";
 
-    private static final int[] fields= new int[]{
-            Calendar.MINUTE,
-            Calendar.HOUR,
-            Calendar.DAY_OF_YEAR,
-            Calendar.WEEK_OF_YEAR,
-            Calendar.MONTH,
-            Calendar.FIELD_COUNT //substitute for YEAR
-    };
-
     public static Pair<Long, Long> getNextAlarmAndCaution(int interval, int amount, long lastAck, int quant, Locale locale) {
-        long nextAlarm = AlarmUtil.getNextAlarm(interval, amount, lastAck, quant,locale);
-        long cautionPeriod = (long) ((nextAlarm - lastAck) * 0.95);
-        long nextCaution  = lastAck + cautionPeriod;
-        return new Pair<>(nextAlarm, nextCaution);
+        ReminderCalculator.ReminderTimes next = ReminderCalculator.getNextAlarmAndCaution(
+                interval,
+                amount,
+                lastAck,
+                quant,
+                locale
+        );
+        return new Pair<>(next.nextAlarm, next.nextCaution);
     }
 
     public static long getNextAlarm(int interval, int amount, long lastAck, int quant,
                                     Locale locale) {
         Log.d(TAG, "getNextAlarm");
-        Date date = new Date(lastAck);
-        Calendar calendar = new GregorianCalendar(locale);
-        calendar.setTime(date); // время последнего подтверждения
-        int field = fields[interval];
-        if(field == Calendar.FIELD_COUNT) {
-            // YEAR is not supported by calendar.add, so emulate it as 12 months
-            field = Calendar.MONTH;
-            amount = amount * 12;
-        }
-        //noinspection ResourceType
-        calendar.add(field, amount);
-        date = calendar.getTime(); // время срабатывания без учёта квантов
-        long time = date.getTime();
-        long delta = (time - lastAck) / quant;
-        return lastAck + delta;
+        return ReminderCalculator.getNextAlarm(interval, amount, lastAck, quant, locale);
     }
 
     public static String getDateFromNextAlarm(Locale locale, long nextAlarm){
@@ -81,12 +60,6 @@ public class AlarmUtil {
     public static void setupAlarmIfRequired(Context context, InTimeOpenHelper openHelper) {
         Log.d(TAG, "setupAlarmIfRequired");
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (!alarmManager.canScheduleExactAlarms()) {
-                Intent intent = new Intent().setAction(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
-                context.startActivity(intent);
-            }
-        }
         SQLiteDatabase database = DatabaseUtil.getReadableDatabaseFromContext(openHelper);
         final long currentTimestamp = System.currentTimeMillis();
         try (Cursor next_alarm = database.query(DatabaseUtil.TASK_TABLE, new String[]{DatabaseUtil.ID_FIELD, DatabaseUtil.NEXT_ALARM_FIELD, DatabaseUtil.DESCRIPTION_FIELD}, "next_alarm>?", new String[]{Long.toString(currentTimestamp)}, null, null, DatabaseUtil.NEXT_ALARM_FIELD, "1")) {
@@ -98,15 +71,47 @@ public class AlarmUtil {
                         next_alarm.getString(next_alarm.getColumnIndexOrThrow(DatabaseUtil.DESCRIPTION_FIELD)),
                         next_alarm.getLong(next_alarm.getColumnIndexOrThrow(DatabaseUtil.ID_FIELD))
                         );
-                alarmManager.setExactAndAllowWhileIdle(
-                        AlarmManager.RTC_WAKEUP,
-                        nextAlarm,
-                        pendingIntent);
+                scheduleAlarm(alarmManager, nextAlarm, pendingIntent);
             } else {
                 Log.d(TAG, "setupAlarmIfRequired: no task with alarm in future found");
+                cancelScheduledAlarm(context, alarmManager);
             }
         }
     }
+
+    private static void scheduleAlarm(AlarmManager alarmManager, long nextAlarm, PendingIntent pendingIntent) {
+        if (canScheduleExactAlarms(alarmManager)) {
+            alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    nextAlarm,
+                    pendingIntent);
+        } else {
+            Log.w(TAG, "scheduleAlarm: exact alarms are not available, using inexact alarm");
+            alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    nextAlarm,
+                    pendingIntent);
+        }
+    }
+
+    public static boolean canScheduleExactAlarms(AlarmManager alarmManager) {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms();
+    }
+
+    private static void cancelScheduledAlarm(Context context, AlarmManager alarmManager) {
+        Intent intent = new Intent(context, AlarmReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                context,
+                199709,
+                intent,
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_NO_CREATE
+        );
+        if (pendingIntent != null) {
+            alarmManager.cancel(pendingIntent);
+            pendingIntent.cancel();
+        }
+    }
+
     public static String getNotificationString(Context context, String taskDescription, long overdueTasksCount) {
         String formatString = context.getString(R.string.notification_format);
         Locale locale = context.getResources().getConfiguration().locale;

@@ -3,6 +3,8 @@
     android:installLocation="internalOnly">
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
 
     <application
         android:allowBackup="true"
@@ -21,19 +23,23 @@
             android:name=".activity.AddTaskActivity"
             android:exported="false"
             android:label="@string/title_activity_add_task_v2"
-            android:theme="@style/AppTheme" /> <!-- <receiver android:name=".receiver.AlarmReceiver" /> -->
-        <!-- <receiver android:name=".receiver.AckReceiver" /> -->
-        <!-- <receiver -->
-        <!-- android:name=".receiver.BootReceiver" -->
-        <!-- android:enabled="true" -->
-        <!-- android:exported="true"> -->
-        <!-- <intent-filter> -->
-        <!-- <action android:name="android.intent.action.BOOT_COMPLETED" /> -->
-        <!-- </intent-filter> -->
-        <!-- <intent-filter> -->
-        <!-- <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" /> -->
-        <!-- </intent-filter> -->
-        <!-- </receiver> -->
+            android:theme="@style/AppTheme" />
+
+        <receiver
+            android:name=".receiver.AlarmReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".receiver.AckReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".receiver.BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
         <activity
             android:name=".activity.MainActivityV2"
             android:exported="true">

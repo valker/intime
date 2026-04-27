@@ -1,7 +1,6 @@
 package com.vpe_soft.intime.intime.receiver;
 
 import android.app.Notification;
-import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -17,6 +16,7 @@ import com.vpe_soft.intime.intime.activity.MainActivity;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
 import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
+import com.vpe_soft.intime.intime.notifications.NotificationHelper;
 
 /** 
  * Created by Valentin on 26.08.2015.
@@ -61,6 +61,9 @@ public class AlarmReceiver extends BroadcastReceiver {
             if(!MainActivity.isOnScreen) {
                 Log.d(TAG, "onReceive: will show notification");
                 showNotification(context, notificationString, overdueTaskId);
+                if (overdueTaskId >= 0) {
+                    DatabaseUtil.markTaskNotified(overdueTaskId, openHelper);
+                }
             } else {
                 Log.d(TAG, "onReceive: won't show notification");
             }
@@ -76,17 +79,8 @@ public class AlarmReceiver extends BroadcastReceiver {
         NotificationManager notificationManager;
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // https://developer.android.com/training/notify-user/build-notification
-            // gets notification manager (new style), creates notification channel and notification builder
-            CharSequence name = context.getString(R.string.channel_name);
-            String description = context.getString(R.string.channel_description);
-            int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            NotificationChannel channel = new NotificationChannel(Constants.TASK_OVERDUE_CHANNEL_ID, name, importance);
-            channel.setDescription(description);
-            // Register the channel with the system; you can't change the importance
-            // or other notification behaviors after this
+            NotificationHelper.ensureTaskOverdueChannel(context);
             notificationManager = context.getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(channel);
             builder = new NotificationCompat.Builder(context, Constants.TASK_OVERDUE_CHANNEL_ID);
         } else {
             // gets notification manager (old style) and creates notification builder
@@ -105,10 +99,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         builder.setSmallIcon(R.drawable.notification_icon);
         builder.setDefaults(Notification.DEFAULT_ALL);
 
-        Intent mainActIntent = new Intent(context, MainActivity.class);
-        PendingIntent mainActivityIntent =
-                PendingIntent.getActivity(context, 0, mainActIntent, PendingIntent.FLAG_IMMUTABLE);
-        builder.setContentIntent(mainActivityIntent);
+        builder.setContentIntent(NotificationHelper.createOpenTaskListPendingIntent(context));
         if(overdueTaskId >= 0) {
             Intent ackTaskIntent = new Intent(context, AckReceiver.class);
             ackTaskIntent.setAction(Constants.ACTION_ACKNOWLEDGE);

@@ -1,21 +1,24 @@
 package com.vpe_soft.intime.intime.receiver;
 
+import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.content.SharedPreferences;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 
 import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.R;
-import com.vpe_soft.intime.intime.activity.MainActivity;
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
 import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
+import com.vpe_soft.intime.intime.notifications.NotificationHelper;
 
 /**
  * Created by Valentin on 26.08.2015.
@@ -27,10 +30,7 @@ public class BootReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         Log.d(TAG, "onReceive");
         final String intentAction = intent.getAction();
-        if (intentAction.equals(Intent.ACTION_BOOT_COMPLETED)
-                ||
-            intentAction.equals(Intent.ACTION_LOCKED_BOOT_COMPLETED)
-                ) {
+        if (Intent.ACTION_BOOT_COMPLETED.equals(intentAction)) {
             Log.d(TAG, "onReceive: " + intentAction);
             //1. get list of tasks that have next alarm between last-run and current time
             // 1.1 get last usage timestamp
@@ -43,20 +43,7 @@ public class BootReceiver extends BroadcastReceiver {
                 //2. if this list is not empty, generate notification
                 if(tasksCount > 0) {
                     Log.d(TAG, "onReceive: overdue tasks were found");
-                    // we will raise a notification
-                    NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                    NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
-                    builder.setContentTitle(context.getResources().getString(R.string.app_name));
-                    builder.setContentText(context.getString(R.string.boot_completed_overdue_tasks_notification));
-                    builder.setSmallIcon(R.drawable.notification_icon);
-                    Intent mainActIntent = new Intent(context, MainActivity.class);
-                    PendingIntent mainActivityIntent = PendingIntent.getActivity(context,
-                                                                                 0,
-                                                                                 mainActIntent,
-                                                                                 PendingIntent.FLAG_IMMUTABLE);
-                    builder.setContentIntent(mainActivityIntent);
-                    Notification notification = builder.build();
-                    notificationManager.notify(AlarmUtil.NOTIFICATION_TAG, 1, notification);
+                    showBootNotification(context);
                 } else {
                     Log.d(TAG, "onReceive: not found overdue tasks");
                 }
@@ -65,5 +52,24 @@ public class BootReceiver extends BroadcastReceiver {
                 AlarmUtil.setupAlarmIfRequired(context, openHelper);
             }
         }
+    }
+
+    private static void showBootNotification(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            Log.d(TAG, "showBootNotification: notification permission is not granted");
+            return;
+        }
+
+        NotificationHelper.ensureTaskOverdueChannel(context);
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, Constants.TASK_OVERDUE_CHANNEL_ID);
+        builder.setContentTitle(context.getString(R.string.channel_name));
+        builder.setContentText(context.getString(R.string.boot_completed_overdue_tasks_notification));
+        builder.setSmallIcon(R.drawable.notification_icon);
+        builder.setContentIntent(NotificationHelper.createOpenTaskListPendingIntent(context));
+        Notification notification = builder.build();
+        notificationManager.notify(AlarmUtil.NOTIFICATION_TAG, 1, notification);
     }
 }

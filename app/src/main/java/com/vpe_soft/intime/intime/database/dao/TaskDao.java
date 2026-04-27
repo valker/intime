@@ -43,4 +43,7 @@ public interface TaskDao {
 
     @Query("SELECT * FROM tasks WHERE next_alarm <= :now AND wasNotified = 0")
     List<TaskEntity> getTasksForNotification(long now);
+
+    @Query("UPDATE tasks SET wasNotified = 1 WHERE id = :taskId")
+    void markTaskNotified(long taskId);
 }

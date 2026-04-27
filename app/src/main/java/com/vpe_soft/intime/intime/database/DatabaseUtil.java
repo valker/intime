@@ -26,6 +26,7 @@ public class DatabaseUtil {
     public static final String NEXT_CAUTION_FIELD = "next_caution";
     public static final String LAST_ACK_FIELD = "last_ack";
     public static final String QUANT_FIELD = "quant";
+    public static final String WAS_NOTIFIED_FIELD = "wasNotified";
 
     public static Cursor createCursor(InTimeOpenHelper openHelper) {
         SQLiteDatabase database = getReadableDatabaseFromContext(openHelper);
@@ -111,6 +112,7 @@ public class DatabaseUtil {
         values.put(NEXT_ALARM_FIELD, nextAlarmMoment);
         values.put(NEXT_CAUTION_FIELD, nextCautionMoment);
         values.put(LAST_ACK_FIELD, currentTimeMillis);
+        values.put(WAS_NOTIFIED_FIELD, 0);
         String whereClause = "id=?";
         SQLiteDatabase database = getWritableDatabaseFromContext(openHelper);
         final int result = database.update(TASK_TABLE, values, whereClause, withId(id));
@@ -194,6 +196,13 @@ public class DatabaseUtil {
         contentValues.put(NEXT_ALARM_FIELD, task.getNextAlarm());
         contentValues.put(NEXT_CAUTION_FIELD, task.getNextCaution());
         contentValues.put(QUANT_FIELD, task.getQuant());
+        contentValues.put(WAS_NOTIFIED_FIELD, 0);
+        updateTaskImpl(id, contentValues, openHelper);
+    }
+
+    public static void markTaskNotified(long id, InTimeOpenHelper openHelper) {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(WAS_NOTIFIED_FIELD, 1);
         updateTaskImpl(id, contentValues, openHelper);
     }
 
