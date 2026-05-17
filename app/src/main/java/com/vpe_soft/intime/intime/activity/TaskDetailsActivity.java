@@ -13,8 +13,6 @@ import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.repositories.TaskRepository;
 import com.vpe_soft.intime.intime.view_models.TaskViewModel;
 
-import java.util.Locale;
-
 public class TaskDetailsActivity extends AppCompatActivity {
 
     private TaskViewModel taskViewModel;
@@ -53,16 +51,8 @@ public class TaskDetailsActivity extends AppCompatActivity {
 
         Button btnAck = findViewById(R.id.btnAckTask);
         btnAck.setOnClickListener(v -> {
-            taskViewModel.ack(taskId, System.currentTimeMillis());
+            taskRepository.acknowledgeTaskAsync(taskId);
             finish();
-        });
-
-        taskViewModel.taskToAcknowledge.observe(this, task->{
-            if (task != null) {
-                long currentTimeMillis = System.currentTimeMillis();
-                Locale locale = Locale.getDefault();
-                new Thread(() -> taskRepository.acknowledgeTask(task.id, currentTimeMillis, task.interval, task.amount, task.quant, locale)).start();
-            }
         });
     }
 

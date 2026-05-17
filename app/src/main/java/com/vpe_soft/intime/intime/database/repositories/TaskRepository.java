@@ -4,6 +4,7 @@ import android.app.Application;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.util.Pair;
 
 import androidx.lifecycle.LiveData;
@@ -20,6 +21,8 @@ import java.util.Locale;
 import java.util.concurrent.Executors;
 
 public class TaskRepository {
+    private static final String TAG = "TaskRepository";
+
     private final AppDatabase db;
     private final TaskDao taskDao;
     private final Context appContext;
@@ -71,9 +74,34 @@ public class TaskRepository {
         });
     }
 
+    /**
+     * Acknowledges a task on a background thread. Safe to call from broadcast receivers and UI.
+     */
+    public void acknowledgeTaskAsync(long taskId) {
+        Executors.newSingleThreadExecutor().execute(() -> acknowledgeTaskById(taskId));
+    }
+
+    /**
+     * Must run on a background thread (uses Room and schedules alarms).
+     */
+    public void acknowledgeTaskById(long taskId) {
+        TaskEntity task = taskDao.getRawTaskById(taskId);
+        if (task == null) {
+            Log.w(TAG, "acknowledgeTaskById: task not found, id=" + taskId);
+            return;
+        }
+        Locale locale = resolveLocale();
+        acknowledgeTask(
+                taskId,
+                System.currentTimeMillis(),
+                task.interval,
+                task.amount,
+                task.quant,
+                locale
+        );
+    }
+
     public void acknowledgeTask(long taskId, long currentTimeMillis, int interval, int amount, int quant, Locale locale) {
-        //long nextAlarm = calculateNextTime(currentTimeMillis, interval, amount, quant);
-        //long nextCaution = calculateNextTime(currentTimeMillis, interval, amount, quant / 2);
         final Pair<Long, Long> nextAlarmAndCaution = AlarmUtil.getNextAlarmAndCaution(interval, amount, currentTimeMillis, quant, locale);
 
         taskDao.acknowledgeTask(taskId, currentTimeMillis, nextAlarmAndCaution.first, nextAlarmAndCaution.second);
@@ -102,6 +130,13 @@ public class TaskRepository {
                 mainHandler.post(() -> onError.accept(e));
             }
         });
+    }
+
+    private Locale resolveLocale() {
+        if (!appContext.getResources().getConfiguration().getLocales().isEmpty()) {
+            return appContext.getResources().getConfiguration().getLocales().get(0);
+        }
+        return Locale.getDefault();
     }
 
     private void rescheduleNextAlarm() {

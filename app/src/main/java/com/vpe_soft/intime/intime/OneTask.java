@@ -10,6 +10,8 @@ import com.vpe_soft.intime.intime.database.TaskState;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 import com.vpe_soft.intime.intime.scheduling.SchedulingCoordinator;
 
+import java.util.concurrent.Executors;
+
 public class OneTask {
     private static final String TAG = "OneTask";
 
@@ -38,8 +40,11 @@ public class OneTask {
 
     public static void createAlarm(Context context, InTimeOpenHelper openHelper) {
         Log.d(TAG, "createAlarm");
-        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.cancel(AlarmUtil.NOTIFICATION_TAG, 1);
-        SchedulingCoordinator.reschedule(context);
+        Context appContext = context.getApplicationContext();
+        NotificationManager notificationManager = (NotificationManager) appContext.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (notificationManager != null) {
+            notificationManager.cancel(AlarmUtil.NOTIFICATION_TAG, 1);
+        }
+        Executors.newSingleThreadExecutor().execute(() -> SchedulingCoordinator.reschedule(appContext));
     }
 }
