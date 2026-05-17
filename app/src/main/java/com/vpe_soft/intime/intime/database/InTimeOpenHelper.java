@@ -15,7 +15,7 @@ public class InTimeOpenHelper extends SQLiteOpenHelper {
     private static final String TAG = "InTimeOpenHelper";
 
     public InTimeOpenHelper(Context context) {
-        super(context, Constants.dbName, null, 5);
+        super(context, Constants.dbName, null, 6); // указал явно 6-ю версию, хотя миграции для неё здесь нет. Миграцию будет делать AppDatabase. ТРЕБУЕТСЯ, чтобы версии схемы БД совпадали!
     }
 
     @Override
