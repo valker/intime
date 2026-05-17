@@ -4,6 +4,7 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Looper;
 import android.util.Log;
 
 import com.vpe_soft.intime.intime.Constants;
@@ -13,6 +14,9 @@ import com.vpe_soft.intime.intime.database.entities.TaskEntity;
 import com.vpe_soft.intime.intime.receiver.AlarmReceiver;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 /**
  * Schedules the nearest future task reminder via AlarmManager using Room as source of truth.
  */
@@ -20,16 +24,25 @@ public final class SchedulingCoordinator {
 
     private static final String TAG = "SchedulingCoordinator";
     private static final int ALARM_REQUEST_CODE = 199709;
+    private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
 
     private SchedulingCoordinator() {
     }
 
     /**
      * Reschedules the platform alarm for the nearest task with {@code next_alarm} in the future.
-     * Must be called from a background thread when invoked from broadcast receivers.
+     * Safe to call from any thread; Room access always runs off the main thread.
      */
     public static void reschedule(Context context) {
         Context appContext = context.getApplicationContext();
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            EXECUTOR.execute(() -> rescheduleInternal(appContext));
+            return;
+        }
+        rescheduleInternal(appContext);
+    }
+
+    private static void rescheduleInternal(Context appContext) {
         TaskDao taskDao = AppDatabase.getInstance(appContext).taskDao();
         long now = System.currentTimeMillis();
         TaskEntity nearest = taskDao.getNearestFutureTask(now);
