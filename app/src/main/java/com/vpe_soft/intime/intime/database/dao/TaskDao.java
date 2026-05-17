@@ -44,6 +44,18 @@ public interface TaskDao {
     @Query("SELECT * FROM tasks WHERE next_alarm <= :now AND wasNotified = 0")
     List<TaskEntity> getTasksForNotification(long now);
 
+    @Query("SELECT * FROM tasks WHERE next_alarm > :now ORDER BY next_alarm ASC LIMIT 1")
+    TaskEntity getNearestFutureTask(long now);
+
+    @Query("SELECT COUNT(*) FROM tasks WHERE next_alarm < :now")
+    int countOverdueTasks(long now);
+
+    @Query("SELECT COUNT(*) FROM tasks WHERE next_alarm > :lastUsage AND next_alarm < :now")
+    int countSkippedTasks(long lastUsage, long now);
+
+    @Query("SELECT COUNT(*) FROM tasks")
+    int getTaskCount();
+
     @Query("UPDATE tasks SET wasNotified = 1 WHERE id = :taskId")
     void markTaskNotified(long taskId);
 }

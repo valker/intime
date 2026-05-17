@@ -114,7 +114,7 @@ working while new Kotlin/Compose pieces are introduced.
 
 ## Scheduling Model
 
-The app needs one documented scheduling model. Current product decisions:
+Product decisions:
 
 - Acknowledgement always recalculates the next reminder from the current
   acknowledgement time.
@@ -125,21 +125,31 @@ The app needs one documented scheduling model. Current product decisions:
 - Later reminders about existing overdue tasks should not include `ACK`; they
   should open the task list.
 
-A likely technical approach:
+Implemented flow:
 
-1. The database is the source of truth.
-2. At any time, schedule only the nearest future due task with `AlarmManager`.
-3. When that alarm fires, mark matching tasks as overdue/notified and show the
-   first due notification.
-4. Include quick `ACK` only when the notification refers to a newly overdue task.
-5. Use exact alarms when available, otherwise fall back to an inexact alarm.
-6. After task changes or acknowledgement, reschedule the nearest future task.
-7. Run occasional reconciliation work with `WorkManager`.
-8. Use reconciliation for calm reminders that overdue tasks exist.
-9. Restore scheduling after reboot.
+1. Room (`TaskDao`) is the source of truth for scheduling queries.
+2. `SchedulingCoordinator.reschedule()` schedules only the nearest task with
+   `next_alarm > now` through `AlarmManager`.
+3. `AlarmReceiver` handles the exact alarm: shows the first-due notification,
+   may include `ACK`, marks the fired task as `wasNotified = 1`, then
+   reschedules the next alarm.
+4. Exact alarms use `setExactAndAllowWhileIdle` when permitted; otherwise the
+   app falls back to `setAndAllowWhileIdle`.
+5. `SchedulingCoordinator.reschedule()` runs after task CRUD/ACK/import, on
+   `MainActivityV2` startup, and after `BOOT_COMPLETED`.
+6. `TaskNotificationWorker` (15-minute periodic work) is reconciliation only:
+   notifies for `next_alarm <= now AND wasNotified = 0`, opens the task list,
+   never adds `ACK`, and does not schedule alarms.
+7. If `POST_NOTIFICATIONS` is denied, workers and receivers exit without
+   treating permission denial as a failure.
 
-The technical details still need implementation design, but the product behavior
-above is decided.
+Key classes:
+
+- `scheduling/SchedulingCoordinator.java`
+- `receiver/AlarmReceiver.java`
+- `workers/TaskNotificationWorker.java`
+- `database/dao/TaskDao.java` (`getNearestFutureTask`, `countOverdueTasks`,
+  `countSkippedTasks`)
 
 ## Import Behavior
 

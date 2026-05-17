@@ -9,11 +9,11 @@ import android.util.Pair;
 import androidx.lifecycle.LiveData;
 
 import com.vpe_soft.intime.intime.database.AppDatabase;
-import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
 import com.vpe_soft.intime.intime.database.dao.TaskDao;
 import com.vpe_soft.intime.intime.database.entities.TaskEntity;
-import com.vpe_soft.intime.intime.import_export.BackupImport;
+import com.vpe_soft.intime.intime.import_export.ImportReplacement;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
+import com.vpe_soft.intime.intime.scheduling.SchedulingCoordinator;
 
 import java.util.List;
 import java.util.Locale;
@@ -95,13 +95,7 @@ public class TaskRepository {
         Handler mainHandler = new Handler(Looper.getMainLooper());
         Executors.newSingleThreadExecutor().execute(() -> {
             try {
-                List<TaskEntity> tasks = BackupImport.parseTasks(jsonContent);
-                db.runInTransaction(() -> {
-                    taskDao.deleteAll();
-                    if (!tasks.isEmpty()) {
-                        taskDao.insertAll(tasks);
-                    }
-                });
+                ImportReplacement.replaceAll(db, jsonContent);
                 rescheduleNextAlarm();
                 mainHandler.post(onSuccess);
             } catch (Exception e) {
@@ -111,9 +105,7 @@ public class TaskRepository {
     }
 
     private void rescheduleNextAlarm() {
-        try (InTimeOpenHelper openHelper = new InTimeOpenHelper(appContext)) {
-            AlarmUtil.setupAlarmIfRequired(appContext, openHelper);
-        }
+        SchedulingCoordinator.reschedule(appContext);
     }
 }
 

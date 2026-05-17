@@ -16,13 +16,13 @@ import androidx.core.content.ContextCompat;
 
 import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.R;
-import com.vpe_soft.intime.intime.database.DatabaseUtil;
-import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
+import com.vpe_soft.intime.intime.database.AppDatabase;
+import com.vpe_soft.intime.intime.database.dao.TaskDao;
 import com.vpe_soft.intime.intime.notifications.NotificationHelper;
+import com.vpe_soft.intime.intime.scheduling.SchedulingCoordinator;
 
-/**
- * Created by Valentin on 26.08.2015.
- */
+import java.util.concurrent.Executors;
+
 public class BootReceiver extends BroadcastReceiver {
     private static final String TAG = "BootReceiver";
 
@@ -30,28 +30,38 @@ public class BootReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         Log.d(TAG, "onReceive");
         final String intentAction = intent.getAction();
-        if (Intent.ACTION_BOOT_COMPLETED.equals(intentAction)) {
-            Log.d(TAG, "onReceive: " + intentAction);
-            //1. get list of tasks that have next alarm between last-run and current time
-            // 1.1 get last usage timestamp
-            SharedPreferences sharedPreferences = context.getSharedPreferences(Constants.SESSION_INFO_SP_NAME, Context.MODE_PRIVATE);
-            final long lastUsageTimestamp = sharedPreferences.getLong(Constants.LAST_USAGE_TIMESTAMP_KEY, 0);
-            final long currentTimestamp = System.currentTimeMillis();
-            // number of tasks were overdue during phone was off
-            try (InTimeOpenHelper openHelper = new InTimeOpenHelper(context)) {
-                final long tasksCount = DatabaseUtil.getNumberOfSkippedTasks(lastUsageTimestamp, currentTimestamp, openHelper);
-                //2. if this list is not empty, generate notification
-                if(tasksCount > 0) {
-                    Log.d(TAG, "onReceive: overdue tasks were found");
-                    showBootNotification(context);
-                } else {
-                    Log.d(TAG, "onReceive: not found overdue tasks");
-                }
-
-                //3. create alarm (if required for future task)
-                AlarmUtil.setupAlarmIfRequired(context, openHelper);
-            }
+        if (!Intent.ACTION_BOOT_COMPLETED.equals(intentAction)) {
+            return;
         }
+
+        final PendingResult pendingResult = goAsync();
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                handleBootCompleted(context);
+            } finally {
+                pendingResult.finish();
+            }
+        });
+    }
+
+    private static void handleBootCompleted(Context context) {
+        Log.d(TAG, "handleBootCompleted");
+        SharedPreferences sharedPreferences = context.getSharedPreferences(
+                Constants.SESSION_INFO_SP_NAME,
+                Context.MODE_PRIVATE);
+        final long lastUsageTimestamp = sharedPreferences.getLong(Constants.LAST_USAGE_TIMESTAMP_KEY, 0);
+        final long currentTimestamp = System.currentTimeMillis();
+
+        TaskDao taskDao = AppDatabase.getInstance(context).taskDao();
+        final int skippedTasks = taskDao.countSkippedTasks(lastUsageTimestamp, currentTimestamp);
+        if (skippedTasks > 0) {
+            Log.d(TAG, "handleBootCompleted: overdue tasks were found while device was off");
+            showBootNotification(context);
+        } else {
+            Log.d(TAG, "handleBootCompleted: no skipped overdue tasks");
+        }
+
+        SchedulingCoordinator.reschedule(context);
     }
 
     private static void showBootNotification(Context context) {

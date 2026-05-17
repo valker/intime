@@ -8,6 +8,8 @@ import android.os.Build;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -24,11 +26,14 @@ import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.adapters.TaskAdapter;
+import com.vpe_soft.intime.intime.scheduling.SchedulingCoordinator;
 import com.vpe_soft.intime.intime.view_models.TaskViewModel;
 import com.vpe_soft.intime.intime.workers.TaskNotificationWorker;
 
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivityV2 extends AppCompatActivity {
@@ -94,6 +99,8 @@ public class MainActivityV2 extends AppCompatActivity {
                     }
                 });
 
+        Executors.newSingleThreadExecutor().execute(() -> SchedulingCoordinator.reschedule(getApplicationContext()));
+
         // запускаем воркер отправки уведомлений
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(TaskNotificationWorker.class.getName(), ExistingPeriodicWorkPolicy.KEEP,
                 new PeriodicWorkRequest.Builder(TaskNotificationWorker.class, 15, TimeUnit.MINUTES)
@@ -120,4 +127,24 @@ public class MainActivityV2 extends AppCompatActivity {
     }
 
     private static final int REQUEST_CODE_NOTIFICATIONS = 1;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        MainActivity.isOnScreen = true;
+        Executors.newSingleThreadExecutor().execute(
+                () -> SchedulingCoordinator.reschedule(getApplicationContext()));
+    }
+
+    @Override
+    protected void onPause() {
+        MainActivity.isOnScreen = false;
+        SharedPreferences sharedPreferences = getSharedPreferences(
+                Constants.SESSION_INFO_SP_NAME,
+                Context.MODE_PRIVATE);
+        sharedPreferences.edit()
+                .putLong(Constants.LAST_USAGE_TIMESTAMP_KEY, System.currentTimeMillis())
+                .apply();
+        super.onPause();
+    }
 }

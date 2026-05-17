@@ -23,6 +23,10 @@ import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 
 import java.util.List;
 
+/**
+ * Periodic reconciliation for overdue tasks that were not handled by the exact alarm.
+ * Does not schedule alarms. Notifications open the task list and never include ACK.
+ */
 public class TaskNotificationWorker extends Worker {
     private final TaskRepository taskRepository;
 

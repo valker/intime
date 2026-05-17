@@ -14,13 +14,15 @@ import android.util.Log;
 import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.activity.MainActivity;
 import com.vpe_soft.intime.intime.R;
-import com.vpe_soft.intime.intime.database.DatabaseUtil;
-import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
+import com.vpe_soft.intime.intime.database.AppDatabase;
+import com.vpe_soft.intime.intime.database.dao.TaskDao;
 import com.vpe_soft.intime.intime.notifications.NotificationHelper;
+import com.vpe_soft.intime.intime.scheduling.SchedulingCoordinator;
 
-/** 
- * Created by Valentin on 26.08.2015.
- * Receives notifications from AlarmManager about next alarm and pass it to MainActivity
+import java.util.concurrent.Executors;
+
+/**
+ * Receives AlarmManager callbacks when the nearest scheduled task becomes due.
  */
 public class AlarmReceiver extends BroadcastReceiver {
 
@@ -29,47 +31,47 @@ public class AlarmReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         Log.d(TAG, "onReceive");
-        String notificationString = null;
-        long overdueTaskId = -1;
-        try {
-            notificationString = intent.getStringExtra(Constants.EXTRA_TASK_DESCRIPTION);
-            overdueTaskId = intent.getLongExtra(Constants.EXTRA_TASK_ID, -1);
-        } catch( Exception e) {
-            Log.e(TAG, "onReceive: unexpected error", e);
-        }
+        final PendingResult pendingResult = goAsync();
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                handleAlarm(context, intent);
+            } finally {
+                pendingResult.finish();
+            }
+        });
+    }
 
+    private static void handleAlarm(Context context, Intent intent) {
+        String notificationString = intent.getStringExtra(Constants.EXTRA_TASK_DESCRIPTION);
+        long overdueTaskId = intent.getLongExtra(Constants.EXTRA_TASK_ID, -1);
 
-        // prevent empty description
-        notificationString = notificationString == null || notificationString.length() == 0
+        notificationString = notificationString == null || notificationString.isEmpty()
                 ? "unknown"
                 : notificationString;
 
         final long currentTimeMillis = System.currentTimeMillis();
-        //todo переписать: вызывать goAsync() https://developer.android.com/develop/background-work/background-tasks/broadcasts
-        try (InTimeOpenHelper openHelper = new InTimeOpenHelper(context)) {
-            long overdueCount = DatabaseUtil.getNumberOfOverDueTasks(currentTimeMillis, openHelper);
+        TaskDao taskDao = AppDatabase.getInstance(context).taskDao();
+        int overdueCount = taskDao.countOverdueTasks(currentTimeMillis);
 
-            // if there are other overdue tasks, modify notification text to let user know about that
-            if(overdueCount > 1) {
-                notificationString = AlarmUtil.getNotificationString(context, notificationString, overdueCount);
-            }
-
-            Intent broadcastIntent = new Intent(Constants.TASK_OVERDUE_ACTION);
-            broadcastIntent.putExtra(Constants.EXTRA_TASK_DESCRIPTION, notificationString);
-            context.sendOrderedBroadcast(broadcastIntent, null);
-
-            if(!MainActivity.isOnScreen) {
-                Log.d(TAG, "onReceive: will show notification");
-                showNotification(context, notificationString, overdueTaskId);
-                if (overdueTaskId >= 0) {
-                    DatabaseUtil.markTaskNotified(overdueTaskId, openHelper);
-                }
-            } else {
-                Log.d(TAG, "onReceive: won't show notification");
-            }
-
-            AlarmUtil.setupAlarmIfRequired(context, openHelper);
+        if (overdueCount > 1) {
+            notificationString = AlarmUtil.getNotificationString(context, notificationString, overdueCount);
         }
+
+        Intent broadcastIntent = new Intent(Constants.TASK_OVERDUE_ACTION);
+        broadcastIntent.putExtra(Constants.EXTRA_TASK_DESCRIPTION, notificationString);
+        context.sendOrderedBroadcast(broadcastIntent, null);
+
+        if (!MainActivity.isOnScreen) {
+            Log.d(TAG, "handleAlarm: will show notification");
+            showNotification(context, notificationString, overdueTaskId);
+            if (overdueTaskId >= 0) {
+                taskDao.markTaskNotified(overdueTaskId);
+            }
+        } else {
+            Log.d(TAG, "handleAlarm: won't show notification");
+        }
+
+        SchedulingCoordinator.reschedule(context);
     }
 
     private static void showNotification(Context context, String notificationString, long overdueTaskId) {
@@ -78,19 +80,17 @@ public class AlarmReceiver extends BroadcastReceiver {
         NotificationCompat.Builder builder;
         NotificationManager notificationManager;
 
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationHelper.ensureTaskOverdueChannel(context);
             notificationManager = context.getSystemService(NotificationManager.class);
             builder = new NotificationCompat.Builder(context, Constants.TASK_OVERDUE_CHANNEL_ID);
         } else {
-            // gets notification manager (old style) and creates notification builder
             notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             builder = new NotificationCompat.Builder(context);
         }
 
         Notification notification = createNotification(context, notificationString, builder, overdueTaskId);
         notificationManager.notify(AlarmUtil.NOTIFICATION_TAG, 1, notification);
-
     }
 
     private static Notification createNotification(Context context, String contentText, NotificationCompat.Builder builder, long overdueTaskId) {
@@ -100,17 +100,17 @@ public class AlarmReceiver extends BroadcastReceiver {
         builder.setDefaults(Notification.DEFAULT_ALL);
 
         builder.setContentIntent(NotificationHelper.createOpenTaskListPendingIntent(context));
-        if(overdueTaskId >= 0) {
+        if (overdueTaskId >= 0) {
             Intent ackTaskIntent = new Intent(context, AckReceiver.class);
             ackTaskIntent.setAction(Constants.ACTION_ACKNOWLEDGE);
             ackTaskIntent.putExtra(Constants.EXTRA_TASK_ID, overdueTaskId);
             PendingIntent acknowledgePendingIntent = PendingIntent.getBroadcast(context,
-                                                                                0,
-                                                                                ackTaskIntent,
-                                                                                PendingIntent.FLAG_IMMUTABLE);
+                    0,
+                    ackTaskIntent,
+                    PendingIntent.FLAG_IMMUTABLE);
             builder.addAction(R.drawable.acknowledge,
-                              context.getString(R.string.acknowledge_from_notification),
-                              acknowledgePendingIntent);
+                    context.getString(R.string.acknowledge_from_notification),
+                    acknowledgePendingIntent);
         }
 
         return builder.build();

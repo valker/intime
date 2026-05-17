@@ -8,6 +8,7 @@ import com.vpe_soft.intime.intime.database.DatabaseUtil;
 import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
 import com.vpe_soft.intime.intime.database.TaskState;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
+import com.vpe_soft.intime.intime.scheduling.SchedulingCoordinator;
 
 public class OneTask {
     private static final String TAG = "OneTask";
@@ -39,6 +40,6 @@ public class OneTask {
         Log.d(TAG, "createAlarm");
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(AlarmUtil.NOTIFICATION_TAG, 1);
-        AlarmUtil.setupAlarmIfRequired(context, openHelper);
+        SchedulingCoordinator.reschedule(context);
     }
 }
