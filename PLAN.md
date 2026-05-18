@@ -5,6 +5,18 @@ reviewable work plan for the `chatgpt` branch. It assumes `PRODUCT.md`,
 `ROADMAP.md`, and `TECH_NOTES.md` remain the source of truth for behavior and
 architecture direction.
 
+## v1 / v2 Code Strategy (from ROADMAP)
+
+- **v2 is the only running app:** `MainActivityV2` is the launcher; v2 screens,
+  Room, `TaskRepository`, and `SchedulingCoordinator` are extended for all new work.
+- **v1 stays in the repo for reference:** `MainActivity`, `NewTaskActivity`,
+  `DatabaseUtil`, `OneTask`, etc. are not registered as entry points and must not
+  be called from v2 code.
+- **No new v2 → v1 dependencies.** Fixes to scheduling, ACK, and UI do not go
+  through legacy SQLite helpers.
+- **Cleanup is optional later:** move legacy files to a `legacy/` package or delete
+  after v2 parity, not as part of every feature PR.
+
 ## Current Baseline
 
 Work already present on the branch:
@@ -21,16 +33,19 @@ Work already present on the branch:
 - Import from JSON with transactional full replacement and parsing tests.
 - Split notification intent: `AlarmReceiver` may offer `ACK` for a newly overdue
   task; `TaskNotificationWorker` opens the task list without `ACK`.
+- **WS1 (scheduling):** `SchedulingCoordinator` on Room; boot + cold start
+  reschedule; `ImportReplacement` + tests; scheduling documented in `TECH_NOTES.md`.
+- **ACK from notification:** `AckReceiver` uses `TaskRepository` on a background
+  thread; `SchedulingCoordinator` refuses main-thread Room access.
 
 Gaps that block a releasable v2:
 
-- Scheduling still reads the database through legacy `InTimeOpenHelper` / raw
-  SQLite while the UI uses Room.
-- `MainActivityV2` does not reschedule alarms on app startup.
-- `WorkManager` periodic work is still the main background entry point from the
-  launcher activity; exact alarm reconciliation is not fully unified.
+- **Legacy coupling:** v2 still references `MainActivity.isOnScreen` (`MainActivityV2`,
+  `AlarmReceiver`). Should be a v2-only visibility helper.
+- **Legacy tree:** v1 classes remain in source (intentional) but must not gain new
+  runtime call sites; audit manifest and imports.
 - Export backup is missing from settings.
-- Room migration and failed-import rollback lack automated tests.
+- Room migration instrumentation tests (v5 → v6) not yet added.
 - No user-facing guidance for exact-alarm permission on Android 12+.
 - UI does not yet meet all Phase 4 criteria (relative time, caution states,
   polished empty/error states).
@@ -42,7 +57,8 @@ Gaps that block a releasable v2:
 2. Use Room as the single source of truth for scheduling decisions.
 3. Preserve product rules: ACK recalculates from now, one overdue state per task,
    calm follow-up reminders, full-replacement import.
-4. Reach a releasable v2 without cloud, accounts, ads, or history analytics.
+4. Keep v1 code archived in-repo while **only v2** is built, shipped, and extended.
+5. Reach a releasable v2 without cloud, accounts, ads, or history analytics.
 
 ## Non-Goals (unchanged from PRODUCT.md)
 
@@ -53,11 +69,32 @@ Gaps that block a releasable v2:
 
 ## Workstreams
 
-### WS1: Unified Scheduling (Phase 1 + Phase 3)
+### WS0: Disconnect v2 from legacy v1 (Phase 2)
 
-**Problem:** `TaskRepository` mutates Room, but `AlarmUtil.setupAlarmIfRequired`
-queries via `InTimeOpenHelper`. `AlarmReceiver` still uses `DatabaseUtil` on the
-legacy path. This can diverge and is hard to test.
+**Problem:** v2 runtime still touches v1 types (`MainActivity.isOnScreen`). That
+blurs the “reference only” rule and causes confusion when fixing v2 bugs.
+
+**Tasks:**
+
+| ID | Task | Done when |
+|----|------|-----------|
+| L0.1 | Introduce v2-owned foreground visibility flag (no `MainActivity` import) | `AlarmReceiver` uses it |
+| L0.2 | Update `MainActivityV2` lifecycle to set/clear that flag + session timestamp | Boot “skipped tasks” logic unchanged |
+| L0.3 | Audit `AndroidManifest.xml`: no legacy activities as launcher or exported | Only v2 entry points |
+| L0.4 | Grep audit: no v2 → `DatabaseUtil` / `OneTask` / `NewTaskActivity` imports | Document exceptions in `TECH_NOTES.md` |
+| L0.5 | Align `TECH_NOTES.md` active vs legacy file lists with manifest | Lists match repo |
+
+**Acceptance:** v2 APK behavior unchanged; legacy files remain in tree but are
+unreachable from v2 code paths.
+
+---
+
+### WS1: Unified Scheduling (Phase 1 + Phase 3) — largely done
+
+**Problem (resolved):** scheduling used raw SQLite while UI used Room. Replaced by
+`SchedulingCoordinator` + `TaskDao`.
+
+**Remaining:** manual smoke on device; optional unit test for `getNearestFutureTask`.
 
 **Target model** (from `TECH_NOTES.md`):
 
@@ -83,7 +120,8 @@ legacy path. This can diverge and is hard to test.
 | S1.5 | Call reschedule from `MainActivityV2` (or `Application`) on cold start | Nearest alarm restored after opening app |
 | S1.6 | Ensure `BootReceiver` uses the same coordinator | Reboot smoke test passes |
 | S1.7 | Review `TaskNotificationWorker`: only reconciliation / follow-up overdue reminders | Worker does not replace exact first-due notifications |
-| S1.8 | Document final scheduling flow in `TECH_NOTES.md` | Diagram or numbered flow matches code |
+| S1.8 | Document final scheduling flow in `TECH_NOTES.md` | Done |
+| S1.9 | `SchedulingCoordinator` safe on main thread (dispatches to executor) | No Room crash from UI/legacy callers |
 
 **Acceptance checks (manual):**
 
@@ -104,7 +142,7 @@ legacy path. This can diverge and is hard to test.
 | T2.1 | Extend `ReminderCalculatorTest` for minutes/weeks and DST/timezone cases | Tests pass in CI/local `./gradlew test` |
 | T2.2 | Add test: overdue task does not get a second "new overdue" event before ACK | Domain or DAO-level test exists |
 | T2.3 | Add instrumentation or migration test from schema v5 fixture to v6 | Upgrade path verified |
-| T2.4 | Add test: invalid import leaves existing tasks unchanged | Transaction rollback asserted |
+| T2.4 | Add test: invalid import leaves existing tasks unchanged | Done (`ImportReplacementTest`) |
 | T2.5 | Add test: successful import replaces all tasks and triggers reschedule hook | Mockito/spy or integration hook verified |
 
 ---
@@ -155,7 +193,7 @@ Complete the v2 experience on current AppCompat/XML before a Compose pilot.
 
 | ID | Task | Done when |
 |----|------|-----------|
-| V5.8 | Kotlin + Compose pilot for task list only | Coexists with legacy screens |
+| V5.8 | Kotlin + Compose pilot for task list only | v2-only; does not reference legacy activities |
 
 ---
 
@@ -180,35 +218,32 @@ Start only after WS1–WS3 acceptance checks pass.
 ## Suggested Execution Order
 
 ```
-WS1 (scheduling) → WS2 (tests) in parallel where possible
-                 → WS3 (backup/export)
-                 → WS4 (permissions UX)
-                 → WS5 (UI polish)
-                 → WS6 (release)
+WS0 (disconnect v2 from legacy) — early, small PRs alongside other work
+WS1 (scheduling) — done; device smoke only
+WS2 (tests) ─┬─ parallel
+WS3 (backup) ┘
+→ WS4 (permissions UX)
+→ WS5 (UI polish)
+→ WS6 (release)
 ```
 
-WS2 migration and import tests can start early if schema fixtures exist, but
-scheduling unification (WS1) should merge before treating notification behavior
-as stable.
+WS0 should complete before large UI refactors so new screens do not copy
+`MainActivity` patterns. WS2 migration tests can proceed in parallel with WS3.
 
-## Sprint 1 Proposal (first implementation pass)
+## Sprint 1 — completed
 
-Scope for the first coding sprint after plan approval:
+1. **S1.1–S1.9** — Room scheduling, receivers, startup/boot, `TECH_NOTES` doc.
+2. **T2.4** — `ImportReplacementTest`.
+3. **ACK fix** — `AckReceiver` / `TaskRepository` off main thread.
+4. **Manual smoke** — still recommended on emulator/device.
 
-1. **S1.1–S1.6** — Room-based scheduling coordinator, startup + boot reschedule,
-   align `AlarmReceiver` with Room.
-2. **S1.7–S1.8** — Worker role clarification and `TECH_NOTES` scheduling doc.
-3. **T2.4** — Failed import leaves DB unchanged (test).
-4. **Manual smoke** — checklist from WS1 acceptance checks.
+## Sprint 2 Proposal (current)
 
-Out of scope for Sprint 1: Compose, export UI, release signing, full UI polish.
-
-## Sprint 2 Proposal
-
-1. **B3.1–B3.2** — Backup format doc + export.
-2. **T2.1–T2.3, T2.5** — Calculator edge cases and migration tests.
-3. **U4.1–U4.4** — Settings permission UX.
-4. **V5.1–V5.3** — List sort, states, relative time.
+1. **L0.1–L0.5** — Remove v2 → legacy coupling; manifest/import audit.
+2. **B3.1–B3.2** — Backup format doc + export.
+3. **T2.1–T2.3, T2.5** — Calculator edge cases and migration tests.
+4. **U4.1–U4.4** — Settings permission UX.
+5. **V5.1–V5.3** — List sort, states, relative time.
 
 ## Sprint 3 Proposal
 
@@ -217,9 +252,9 @@ Out of scope for Sprint 1: Compose, export UI, release signing, full UI polish.
 
 ## Review Checklist
 
-Before implementation starts, please confirm or edit:
-
-- [ ] Room-only scheduling (WS1) is the agreed first priority.
+- [x] Room-only scheduling (WS1) for runtime paths.
+- [x] v1 code in repo as reference; v2 is the only running stack (see ROADMAP).
+- [ ] No v2 imports of legacy UI/data helpers (WS0).
 - [ ] `WorkManager` remains reconciliation-only, not primary exact reminders.
 - [ ] Import stays full-replacement for v2; failed import must not wipe data.
 - [ ] ACK action only on first newly overdue notification.
@@ -229,5 +264,5 @@ Before implementation starts, please confirm or edit:
 ## References
 
 - `PRODUCT.md` — behavior and non-goals
-- `ROADMAP.md` — phase definitions and done criteria
-- `TECH_NOTES.md` — current risks and scheduling direction
+- `ROADMAP.md` — phase definitions, **v1 / v2 code strategy**, done criteria
+- `TECH_NOTES.md` — active vs legacy files, risks, scheduling direction

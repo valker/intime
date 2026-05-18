@@ -3,33 +3,74 @@
 These notes summarize the current technical state of the `chatgpt` branch and
 collect decisions that should be made before larger refactoring.
 
+See `ROADMAP.md` (**v1 / v2 Code Strategy**) for the rule that v1 code may remain
+in the repository as reference but must not be part of the running app.
+
 ## Current State
 
 - Branch: `chatgpt`.
 - Android application module: `app`.
-- Current implementation language: mostly Java.
-- Current UI: XML layouts with AppCompat, RecyclerView, Material Components, and
-  CardView.
-- New entry activity: `MainActivityV2`.
-- Persistence: Room database with `TaskEntity`.
-- Background work: WorkManager worker for notifications.
-- Legacy alarm-related classes still exist.
-- Some manifest receivers for alarm and boot handling are currently commented
-  out.
-- Target SDK: 35.
-- Min SDK: 24.
+- Implementation language: mostly Java (Kotlin planned for new code).
+- **Active UI:** v2 XML screens; launcher is `MainActivityV2`.
+- **Persistence (runtime):** Room with `TaskEntity`, schema version 6.
+- **Scheduling (runtime):** `SchedulingCoordinator` + `AlarmManager`; `BootReceiver`
+  and `AlarmReceiver` registered; `TaskNotificationWorker` for reconciliation.
+- **Legacy UI/data paths:** still present in source for reference, not registered
+  as launcher in `AndroidManifest.xml`.
+- Target SDK: 35; min SDK: 24.
 
-## Important Files
+## v1 / v2 Code Layout
 
-- `app/src/main/java/com/vpe_soft/intime/intime/activity/MainActivityV2.java`
-- `app/src/main/java/com/vpe_soft/intime/intime/activity/AddTaskActivity.java`
-- `app/src/main/java/com/vpe_soft/intime/intime/activity/TaskDetailsActivity.java`
-- `app/src/main/java/com/vpe_soft/intime/intime/database/AppDatabase.java`
-- `app/src/main/java/com/vpe_soft/intime/intime/database/entities/TaskEntity.java`
-- `app/src/main/java/com/vpe_soft/intime/intime/database/dao/TaskDao.java`
-- `app/src/main/java/com/vpe_soft/intime/intime/database/repositories/TaskRepository.java`
-- `app/src/main/java/com/vpe_soft/intime/intime/receiver/AlarmUtil.java`
-- `app/src/main/java/com/vpe_soft/intime/intime/workers/TaskNotificationWorker.java`
+| Role | Examples | Rule |
+|------|----------|------|
+| Active v2 | `MainActivityV2`, `AddTaskActivity`, `TaskRepository`, `SchedulingCoordinator` | Extend, wire in manifest, test |
+| Legacy v1 (reference) | `MainActivity`, `NewTaskActivity`, `DatabaseUtil`, `OneTask` | Do not call from v2; do not register as entry points |
+| Shared / transitional | `AlarmUtil` (date strings), `InTimeOpenHelper` (file name only; avoid new SQLite use) | Prefer Room; shrink over time |
+
+New features and bug fixes go through the v2 stack only.
+
+## Active v2 Files (runtime)
+
+- `activity/MainActivityV2.java` — launcher, list, permission prompt, worker enqueue
+- `activity/AddTaskActivity.java`, `activity/TaskDetailsActivity.java`,
+  `activity/SettingsActivity.java`
+- `view_models/TaskViewModel.java`
+- `adapters/TaskAdapter.java`
+- `database/AppDatabase.java`, `entities/TaskEntity.java`, `dao/TaskDao.java`,
+  `repositories/TaskRepository.java`
+- `domain/ReminderCalculator.java`
+- `scheduling/SchedulingCoordinator.java`
+- `import_export/BackupImport.java`, `import_export/ImportReplacement.java`
+- `receiver/AlarmReceiver.java`, `receiver/AckReceiver.java`,
+  `receiver/BootReceiver.java`
+- `notifications/NotificationHelper.java`
+- `workers/TaskNotificationWorker.java`
+- `receiver/AlarmUtil.java` — reminder math helpers and notification copy (no DB)
+
+## Legacy v1 Files (reference only)
+
+Not used by the v2 launcher flow; kept to compare behavior with the old app.
+
+- `activity/MainActivity.java`, `activity/NewTaskActivity.java`
+- `database/DatabaseUtil.java`, `database/InTimeOpenHelper.java`
+- `OneTask.java`
+- `recyclerview/TaskRecyclerViewAdapter.java`
+- Related v1 layouts under `res/layout/` (for example `activity_main.xml` if distinct
+  from v2)
+
+Do not add new imports from v2 code into these classes.
+
+## Known v2 → Legacy Coupling (remove)
+
+These violate the v1 / v2 strategy and should be refactored away:
+
+- `MainActivityV2` sets `MainActivity.isOnScreen` in `onResume` / `onPause`.
+- `AlarmReceiver` reads `MainActivity.isOnScreen` to suppress notifications.
+- `OneTask` / `DatabaseUtil` remain in the tree for v1 reference; v2 ACK must use
+  only `TaskRepository` / `AckReceiver` (already migrated for notification ACK).
+
+Target: a small v2-owned type (for example `UiVisibility` or flag on
+`MainActivityV2`) with no reference to `MainActivity`.
 
 ## Current Risks
 
@@ -99,18 +140,21 @@ large text/UI work, source encoding and resource text should be normalized.
 
 ## Suggested Architecture Direction
 
+All **runtime** work follows the v2 stack. Legacy v1 Java/XML stays in the repo
+only as reference until optional cleanup.
+
 New code should move toward:
 
 - Kotlin for new source files;
-- a domain layer for reminder calculations;
-- Room entities and DAOs as the persistence layer;
+- domain layer for reminder calculations (`ReminderCalculator` already extracted);
+- Room entities and DAOs as the only persistence path at runtime;
 - repositories that expose observable task data;
 - ViewModels that expose UI state;
-- Compose for new screens;
-- tests for domain logic and database migrations.
+- Compose for new screens (pilot on task list after XML MVP);
+- tests for domain logic, import, and database migrations.
 
-The migration should be gradual. The existing Java/XML implementation can remain
-working while new Kotlin/Compose pieces are introduced.
+Do not re-enable legacy activities in the manifest or call `DatabaseUtil` /
+`OneTask` from v2 components.
 
 ## Scheduling Model
 
@@ -156,12 +200,13 @@ Key classes:
 For v2, import should fully replace the current task list. This is mainly a
 debugging and migration tool for loading old-version data into the new version.
 
-Implementation expectations:
+Implementation:
 
-- parse and validate the backup before deleting current tasks;
-- perform replacement transactionally;
-- leave existing tasks unchanged if import fails;
-- communicate import failure clearly to the user or developer.
+- `ImportReplacement.replaceAll()` parses via `BackupImport` before any delete;
+- replacement runs in a Room transaction;
+- invalid JSON leaves existing rows unchanged (`ImportReplacementTest`).
+
+Settings UI calls `TaskRepository.replaceAllWithImportFromJson()`.
 
 ## Testing Priorities
 

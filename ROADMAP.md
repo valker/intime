@@ -15,6 +15,52 @@ Release a modern Android version of Intime that:
 - has a clear, modern UI;
 - is maintainable for future development.
 
+## v1 / v2 Code Strategy
+
+Intime v2 is not a side-by-side rewrite where both UIs stay live. The repository may
+still contain v1 code for reference, but only the v2 stack is built, shipped, and
+extended.
+
+### Active v2 code (used and evolving)
+
+- Entry point and screens under the v2 flow, for example `MainActivityV2`,
+  `AddTaskActivity`, `TaskDetailsActivity`, `SettingsActivity`.
+- Shared infrastructure that v2 depends on: Room (`AppDatabase`, `TaskEntity`,
+  `TaskDao`, `TaskRepository`), domain logic (`ReminderCalculator`),
+  scheduling (`SchedulingCoordinator`), receivers and workers wired for v2.
+- New features and bug fixes land here first.
+
+### Legacy v1 code (reference only, not executed)
+
+- Old UI and data-access paths kept in the repo as historical reference, for
+  example `MainActivity`, `NewTaskActivity`, `DatabaseUtil`, `OneTask`,
+  `TaskRecyclerViewAdapter`, and related XML layouts.
+- Legacy code must not be reachable at runtime:
+  - not declared as launcher or exported entry points in `AndroidManifest.xml`;
+  - not started via `Intent` from v2 code;
+  - not referenced by v2 receivers, workers, repositories, or ViewModels.
+- Legacy code does not need to compile against every new v2 change, but it
+  should remain readable enough to compare behavior when migrating or debugging.
+
+### Rules for new work
+
+1. Do not add new dependencies from v2 code to legacy v1 classes.
+2. Do not fix v2 bugs by extending legacy SQLite helpers (`InTimeOpenHelper`,
+   `DatabaseUtil`) unless the change is explicitly a one-time migration step.
+3. When behavior is moved to v2, update manifest and call sites so the old path
+   is dead; leave the old file in place only as reference until cleanup.
+4. Prefer deleting or moving legacy files to a clearly named package (for
+   example `legacy/`) only after v2 parity is confirmed, not as part of every
+   small change.
+
+### Done when (code strategy)
+
+- `MainActivityV2` is the only launcher activity.
+- No v2 component imports or calls `MainActivity`, `NewTaskActivity`, `OneTask`,
+  or `DatabaseUtil` for normal operation.
+- Notification, boot, and ACK flows use Room and v2 repositories only.
+- `TECH_NOTES.md` lists active vs legacy files and stays aligned with the manifest.
+
 ## Phase 0: Product Definition
 
 Purpose: make the product rules explicit before larger implementation work.
@@ -64,17 +110,21 @@ Done when:
 
 ## Phase 2: Architecture Modernization
 
-Purpose: prepare the codebase for long-term development.
+Purpose: prepare the v2 codebase for long-term development while v1 code remains
+in the repository only as reference.
 
 Recommended direction:
 
-- Keep old Java/XML code working while new code is introduced gradually.
+- Follow the v1 / v2 code strategy above: evolve v2, do not wire legacy UI back
+  into the running app.
 - Use Kotlin for new application code.
-- Use Room as the local source of truth.
+- Use Room as the local source of truth for all runtime paths.
 - Move business logic out of activities, receivers, and workers.
 - Introduce a testable domain layer for interval and reminder calculations.
 - Prefer coroutines and Flow for new asynchronous code.
 - Introduce dependency injection only when it reduces real wiring complexity.
+- Remove cross-links from v2 to legacy helpers (for example `MainActivity.isOnScreen`,
+  `OneTask`, `DatabaseUtil` in receivers).
 
 Done when:
 
@@ -82,6 +132,7 @@ Done when:
 - New UI code does not directly manipulate database or scheduling internals.
 - The app has a clear separation between UI, domain logic, data access, and
   scheduling.
+- v2 entry points and background components do not depend on legacy v1 classes.
 
 ## Phase 3: Reminder Logic
 
@@ -189,3 +240,6 @@ Done when:
 7. Define notification actions for just-overdue versus already-overdue tasks.
 8. Document and test full-replacement import behavior.
 9. Start Kotlin/Compose migration with the task list screen.
+10. Disconnect v2 from legacy v1: replace `MainActivity.isOnScreen` with a v2-owned
+    visibility flag; ensure receivers and ACK use only `TaskRepository` / Room.
+11. Audit manifest and imports so legacy activities are not registered or referenced.
