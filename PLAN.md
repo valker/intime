@@ -40,10 +40,8 @@ Work already present on the branch:
 
 Gaps that block a releasable v2:
 
-- **Legacy coupling:** v2 still references `MainActivity.isOnScreen` (`MainActivityV2`,
-  `AlarmReceiver`). Should be a v2-only visibility helper.
 - **Legacy tree:** v1 classes remain in source (intentional) but must not gain new
-  runtime call sites; audit manifest and imports.
+  runtime call sites; periodic manifest/import audits.
 - Export backup is missing from settings.
 - Room migration instrumentation tests (v5 → v6) not yet added.
 - No user-facing guidance for exact-alarm permission on Android 12+.
@@ -78,11 +76,11 @@ blurs the “reference only” rule and causes confusion when fixing v2 bugs.
 
 | ID | Task | Done when |
 |----|------|-----------|
-| L0.1 | Introduce v2-owned foreground visibility flag (no `MainActivity` import) | `AlarmReceiver` uses it |
-| L0.2 | Update `MainActivityV2` lifecycle to set/clear that flag + session timestamp | Boot “skipped tasks” logic unchanged |
-| L0.3 | Audit `AndroidManifest.xml`: no legacy activities as launcher or exported | Only v2 entry points |
-| L0.4 | Grep audit: no v2 → `DatabaseUtil` / `OneTask` / `NewTaskActivity` imports | Document exceptions in `TECH_NOTES.md` |
-| L0.5 | Align `TECH_NOTES.md` active vs legacy file lists with manifest | Lists match repo |
+| L0.1 | Introduce v2-owned foreground visibility flag (no `MainActivity` import) | Done (`UiVisibility`) |
+| L0.2 | v2 activities track visibility via `V2Activity`; session timestamp on launcher pause | Done |
+| L0.3 | Audit `AndroidManifest.xml`: no legacy activities as launcher or exported | Done (only `MainActivityV2`) |
+| L0.4 | Grep audit: no v2 → `DatabaseUtil` / `OneTask` / `NewTaskActivity` imports | Done (v2 runtime paths clean) |
+| L0.5 | Align `TECH_NOTES.md` active vs legacy file lists with manifest | Done |
 
 **Acceptance:** v2 APK behavior unchanged; legacy files remain in tree but are
 unreachable from v2 code paths.
@@ -254,7 +252,7 @@ WS0 should complete before large UI refactors so new screens do not copy
 
 - [x] Room-only scheduling (WS1) for runtime paths.
 - [x] v1 code in repo as reference; v2 is the only running stack (see ROADMAP).
-- [ ] No v2 imports of legacy UI/data helpers (WS0).
+- [x] No v2 imports of legacy UI/data helpers (WS0).
 - [ ] `WorkManager` remains reconciliation-only, not primary exact reminders.
 - [ ] Import stays full-replacement for v2; failed import must not wipe data.
 - [ ] ACK action only on first newly overdue notification.

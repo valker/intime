@@ -14,7 +14,6 @@ import android.os.Bundle;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -36,7 +35,7 @@ import com.vpe_soft.intime.intime.workers.TaskNotificationWorker;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class MainActivityV2 extends AppCompatActivity {
+public class MainActivityV2 extends V2Activity {
     private TaskViewModel taskViewModel;
     private TaskAdapter taskAdapter;
     @Override
@@ -131,14 +130,12 @@ public class MainActivityV2 extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        MainActivity.isOnScreen = true;
         Executors.newSingleThreadExecutor().execute(
                 () -> SchedulingCoordinator.reschedule(getApplicationContext()));
     }
 
     @Override
     protected void onPause() {
-        MainActivity.isOnScreen = false;
         SharedPreferences sharedPreferences = getSharedPreferences(
                 Constants.SESSION_INFO_SP_NAME,
                 Context.MODE_PRIVATE);

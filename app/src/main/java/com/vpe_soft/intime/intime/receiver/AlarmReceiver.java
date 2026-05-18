@@ -12,8 +12,8 @@ import android.os.Build;
 import android.util.Log;
 
 import com.vpe_soft.intime.intime.Constants;
-import com.vpe_soft.intime.intime.activity.MainActivity;
 import com.vpe_soft.intime.intime.R;
+import com.vpe_soft.intime.intime.ui.UiVisibility;
 import com.vpe_soft.intime.intime.database.AppDatabase;
 import com.vpe_soft.intime.intime.database.dao.TaskDao;
 import com.vpe_soft.intime.intime.notifications.NotificationHelper;
@@ -61,7 +61,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         broadcastIntent.putExtra(Constants.EXTRA_TASK_DESCRIPTION, notificationString);
         context.sendOrderedBroadcast(broadcastIntent, null);
 
-        if (!MainActivity.isOnScreen) {
+        if (!UiVisibility.isV2UiVisible()) {
             Log.d(TAG, "handleAlarm: will show notification");
             showNotification(context, notificationString, overdueTaskId);
             if (overdueTaskId >= 0) {

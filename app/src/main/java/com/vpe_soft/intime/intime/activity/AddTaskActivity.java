@@ -9,7 +9,6 @@ import android.widget.NumberPicker;
 import android.widget.Spinner;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.vpe_soft.intime.intime.R;
@@ -17,7 +16,7 @@ import com.vpe_soft.intime.intime.database.entities.TaskEntity;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 import com.vpe_soft.intime.intime.view_models.TaskViewModel;
 
-public class AddTaskActivity extends AppCompatActivity {
+public class AddTaskActivity extends V2Activity {
     private EditText editTaskDescription;
     private Button btnSaveTask;
     private TaskViewModel taskViewModel;

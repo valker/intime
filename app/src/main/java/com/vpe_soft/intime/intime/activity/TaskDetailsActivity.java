@@ -6,14 +6,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.repositories.TaskRepository;
 import com.vpe_soft.intime.intime.view_models.TaskViewModel;
 
-public class TaskDetailsActivity extends AppCompatActivity {
+public class TaskDetailsActivity extends V2Activity {
 
     private TaskViewModel taskViewModel;
     private long taskId;

@@ -9,7 +9,6 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.databinding.DataBindingUtil;
 
 import com.vpe_soft.intime.intime.BuildConfig;
@@ -21,7 +20,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
-public class SettingsActivity extends AppCompatActivity {
+public class SettingsActivity extends V2Activity {
 
     private static final String TAG = "SettingsActivity";
 

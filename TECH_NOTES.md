@@ -46,6 +46,7 @@ New features and bug fixes go through the v2 stack only.
 - `notifications/NotificationHelper.java`
 - `workers/TaskNotificationWorker.java`
 - `receiver/AlarmUtil.java` — reminder math helpers and notification copy (no DB)
+- `ui/UiVisibility.java`, `activity/V2Activity.java` — v2 foreground tracking
 
 ## Legacy v1 Files (reference only)
 
@@ -60,17 +61,17 @@ Not used by the v2 launcher flow; kept to compare behavior with the old app.
 
 Do not add new imports from v2 code into these classes.
 
-## Known v2 → Legacy Coupling (remove)
+## v2 Foreground Visibility
 
-These violate the v1 / v2 strategy and should be refactored away:
+- `UiVisibility` counts started v2 activities (`V2Activity.onStart` / `onStop`).
+- `AlarmReceiver` skips posting a notification when `UiVisibility.isV2UiVisible()`.
+- v2 screens extend `V2Activity`: `MainActivityV2`, `AddTaskActivity`,
+  `TaskDetailsActivity`, `SettingsActivity`.
+- `MainActivityV2.onPause` still writes `LAST_USAGE_TIMESTAMP` for boot
+  reconciliation.
 
-- `MainActivityV2` sets `MainActivity.isOnScreen` in `onResume` / `onPause`.
-- `AlarmReceiver` reads `MainActivity.isOnScreen` to suppress notifications.
-- `OneTask` / `DatabaseUtil` remain in the tree for v1 reference; v2 ACK must use
-  only `TaskRepository` / `AckReceiver` (already migrated for notification ACK).
-
-Target: a small v2-owned type (for example `UiVisibility` or flag on
-`MainActivityV2`) with no reference to `MainActivity`.
+Legacy `MainActivity.isOnScreen` is only used inside v1 `MainActivity` (reference
+code); v2 must not read it.
 
 ## Current Risks
 
