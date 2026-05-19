@@ -44,4 +44,16 @@ public class NotificationHelper {
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
         );
     }
+
+    /**
+     * Removes all notifications posted by this app. Called when the user opens
+     * any v2 screen (launcher or notification tap).
+     */
+    public static void dismissAllAppNotifications(Context context) {
+        NotificationManager notificationManager = context.getSystemService(NotificationManager.class);
+        if (notificationManager == null) {
+            return;
+        }
+        notificationManager.cancelAll();
+    }
 }

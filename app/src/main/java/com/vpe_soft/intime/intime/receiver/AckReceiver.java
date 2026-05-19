@@ -1,6 +1,5 @@
 package com.vpe_soft.intime.intime.receiver;
 
-import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -8,6 +7,7 @@ import android.util.Log;
 
 import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.database.repositories.TaskRepository;
+import com.vpe_soft.intime.intime.notifications.NotificationHelper;
 
 import java.util.concurrent.Executors;
 
@@ -27,11 +27,7 @@ public class AckReceiver extends BroadcastReceiver {
         Context appContext = context.getApplicationContext();
         Executors.newSingleThreadExecutor().execute(() -> {
             try {
-                NotificationManager notificationManager =
-                        (NotificationManager) appContext.getSystemService(Context.NOTIFICATION_SERVICE);
-                if (notificationManager != null) {
-                    notificationManager.cancel(AlarmUtil.NOTIFICATION_TAG, 1);
-                }
+                NotificationHelper.dismissAllAppNotifications(appContext);
                 new TaskRepository(appContext).acknowledgeTaskById(taskId);
             } finally {
                 pendingResult.finish();

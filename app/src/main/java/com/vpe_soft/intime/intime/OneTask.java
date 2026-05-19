@@ -1,13 +1,12 @@
 package com.vpe_soft.intime.intime;
 
-import android.app.NotificationManager;
 import android.content.Context;
 import android.util.Log;
 
 import com.vpe_soft.intime.intime.database.DatabaseUtil;
 import com.vpe_soft.intime.intime.database.InTimeOpenHelper;
 import com.vpe_soft.intime.intime.database.TaskState;
-import com.vpe_soft.intime.intime.receiver.AlarmUtil;
+import com.vpe_soft.intime.intime.notifications.NotificationHelper;
 import com.vpe_soft.intime.intime.scheduling.SchedulingCoordinator;
 
 import java.util.concurrent.Executors;
@@ -41,10 +40,7 @@ public class OneTask {
     public static void createAlarm(Context context, InTimeOpenHelper openHelper) {
         Log.d(TAG, "createAlarm");
         Context appContext = context.getApplicationContext();
-        NotificationManager notificationManager = (NotificationManager) appContext.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (notificationManager != null) {
-            notificationManager.cancel(AlarmUtil.NOTIFICATION_TAG, 1);
-        }
+        NotificationHelper.dismissAllAppNotifications(appContext);
         Executors.newSingleThreadExecutor().execute(() -> SchedulingCoordinator.reschedule(appContext));
     }
 }

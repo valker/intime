@@ -37,6 +37,8 @@ Work already present on the branch:
   reschedule; `ImportReplacement` + tests; scheduling documented in `TECH_NOTES.md`.
 - **ACK from notification:** `AckReceiver` uses `TaskRepository` on a background
   thread; `SchedulingCoordinator` refuses main-thread Room access.
+- **Notification dismiss on open:** `V2Activity` clears all app notifications in
+  `onStart` (launcher or notification tap).
 
 Gaps that block a releasable v2:
 
@@ -168,6 +170,7 @@ unreachable from v2 code paths.
 | U4.2 | Settings section: exact-alarm availability (Android 12+) with explanation | Copy matches product: precision matters for reminders |
 | U4.3 | User-initiated button to open exact-alarm system settings (UI only, not from receivers) | No background settings intents |
 | U4.4 | Show degraded-precision message when exact alarms unavailable | Visible on settings or list when relevant |
+| U4.5 | Dismiss all app notifications when a v2 screen opens | Done (`V2Activity` + `NotificationHelper`) |
 
 ---
 

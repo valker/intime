@@ -102,6 +102,11 @@ When a task becomes due, Intime shows a notification. Tapping the notification
 should take the user to a useful place, such as the task details screen or the
 main task list.
 
+When the user opens the app while a task notification is still visible—whether
+from the launcher or by tapping the notification—all active notifications from
+Intime must be dismissed. The user should not need to clear them manually from
+the shade.
+
 There are two notification intentions:
 
 - A notification for a task that has just become overdue may include an `ACK`

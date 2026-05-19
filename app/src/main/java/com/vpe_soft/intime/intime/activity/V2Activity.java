@@ -2,6 +2,7 @@ package com.vpe_soft.intime.intime.activity;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.vpe_soft.intime.intime.notifications.NotificationHelper;
 import com.vpe_soft.intime.intime.ui.UiVisibility;
 
 /**
@@ -13,6 +14,7 @@ public abstract class V2Activity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         UiVisibility.onV2ActivityStarted();
+        NotificationHelper.dismissAllAppNotifications(getApplicationContext());
     }
 
     @Override

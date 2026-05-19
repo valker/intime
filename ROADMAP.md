@@ -107,6 +107,7 @@ Done when:
   occurrences.
 - Reminders still work after device reboot.
 - Notification permission denial is handled gracefully.
+- Opening any v2 screen dismisses all active Intime notifications.
 
 ## Phase 2: Architecture Modernization
 
@@ -181,6 +182,8 @@ UI priorities:
 - Keep destructive actions confirmable.
 - Make overdue reminders informative without encouraging accidental bulk
   acknowledgement.
+- Clear all app notifications when the user opens the app (launcher or
+  notification tap).
 
 Done when:
 

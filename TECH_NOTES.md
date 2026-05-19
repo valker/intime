@@ -69,6 +69,9 @@ Do not add new imports from v2 code into these classes.
   `TaskDetailsActivity`, `SettingsActivity`.
 - `MainActivityV2.onPause` still writes `LAST_USAGE_TIMESTAMP` for boot
   reconciliation.
+- `V2Activity.onStart` calls `NotificationHelper.dismissAllAppNotifications()` so
+  overdue notifications disappear when the user opens the app (launcher or
+  notification tap).
 
 Legacy `MainActivity.isOnScreen` is only used inside v1 `MainActivity` (reference
 code); v2 must not read it.
@@ -187,6 +190,8 @@ Implemented flow:
    never adds `ACK`, and does not schedule alarms.
 7. If `POST_NOTIFICATIONS` is denied, workers and receivers exit without
    treating permission denial as a failure.
+8. When any v2 activity starts, all notifications posted by the app are dismissed
+   (`NotificationManager.cancelAll()`).
 
 Key classes:
 
