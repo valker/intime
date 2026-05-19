@@ -6,26 +6,27 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+
 import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.entities.TaskEntity;
+import com.vpe_soft.intime.intime.ui.RelativeTimeFormatter;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 
 public class TaskAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-    private List<TaskEntity> tasks = new ArrayList<>();
+    private final List<TaskEntity> tasks = new ArrayList<>();
     private static final int ITEM_TYPE_TASK = 0;
     private static final int ITEM_TYPE_DIVIDER = 1;
     private final OnTaskClickListener listener;
-    private int firstUpcomingTaskPosition;
+    private int firstUpcomingTaskPosition = -1;
+    private long currentTimeMillis = System.currentTimeMillis();
 
     public TaskAdapter(@NonNull OnTaskClickListener listener) {
         this.listener = listener;
@@ -33,64 +34,64 @@ public class TaskAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     public void submitList(List<TaskEntity> newTasks) {
         tasks.clear();
-        tasks.addAll(newTasks);
+        if (newTasks != null) {
+            tasks.addAll(newTasks);
+        }
         notifyDataSetChanged();
+    }
+
+    public void setCurrentTimeMillis(long currentTimeMillis) {
+        this.currentTimeMillis = currentTimeMillis;
     }
 
     @Override
     public int getItemViewType(int position) {
-        // Вставляем разделитель, если задача просрочена
-
-        if(position == 0) return ITEM_TYPE_TASK;
-
-        int firstUpcomingTaskPosition = findFirstUpcomingTask(tasks);
-
-        if (position == firstUpcomingTaskPosition) {
-            return ITEM_TYPE_DIVIDER; // Разделитель между просроченными и актуальными задачами
-        } else {
-            return ITEM_TYPE_TASK; // Обычная задача
+        if (position == 0) {
+            return ITEM_TYPE_TASK;
         }
+        if (firstUpcomingTaskPosition > 0 && position == firstUpcomingTaskPosition) {
+            return ITEM_TYPE_DIVIDER;
+        }
+        return ITEM_TYPE_TASK;
     }
 
-    public int findFirstUpcomingTask(List<TaskEntity> tasks) {
-        long currentTime = System.currentTimeMillis();
-
-        // Используем binarySearch для поиска позиции
-        int index = Collections.binarySearch(tasks, TaskEntity.CreateWithNextAlarm(currentTime+1),
-                Comparator.comparingLong(TaskEntity::getNextAlarm));
-
-        // Если элемент найден, index будет >= 0, иначе нужно вернуть первое подходящее
+    public int findFirstUpcomingTask(List<TaskEntity> taskList) {
+        long currentTime = currentTimeMillis;
+        int index = Collections.binarySearch(
+                taskList,
+                TaskEntity.CreateWithNextAlarm(currentTime + 1),
+                Comparator.comparingLong(TaskEntity::getNextAlarm)
+        );
         if (index < 0) {
             index = -index - 1;
         }
+        return (index < taskList.size()) ? index : -1;
+    }
 
-        // Если индекс меньше длины списка, возвращаем его, иначе -1
-        return (index < tasks.size()) ? index : -1;
+    private int toTaskIndex(int adapterPosition) {
+        if (firstUpcomingTaskPosition > 0 && adapterPosition >= firstUpcomingTaskPosition) {
+            return adapterPosition - 1;
+        }
+        return adapterPosition;
     }
 
     @NonNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-
         if (viewType == ITEM_TYPE_TASK) {
             View itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_task, parent, false);
             return new TaskViewHolder(itemView);
-        } else {
-            View itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_divider, parent, false);
-            return new DividerViewHolder(itemView);
         }
+        View itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_divider, parent, false);
+        return new DividerViewHolder(itemView);
     }
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         if (holder instanceof TaskViewHolder) {
-            if(firstUpcomingTaskPosition > 0 && position >= firstUpcomingTaskPosition) {
-                position--;
-            }
-            TaskEntity task = tasks.get(position);
-            ((TaskViewHolder) holder).bind(task);
+            TaskEntity task = tasks.get(toTaskIndex(position));
+            ((TaskViewHolder) holder).bind(task, currentTimeMillis);
         } else if (holder instanceof DividerViewHolder) {
-            // Вставляем иконку разделителя
             ((DividerViewHolder) holder).bind();
         }
     }
@@ -98,8 +99,10 @@ public class TaskAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     @Override
     public int getItemCount() {
         firstUpcomingTaskPosition = findFirstUpcomingTask(tasks);
-        if(firstUpcomingTaskPosition <= 0) return tasks.size();
-        else return tasks.size() + 1;
+        if (firstUpcomingTaskPosition <= 0) {
+            return tasks.size();
+        }
+        return tasks.size() + 1;
     }
 
     class TaskViewHolder extends RecyclerView.ViewHolder {
@@ -112,36 +115,39 @@ public class TaskAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             textNextAlarm = itemView.findViewById(R.id.textNextAlarm);
 
             itemView.setOnClickListener(v -> {
-                if(listener != null) {
-                    listener.onTaskClick(tasks.get(getAdapterPosition()));
+                int adapterPosition = getBindingAdapterPosition();
+                if (adapterPosition == RecyclerView.NO_POSITION || listener == null) {
+                    return;
                 }
+                listener.onTaskClick(tasks.get(toTaskIndex(adapterPosition)));
             });
         }
 
-        void bind(TaskEntity task) {
+        void bind(TaskEntity task, long now) {
             textDescription.setText(task.getDescription());
+            textNextAlarm.setText(RelativeTimeFormatter.formatNextAlarm(itemView.getContext(), task.getNextAlarm(), now));
 
-            SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm dd/MM/yyyy", Locale.getDefault());
-            textNextAlarm.setText(dateFormat.format(task.getNextAlarm()));
-
-            // Проверяем, просрочена ли задача
-            boolean isOverdue = task.getNextAlarm() < System.currentTimeMillis();
-
-            // Меняем стиль в зависимости от просроченности
             final Context context = itemView.getContext();
-            if (isOverdue) {
-                textDescription.setTextColor(ContextCompat.getColor(context, R.color.red));
-                itemView.setBackgroundColor(ContextCompat.getColor(context, R.color.light_red));
-            } else {
-                textDescription.setTextColor(ContextCompat.getColor(context, R.color.black));
-                itemView.setBackgroundColor(ContextCompat.getColor(context, R.color.white));
+            RelativeTimeFormatter.TaskDisplayState state = RelativeTimeFormatter.getDisplayState(task, now);
+            switch (state) {
+                case OVERDUE:
+                    textDescription.setTextColor(ContextCompat.getColor(context, R.color.red));
+                    itemView.setBackgroundColor(ContextCompat.getColor(context, R.color.light_red));
+                    break;
+                case CAUTION:
+                    textDescription.setTextColor(ContextCompat.getColor(context, R.color.cardIndicatorAlmost));
+                    itemView.setBackgroundColor(ContextCompat.getColor(context, R.color.light_yellow));
+                    break;
+                default:
+                    textDescription.setTextColor(ContextCompat.getColor(context, R.color.black));
+                    itemView.setBackgroundColor(ContextCompat.getColor(context, R.color.white));
+                    break;
             }
         }
     }
 
-    // ViewHolder для разделителя
-    public class DividerViewHolder extends RecyclerView.ViewHolder {
-        ImageView dividerIcon;
+    public static class DividerViewHolder extends RecyclerView.ViewHolder {
+        private final ImageView dividerIcon;
 
         public DividerViewHolder(View itemView) {
             super(itemView);
@@ -149,8 +155,7 @@ public class TaskAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
 
         public void bind() {
-            // Вставляем иконку стрелки
-            dividerIcon.setImageResource(R.drawable.baseline_keyboard_arrow_down_24); // Указываем свой ресурс
+            dividerIcon.setImageResource(R.drawable.baseline_keyboard_arrow_down_24);
         }
     }
 

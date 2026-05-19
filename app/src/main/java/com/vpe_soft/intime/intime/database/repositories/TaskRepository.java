@@ -12,6 +12,7 @@ import androidx.lifecycle.LiveData;
 import com.vpe_soft.intime.intime.database.AppDatabase;
 import com.vpe_soft.intime.intime.database.dao.TaskDao;
 import com.vpe_soft.intime.intime.database.entities.TaskEntity;
+import com.vpe_soft.intime.intime.import_export.BackupExport;
 import com.vpe_soft.intime.intime.import_export.ImportReplacement;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 import com.vpe_soft.intime.intime.scheduling.SchedulingCoordinator;
@@ -114,6 +115,23 @@ public class TaskRepository {
 
     public void markTaskNotified(long taskId) {
         taskDao.markTaskNotified(taskId);
+    }
+
+    /**
+     * Builds backup JSON on a background thread; callbacks run on the main thread.
+     */
+    public void exportAllTasksToJson(
+            java.util.function.Consumer<String> onJsonReady,
+            java.util.function.Consumer<Exception> onError) {
+        Handler mainHandler = new Handler(Looper.getMainLooper());
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                String json = BackupExport.toJson(taskDao.getAllTasksSync());
+                mainHandler.post(() -> onJsonReady.accept(json));
+            } catch (Exception e) {
+                mainHandler.post(() -> onError.accept(e));
+            }
+        });
     }
 
     /**

@@ -34,6 +34,11 @@
     <string name="import_tasks_from_json">Import tasks from JSON</string>
     <string name="import_tasks_success">Tasks imported successfully</string>
     <string name="import_tasks_error">Import failed: %1$s</string>
+    <string name="export_tasks_to_json">Export tasks to JSON</string>
+    <string name="export_tasks_success">Tasks exported successfully</string>
+    <string name="export_tasks_error">Export failed: %1$s</string>
+    <string name="relative_time_today">today</string>
+    <string name="relative_time_tomorrow">tomorrow</string>
     <string-array name="interval_options">
         <item>Минута</item>
         <item>Час</item>

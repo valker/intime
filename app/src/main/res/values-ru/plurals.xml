@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="relative_time_in_hours">
+        <item quantity="one">через %d час</item>
+        <item quantity="few">через %d часа</item>
+        <item quantity="many">через %d часов</item>
+        <item quantity="other">через %d часа</item>
+    </plurals>
+    <plurals name="relative_time_in_days">
+        <item quantity="one">через %d день</item>
+        <item quantity="few">через %d дня</item>
+        <item quantity="many">через %d дней</item>
+        <item quantity="other">через %d дня</item>
+    </plurals>
+    <plurals name="relative_time_overdue_hours">
+        <item quantity="one">просрочено на %d час</item>
+        <item quantity="few">просрочено на %d часа</item>
+        <item quantity="many">просрочено на %d часов</item>
+        <item quantity="other">просрочено на %d часа</item>
+    </plurals>
+    <plurals name="relative_time_overdue_days">
+        <item quantity="one">просрочено на %d день</item>
+        <item quantity="few">просрочено на %d дня</item>
+        <item quantity="many">просрочено на %d дней</item>
+        <item quantity="other">просрочено на %d дня</item>
+    </plurals>
+</resources>

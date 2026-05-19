@@ -31,4 +31,9 @@
     <string name="import_tasks_from_json">Импорт задач из JSON</string>
     <string name="import_tasks_success">Задачи успешно импортированы</string>
     <string name="import_tasks_error">Ошибка импорта: %1$s</string>
+    <string name="export_tasks_to_json">Экспорт задач в JSON</string>
+    <string name="export_tasks_success">Задачи успешно экспортированы</string>
+    <string name="export_tasks_error">Ошибка экспорта: %1$s</string>
+    <string name="relative_time_today">сегодня</string>
+    <string name="relative_time_tomorrow">завтра</string>
 </resources>

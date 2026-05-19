@@ -201,6 +201,27 @@ Key classes:
 - `database/dao/TaskDao.java` (`getNearestFutureTask`, `countOverdueTasks`,
   `countSkippedTasks`)
 
+## Backup JSON Format
+
+Used for v2 import/export in Settings. Compatible with the legacy app export shape.
+
+```json
+{
+  "meta": { "version": 1, "exportedAt": 1700000000000 },
+  "tables": {
+    "tasks": {
+      "rows": [
+        [id, "description", interval, amount, next_alarm, next_caution, last_ack, quant]
+      ]
+    }
+  }
+}
+```
+
+- Column order matches `BackupImport` / `BackupExport` (8 fields per row).
+- `wasNotified` is not stored; imported tasks default to `wasNotified = 0`.
+- Import validates JSON before delete; export uses pretty-printed JSON (`toString(2)`).
+
 ## Import Behavior
 
 For v2, import should fully replace the current task list. This is mainly a

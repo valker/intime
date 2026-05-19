@@ -153,8 +153,8 @@ unreachable from v2 code paths.
 
 | ID | Task | Done when |
 |----|------|-----------|
-| B3.1 | Document backup JSON format (short spec, example file) | `docs/backup-format.md` or section in `TECH_NOTES.md` |
-| B3.2 | Add export to JSON from Settings (symmetric with import) | User can round-trip export → import on device |
+| B3.1 | Document backup JSON format (short spec, example file) | Done (`TECH_NOTES.md`) |
+| B3.2 | Add export to JSON from Settings (symmetric with import) | Done (`BackupExport`, Settings) |
 | B3.3 | Validate import before delete (already intended; verify in code review) | Invalid file never calls `deleteAll` |
 | B3.4 | Test migration from old production DB on a real backup | Checklist item recorded in plan or test readme |
 
@@ -182,9 +182,9 @@ Complete the v2 experience on current AppCompat/XML before a Compose pilot.
 
 | ID | Task | Done when |
 |----|------|-----------|
-| V5.1 | Task list sorted by `next_alarm` | Matches product "view tasks" flow |
-| V5.2 | Visual states: upcoming, caution, due, overdue | User can scan list quickly |
-| V5.3 | Relative time strings (today, tomorrow, in N hours, overdue by N days) | RU + EN resources |
+| V5.1 | Task list sorted by `next_alarm` | Done (Room query) |
+| V5.2 | Visual states: upcoming, caution, due, overdue | Done (`RelativeTimeFormatter`, list colors) |
+| V5.3 | Relative time strings (today, tomorrow, in N hours, overdue by N days) | Done (EN + RU plurals) |
 | V5.4 | Empty state when no tasks | Clear CTA to add task |
 | V5.5 | Permission-denied and import error states | No silent failures |
 | V5.6 | Confirm delete on task details | Destructive action is confirmable |

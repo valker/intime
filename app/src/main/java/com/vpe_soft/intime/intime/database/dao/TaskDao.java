@@ -35,6 +35,9 @@ public interface TaskDao {
     @Query("SELECT * FROM tasks ORDER BY next_alarm ASC")
     LiveData<List<TaskEntity>> getAllTasks();
 
+    @Query("SELECT * FROM tasks ORDER BY next_alarm ASC")
+    List<TaskEntity> getAllTasksSync();
+
     @Query("SELECT * FROM tasks WHERE id = :taskId LIMIT 1")
     LiveData<TaskEntity> getTaskById(long taskId);
 

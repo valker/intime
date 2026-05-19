@@ -66,6 +66,7 @@ public class MainActivityV2 extends V2Activity {
         });
 
         taskViewModel.getCurrentTime().observe(this, currentTime -> {
+            taskAdapter.setCurrentTimeMillis(currentTime);
             taskAdapter.notifyDataSetChanged();
         });
 

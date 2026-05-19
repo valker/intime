@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="relative_time_in_hours">
+        <item quantity="one">in %d hour</item>
+        <item quantity="other">in %d hours</item>
+    </plurals>
+    <plurals name="relative_time_in_days">
+        <item quantity="one">in %d day</item>
+        <item quantity="other">in %d days</item>
+    </plurals>
+    <plurals name="relative_time_overdue_hours">
+        <item quantity="one">overdue by %d hour</item>
+        <item quantity="other">overdue by %d hours</item>
+    </plurals>
+    <plurals name="relative_time_overdue_days">
+        <item quantity="one">overdue by %d day</item>
+        <item quantity="other">overdue by %d days</item>
+    </plurals>
+</resources>
