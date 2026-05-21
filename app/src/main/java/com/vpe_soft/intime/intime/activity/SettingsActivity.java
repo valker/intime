@@ -1,14 +1,19 @@
 package com.vpe_soft.intime.intime.activity;
 
+import android.app.AlarmManager;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.content.ContextCompat;
 import androidx.databinding.DataBindingUtil;
 
 import com.vpe_soft.intime.intime.BuildConfig;
@@ -59,6 +64,97 @@ public class SettingsActivity extends V2Activity {
         findViewById(R.id.export_to_json_btn).setOnClickListener(v -> startExport());
         findViewById(R.id.import_from_json_btn).setOnClickListener(v ->
                 openDocumentLauncher.launch(new String[]{"application/json", "text/plain", "*/*"}));
+
+        updatePermissionUI();
+        setupPermissionButtons();
+    }
+
+    private void updatePermissionUI() {
+        updateNotificationPermissionStatus();
+        updateExactAlarmStatus();
+    }
+
+    private void updateNotificationPermissionStatus() {
+        TextView statusText = findViewById(R.id.notification_permission_status);
+        boolean hasPermission = ContextCompat.checkSelfPermission(this,
+                android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+
+        if (hasPermission) {
+            statusText.setText(R.string.notification_permission_granted);
+        } else {
+            statusText.setText(R.string.notification_permission_denied);
+        }
+    }
+
+    private void updateExactAlarmStatus() {
+        TextView statusText = findViewById(R.id.exact_alarm_status);
+        TextView titleText = findViewById(R.id.exact_alarm_title);
+        TextView descriptionText = findViewById(R.id.exact_alarm_description);
+        View buttonView = findViewById(R.id.exact_alarm_btn);
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            titleText.setVisibility(View.GONE);
+            statusText.setVisibility(View.GONE);
+            descriptionText.setVisibility(View.GONE);
+            buttonView.setVisibility(View.GONE);
+            return;
+        }
+
+        titleText.setVisibility(View.VISIBLE);
+        statusText.setVisibility(View.VISIBLE);
+        descriptionText.setVisibility(View.VISIBLE);
+        buttonView.setVisibility(View.VISIBLE);
+
+        boolean canScheduleExact = false;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            AlarmManager alarmManager = getSystemService(AlarmManager.class);
+            if (alarmManager != null) {
+                canScheduleExact = alarmManager.canScheduleExactAlarms();
+            }
+        }
+
+        if (canScheduleExact) {
+            statusText.setText(R.string.exact_alarm_available);
+        } else {
+            statusText.setText(R.string.exact_alarm_unavailable);
+        }
+    }
+
+    private void setupPermissionButtons() {
+        findViewById(R.id.notification_permission_btn).setOnClickListener(v ->
+                openNotificationSettings());
+        findViewById(R.id.exact_alarm_btn).setOnClickListener(v ->
+                openExactAlarmSettings());
+    }
+
+    private void openNotificationSettings() {
+        Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+        intent.putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+        try {
+            startActivity(intent);
+        } catch (Exception e) {
+            Log.w(TAG, "Could not open notification settings", e);
+            Toast.makeText(this, "Could not open notification settings", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void openExactAlarmSettings() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
+                Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                intent.setData(Uri.fromParts("package", getPackageName(), null));
+                startActivity(intent);
+            } catch (Exception e) {
+                Log.w(TAG, "Could not open exact alarm settings", e);
+                Toast.makeText(this, "Could not open alarm settings", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updatePermissionUI();
     }
 
     private void startExport() {

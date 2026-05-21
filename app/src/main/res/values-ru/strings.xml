@@ -36,4 +36,14 @@
     <string name="export_tasks_error">Ошибка экспорта: %1$s</string>
     <string name="relative_time_today">сегодня</string>
     <string name="relative_time_tomorrow">завтра</string>
+    <string name="permissions_title">Разрешения</string>
+    <string name="notification_permission_title">Разрешение на уведомления</string>
+    <string name="notification_permission_granted">Включено</string>
+    <string name="notification_permission_denied">Отключено (напоминания не будут отображаться)</string>
+    <string name="notification_permission_button">Открыть настройки уведомлений</string>
+    <string name="exact_alarm_title">Точные напоминания</string>
+    <string name="exact_alarm_available">Доступно</string>
+    <string name="exact_alarm_unavailable">Недоступно (напоминания могут быть отложены)</string>
+    <string name="exact_alarm_description">Intime работает лучше всего с включёнными точными алармами. На Android 12+ вы можете разрешить это разрешение.</string>
+    <string name="exact_alarm_button">Открыть настройки алармов</string>
 </resources>

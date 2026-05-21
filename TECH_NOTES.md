@@ -32,8 +32,10 @@ New features and bug fixes go through the v2 stack only.
 ## Active v2 Files (runtime)
 
 - `activity/MainActivityV2.java` — launcher, list, permission prompt, worker enqueue
-- `activity/AddTaskActivity.java`, `activity/TaskDetailsActivity.java`,
-  `activity/SettingsActivity.java`
+- `activity/AddTaskActivity.java`, `activity/TaskDetailsActivity.java` —
+  task editing with add/update flows
+- `activity/SettingsActivity.java` — backup import/export, permission status,
+  exact-alarm configuration
 - `view_models/TaskViewModel.java`
 - `adapters/TaskAdapter.java`
 - `database/AppDatabase.java`, `entities/TaskEntity.java`, `dao/TaskDao.java`,
@@ -105,8 +107,9 @@ baseline policy is:
 - do not open exact-alarm settings directly from receivers or other background
   paths.
 
-Future UI work should explain degraded reminder precision if exact alarms are not
-available and provide a user-initiated way to open the relevant system settings.
+Settings UI shows exact-alarm status (available/unavailable on Android 12+) with a
+button to open system alarm settings. Users can manage this permission from the app.
+The UI also explains that reminders may be delayed if exact alarms are unavailable.
 
 ### Notification Channel
 
@@ -116,6 +119,9 @@ before posting task notifications.
 If `POST_NOTIFICATIONS` is not granted on Android 13+, notification workers
 should finish successfully without marking tasks as notified. Permission denial is
 an app state, not a worker failure.
+
+Settings UI shows notification permission status with a button to open system
+notification settings. Users can manage the permission from the app.
 
 ### Boot Handling
 

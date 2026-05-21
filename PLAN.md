@@ -166,10 +166,10 @@ unreachable from v2 code paths.
 
 | ID | Task | Done when |
 |----|------|-----------|
-| U4.1 | Settings section: notification permission state + link to app notification settings | User can recover from denial |
-| U4.2 | Settings section: exact-alarm availability (Android 12+) with explanation | Copy matches product: precision matters for reminders |
-| U4.3 | User-initiated button to open exact-alarm system settings (UI only, not from receivers) | No background settings intents |
-| U4.4 | Show degraded-precision message when exact alarms unavailable | Visible on settings or list when relevant |
+| U4.1 | Settings section: notification permission state + link to app notification settings | ✓ Done (SettingsActivity + UI) |
+| U4.2 | Settings section: exact-alarm availability (Android 12+) with explanation | ✓ Done (status check + user button) |
+| U4.3 | User-initiated button to open exact-alarm system settings (UI only, not from receivers) | ✓ Done (button opens system settings) |
+| U4.4 | Show degraded-precision message when exact alarms unavailable | ✓ Done (status text updated) |
 | U4.5 | Dismiss all app notifications when a v2 screen opens | Done (`V2Activity` + `NotificationHelper`) |
 
 ---
@@ -243,7 +243,7 @@ WS0 should complete before large UI refactors so new screens do not copy
 1. **L0.1–L0.5** — Remove v2 → legacy coupling; manifest/import audit.
 2. **B3.1–B3.2** — Backup format doc + export.
 3. **T2.1–T2.3, T2.5** — Calculator edge cases and migration tests.
-4. **U4.1–U4.4** — Settings permission UX.
+4. **U4.1–U4.4** — Settings permission UX. ✓ DONE
 5. **V5.1–V5.3** — List sort, states, relative time.
 
 ## Sprint 3 Proposal
@@ -256,6 +256,7 @@ WS0 should complete before large UI refactors so new screens do not copy
 - [x] Room-only scheduling (WS1) for runtime paths.
 - [x] v1 code in repo as reference; v2 is the only running stack (see ROADMAP).
 - [x] No v2 imports of legacy UI/data helpers (WS0).
+- [x] Notification and exact-alarm permission UI with user settings access (U4.1–U4.4).
 - [ ] `WorkManager` remains reconciliation-only, not primary exact reminders.
 - [ ] Import stays full-replacement for v2; failed import must not wipe data.
 - [ ] ACK action only on first newly overdue notification.

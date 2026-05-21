@@ -39,6 +39,16 @@
     <string name="export_tasks_error">Export failed: %1$s</string>
     <string name="relative_time_today">today</string>
     <string name="relative_time_tomorrow">tomorrow</string>
+    <string name="permissions_title">Permissions</string>
+    <string name="notification_permission_title">Notification permission</string>
+    <string name="notification_permission_granted">Enabled</string>
+    <string name="notification_permission_denied">Disabled (no reminders will be shown)</string>
+    <string name="notification_permission_button">Open notification settings</string>
+    <string name="exact_alarm_title">Precise reminders</string>
+    <string name="exact_alarm_available">Available</string>
+    <string name="exact_alarm_unavailable">Unavailable (reminders may be delayed)</string>
+    <string name="exact_alarm_description">Intime works best with exact alarms enabled. On Android 12+ you can allow this permission.</string>
+    <string name="exact_alarm_button">Open alarm settings</string>
     <string-array name="interval_options">
         <item>Минута</item>
         <item>Час</item>
