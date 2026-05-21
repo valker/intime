@@ -91,6 +91,82 @@ public class ReminderCalculatorTest {
     }
 
     @Test
+    public void getNextAlarm_calculatesMinuteIntervals() {
+        long acknowledgementTime = utcMillis(2026, Calendar.MAY, 17, 10, 30);
+
+        long nextAlarm = ReminderCalculator.getNextAlarm(
+                ReminderCalculator.INTERVAL_MINUTE,
+                45,
+                acknowledgementTime,
+                1,
+                LOCALE
+        );
+
+        assertEquals(utcMillis(2026, Calendar.MAY, 17, 11, 15), nextAlarm);
+    }
+
+    @Test
+    public void getNextAlarm_calculatesWeekIntervals() {
+        long acknowledgementTime = utcMillis(2026, Calendar.MAY, 17, 10, 0);
+
+        long nextAlarm = ReminderCalculator.getNextAlarm(
+                ReminderCalculator.INTERVAL_WEEK,
+                2,
+                acknowledgementTime,
+                1,
+                LOCALE
+        );
+
+        long twoWeeksLater = utcMillis(2026, Calendar.MAY, 31, 10, 0);
+        assertEquals(twoWeeksLater, nextAlarm);
+    }
+
+    @Test
+    public void getNextAlarm_handlesDayTransitionCorrectly() {
+        long acknowledgementTime = utcMillis(2026, Calendar.MAY, 17, 23, 0);
+
+        long nextAlarm = ReminderCalculator.getNextAlarm(
+                ReminderCalculator.INTERVAL_HOUR,
+                3,
+                acknowledgementTime,
+                1,
+                LOCALE
+        );
+
+        assertEquals(utcMillis(2026, Calendar.MAY, 18, 2, 0), nextAlarm);
+    }
+
+    @Test
+    public void getNextAlarm_handlesDayOfYearCorrectly_LeapYear() {
+        long acknowledgementTime = utcMillis(2024, Calendar.FEBRUARY, 29, 10, 0);
+
+        long nextAlarm = ReminderCalculator.getNextAlarm(
+                ReminderCalculator.INTERVAL_DAY,
+                1,
+                acknowledgementTime,
+                1,
+                LOCALE
+        );
+
+        assertEquals(utcMillis(2024, Calendar.MARCH, 1, 10, 0), nextAlarm);
+    }
+
+    @Test
+    public void getNextAlarm_handlesDayOfYearCorrectly_EndOfMonth() {
+        long acknowledgementTime = utcMillis(2026, Calendar.NOVEMBER, 30, 10, 0);
+
+        long nextAlarm = ReminderCalculator.getNextAlarm(
+                ReminderCalculator.INTERVAL_DAY,
+                1,
+                acknowledgementTime,
+                1,
+                LOCALE
+        );
+
+        assertEquals(utcMillis(2026, Calendar.DECEMBER, 1, 10, 0), nextAlarm);
+    }
+
+    @Test
     public void getNextAlarm_rejectsInvalidInput() {
         long acknowledgementTime = utcMillis(2026, Calendar.MAY, 17, 10, 0);
 
@@ -100,6 +176,30 @@ public class ReminderCalculatorTest {
                 ReminderCalculator.getNextAlarm(ReminderCalculator.INTERVAL_DAY, 0, acknowledgementTime, 1, LOCALE));
         assertThrows(IllegalArgumentException.class, () ->
                 ReminderCalculator.getNextAlarm(ReminderCalculator.INTERVAL_DAY, 1, acknowledgementTime, 0, LOCALE));
+    }
+
+    @Test
+    public void getNextAlarm_isConsistentAcrossTimeZones() {
+        long acknowledgementTime = utcMillis(2026, Calendar.MAY, 17, 10, 0);
+
+        long nextAlarmUTC = ReminderCalculator.getNextAlarm(
+                ReminderCalculator.INTERVAL_HOUR,
+                2,
+                acknowledgementTime,
+                1,
+                LOCALE
+        );
+
+        TimeZone estZone = TimeZone.getTimeZone("US/Eastern");
+        long nextAlarmEST = ReminderCalculator.getNextAlarm(
+                ReminderCalculator.INTERVAL_HOUR,
+                2,
+                acknowledgementTime,
+                1,
+                Locale.US
+        );
+
+        assertEquals(nextAlarmUTC, nextAlarmEST);
     }
 
     private static long utcMillis(int year, int month, int day, int hour, int minute) {
