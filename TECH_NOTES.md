@@ -123,6 +123,10 @@ an app state, not a worker failure.
 Settings UI shows notification permission status with a button to open system
 notification settings. Users can manage the permission from the app.
 
+On the main task list screen, a warning banner appears if notification permission
+is denied. The banner provides a quick button to open notification settings and
+disappears automatically when the permission is enabled.
+
 ### Boot Handling
 
 Scheduled reminders do not automatically survive device reboot. Boot handling
@@ -206,6 +210,16 @@ Key classes:
 - `workers/TaskNotificationWorker.java`
 - `database/dao/TaskDao.java` (`getNearestFutureTask`, `countOverdueTasks`,
   `countSkippedTasks`)
+
+## Error Handling
+
+Import/Export errors are shown via AlertDialog with clear error messages instead of
+silent failures. User-facing error dialogs provide:
+- Title with error context (import failed, export failed, settings failed)
+- Detailed error message (invalid JSON, file access errors, etc.)
+- OK button to dismiss
+
+This ensures users understand what went wrong and can take corrective action.
 
 ## Backup JSON Format
 

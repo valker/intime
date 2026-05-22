@@ -52,6 +52,15 @@
     <string name="empty_state_title">No tasks yet</string>
     <string name="empty_state_message">Create your first task to get started</string>
     <string name="empty_state_add_task">Add Task</string>
+    <string name="error_dialog_title">Error</string>
+    <string name="error_import_invalid_json">Invalid backup file format</string>
+    <string name="error_import_failed">Failed to import tasks: %1$s</string>
+    <string name="error_export_failed">Failed to export tasks: %1$s</string>
+    <string name="error_settings_failed">Could not open settings</string>
+    <string name="warning_permission_denied">Notification permission is required for reminders</string>
+    <string name="warning_permission_text">Enable notification permission in Settings to receive reminders</string>
+    <string name="warning_permission_button">Enable Notifications</string>
+    <string name="action_ok">OK</string>
     <string-array name="interval_options">
         <item>Минута</item>
         <item>Час</item>

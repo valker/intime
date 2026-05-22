@@ -11,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -62,6 +63,25 @@ public class MainActivityV2 extends V2Activity {
                 .get(TaskViewModel.class);
 
         View emptyStateContainer = findViewById(R.id.emptyStateContainer);
+        View permissionWarningBanner = findViewById(R.id.permissionWarningBanner);
+
+        // Check and show permission warning if needed
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                permissionWarningBanner.setVisibility(View.VISIBLE);
+            }
+        }
+
+        findViewById(R.id.permissionWarningButton).setOnClickListener(v -> {
+            Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+            intent.putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+            try {
+                startActivity(intent);
+            } catch (Exception e) {
+                Log.w("MainActivityV2", "Could not open notification settings", e);
+            }
+        });
 
         // Подписываемся на обновления списка задач
         taskViewModel.getTasks().observe(this, tasks -> {
@@ -145,6 +165,18 @@ public class MainActivityV2 extends V2Activity {
     @Override
     protected void onResume() {
         super.onResume();
+
+        // Update permission warning visibility
+        View permissionWarningBanner = findViewById(R.id.permissionWarningBanner);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    == PackageManager.PERMISSION_GRANTED) {
+                permissionWarningBanner.setVisibility(View.GONE);
+            } else {
+                permissionWarningBanner.setVisibility(View.VISIBLE);
+            }
+        }
+
         Executors.newSingleThreadExecutor().execute(
                 () -> SchedulingCoordinator.reschedule(getApplicationContext()));
     }

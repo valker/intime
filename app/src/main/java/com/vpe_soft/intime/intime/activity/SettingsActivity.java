@@ -11,6 +11,7 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.content.ContextCompat;
@@ -134,7 +135,7 @@ public class SettingsActivity extends V2Activity {
             startActivity(intent);
         } catch (Exception e) {
             Log.w(TAG, "Could not open notification settings", e);
-            Toast.makeText(this, "Could not open notification settings", Toast.LENGTH_SHORT).show();
+            showErrorDialog(R.string.error_settings_failed, e.getMessage());
         }
     }
 
@@ -146,9 +147,17 @@ public class SettingsActivity extends V2Activity {
                 startActivity(intent);
             } catch (Exception e) {
                 Log.w(TAG, "Could not open exact alarm settings", e);
-                Toast.makeText(this, "Could not open alarm settings", Toast.LENGTH_SHORT).show();
+                showErrorDialog(R.string.error_settings_failed, e.getMessage());
             }
         }
+    }
+
+    private void showErrorDialog(int titleResId, String message) {
+        new AlertDialog.Builder(this)
+                .setTitle(titleResId)
+                .setMessage(message)
+                .setPositiveButton(R.string.action_ok, (dialog, which) -> dialog.dismiss())
+                .show();
     }
 
     @Override
@@ -165,7 +174,7 @@ public class SettingsActivity extends V2Activity {
                 },
                 e -> {
                     Log.e(TAG, "Export failed", e);
-                    Toast.makeText(this, getString(R.string.export_tasks_error, e.getMessage()), Toast.LENGTH_LONG).show();
+                    showErrorDialog(R.string.error_export_failed, e.getMessage());
                 });
     }
 
@@ -175,19 +184,19 @@ public class SettingsActivity extends V2Activity {
             return;
         }
         if (pendingExportJson == null) {
-            Toast.makeText(this, getString(R.string.export_tasks_error, "No data"), Toast.LENGTH_LONG).show();
+            showErrorDialog(R.string.error_export_failed, "No data");
             return;
         }
         try (OutputStream outputStream = getContentResolver().openOutputStream(uri)) {
             if (outputStream == null) {
-                Toast.makeText(this, getString(R.string.export_tasks_error, "Could not open file"), Toast.LENGTH_LONG).show();
+                showErrorDialog(R.string.error_export_failed, "Could not open file");
                 return;
             }
             outputStream.write(pendingExportJson.getBytes(StandardCharsets.UTF_8));
             Toast.makeText(this, R.string.export_tasks_success, Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
             Log.e(TAG, "Write export file", e);
-            Toast.makeText(this, getString(R.string.export_tasks_error, e.getMessage()), Toast.LENGTH_LONG).show();
+            showErrorDialog(R.string.error_export_failed, e.getMessage());
         } finally {
             pendingExportJson = null;
         }
@@ -198,13 +207,13 @@ public class SettingsActivity extends V2Activity {
         String jsonContent;
         try (InputStream is = getContentResolver().openInputStream(uri)) {
             if (is == null) {
-                Toast.makeText(this, getString(R.string.import_tasks_error, "Could not open file"), Toast.LENGTH_LONG).show();
+                showErrorDialog(R.string.error_import_failed, "Could not open file");
                 return;
             }
             jsonContent = new Scanner(is, StandardCharsets.UTF_8.name()).useDelimiter("\\A").next();
         } catch (Exception e) {
             Log.e(TAG, "Read import file", e);
-            Toast.makeText(this, getString(R.string.import_tasks_error, e.getMessage()), Toast.LENGTH_LONG).show();
+            showErrorDialog(R.string.error_import_failed, e.getMessage());
             return;
         }
         taskRepository.replaceAllWithImportFromJson(
@@ -213,7 +222,11 @@ public class SettingsActivity extends V2Activity {
                 () -> Toast.makeText(this, R.string.import_tasks_success, Toast.LENGTH_SHORT).show(),
                 e -> {
                     Log.e(TAG, "Import failed", e);
-                    Toast.makeText(this, getString(R.string.import_tasks_error, e.getMessage()), Toast.LENGTH_LONG).show();
+                    String errorMsg = e.getMessage();
+                    if (errorMsg == null || errorMsg.isEmpty()) {
+                        errorMsg = getString(R.string.error_import_invalid_json);
+                    }
+                    showErrorDialog(R.string.error_import_failed, errorMsg);
                 });
     }
 }

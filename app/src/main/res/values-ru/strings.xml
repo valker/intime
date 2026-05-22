@@ -49,4 +49,13 @@
     <string name="empty_state_title">Нет задач</string>
     <string name="empty_state_message">Создайте первую задачу, чтобы начать</string>
     <string name="empty_state_add_task">Добавить задачу</string>
+    <string name="error_dialog_title">Ошибка</string>
+    <string name="error_import_invalid_json">Неверный формат файла резервной копии</string>
+    <string name="error_import_failed">Ошибка импорта задач: %1$s</string>
+    <string name="error_export_failed">Ошибка экспорта задач: %1$s</string>
+    <string name="error_settings_failed">Не удалось открыть настройки</string>
+    <string name="warning_permission_denied">Разрешение на уведомления необходимо для напоминаний</string>
+    <string name="warning_permission_text">Включите разрешение на уведомления в Настройках, чтобы получать напоминания</string>
+    <string name="warning_permission_button">Включить уведомления</string>
+    <string name="action_ok">ОК</string>
 </resources>

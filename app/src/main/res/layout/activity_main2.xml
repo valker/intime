@@ -40,6 +40,34 @@
                 android:contentDescription="@string/content_description_open_settings" />
         </LinearLayout>
 
+        <LinearLayout
+            android:id="@+id/permissionWarningBanner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="12dp"
+            android:background="@android:color/holo_orange_light"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/warning_permission_text"
+                android:textSize="14sp"
+                android:textColor="?android:attr/textColorPrimary"
+                android:layout_marginEnd="8dp" />
+
+            <Button
+                android:id="@+id/permissionWarningButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/warning_permission_button"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
