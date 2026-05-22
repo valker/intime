@@ -188,7 +188,7 @@ Complete the v2 experience on current AppCompat/XML before a Compose pilot.
 | V5.4 | Empty state when no tasks | ✓ Done (empty state layout + toggle logic) |
 | V5.5 | Permission-denied and import error states | ✓ Done (AlertDialog + warning banner) |
 | V5.6 | Confirm delete on task details | ✓ Done (confirm dialog with icon) |
-| V5.7 | Normalize source encoding for Russian strings and comments | No garbled text in IDE or builds |
+| V5.7 | Normalize source encoding for Russian strings and comments | ✓ Done (UTF-8 in build.gradle) |
 
 **Optional follow-up (separate PR after WS1–WS5):**
 
@@ -252,7 +252,7 @@ WS0 should complete before large UI refactors so new screens do not copy
    - V5.4: ✓ Done (empty state with CTA button)
    - V5.5: ✓ Done (AlertDialog + permission warning banner)
    - V5.6: ✓ Done (confirm delete dialog with icon)
-   - V5.7: Source encoding cleanup for Russian text (next)
+   - V5.7: ✓ Done (UTF-8 encoding in build.gradle)
 2. **B3.4, R6.1–R6.7** — Migration verification and release checklist.
 
 ## Review Checklist
