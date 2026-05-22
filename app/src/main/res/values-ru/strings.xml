@@ -58,4 +58,9 @@
     <string name="warning_permission_text">Включите разрешение на уведомления в Настройках, чтобы получать напоминания</string>
     <string name="warning_permission_button">Включить уведомления</string>
     <string name="action_ok">ОК</string>
+    <string name="delete_task_title">Удалить задачу?</string>
+    <string name="delete_task_message">Это действие невозможно отменить</string>
+    <string name="delete_task_confirm">Удалить</string>
+    <string name="delete_task_cancel">Отмена</string>
+    <string name="task_deleted">Задача удалена</string>
 </resources>

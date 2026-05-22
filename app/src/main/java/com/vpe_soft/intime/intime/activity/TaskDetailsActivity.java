@@ -57,18 +57,19 @@ public class TaskDetailsActivity extends V2Activity {
 
     private void showDeleteConfirmationDialog() {
         new AlertDialog.Builder(this)
-                .setTitle("Удалить задачу?")
-                .setMessage("Вы уверены, что хотите удалить эту задачу?")
-                .setPositiveButton("Удалить", (dialog, which) -> deleteTask())
-                .setNegativeButton("Отмена", null)
+                .setTitle(R.string.delete_task_title)
+                .setMessage(R.string.delete_task_message)
+                .setPositiveButton(R.string.delete_task_confirm, (dialog, which) -> deleteTask())
+                .setNegativeButton(R.string.delete_task_cancel, null)
+                .setIcon(android.R.drawable.ic_dialog_alert)
                 .show();
     }
 
     private void deleteTask() {
         if (taskId != -1) {
             taskViewModel.deleteTaskById(taskId);
-            Toast.makeText(this, "Задача удалена", Toast.LENGTH_SHORT).show();
-            finish(); // Закрываем экран
+            Toast.makeText(this, R.string.task_deleted, Toast.LENGTH_SHORT).show();
+            finish();
         }
     }
 }

@@ -61,6 +61,11 @@
     <string name="warning_permission_text">Enable notification permission in Settings to receive reminders</string>
     <string name="warning_permission_button">Enable Notifications</string>
     <string name="action_ok">OK</string>
+    <string name="delete_task_title">Delete Task?</string>
+    <string name="delete_task_message">This action cannot be undone</string>
+    <string name="delete_task_confirm">Delete</string>
+    <string name="delete_task_cancel">Cancel</string>
+    <string name="task_deleted">Task deleted</string>
     <string-array name="interval_options">
         <item>Минута</item>
         <item>Час</item>
