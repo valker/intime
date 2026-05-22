@@ -49,6 +49,9 @@
     <string name="exact_alarm_unavailable">Unavailable (reminders may be delayed)</string>
     <string name="exact_alarm_description">Intime works best with exact alarms enabled. On Android 12+ you can allow this permission.</string>
     <string name="exact_alarm_button">Open alarm settings</string>
+    <string name="empty_state_title">No tasks yet</string>
+    <string name="empty_state_message">Create your first task to get started</string>
+    <string name="empty_state_add_task">Add Task</string>
     <string-array name="interval_options">
         <item>Минута</item>
         <item>Час</item>

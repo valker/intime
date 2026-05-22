@@ -24,6 +24,8 @@ import androidx.work.NetworkType;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
+import android.view.View;
+
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.R;
@@ -59,10 +61,19 @@ public class MainActivityV2 extends V2Activity {
         taskViewModel = new ViewModelProvider(this, new TaskViewModel.Factory(getApplication()))
                 .get(TaskViewModel.class);
 
+        View emptyStateContainer = findViewById(R.id.emptyStateContainer);
+
         // Подписываемся на обновления списка задач
         taskViewModel.getTasks().observe(this, tasks -> {
             Log.d("DEBUG", "Tasks updated: " + tasks.size());
             taskAdapter.submitList(tasks);
+
+            // Управляем видимостью empty state
+            if (tasks.isEmpty()) {
+                emptyStateContainer.setVisibility(View.VISIBLE);
+            } else {
+                emptyStateContainer.setVisibility(View.GONE);
+            }
         });
 
         taskViewModel.getCurrentTime().observe(this, currentTime -> {
@@ -71,10 +82,13 @@ public class MainActivityV2 extends V2Activity {
         });
 
         FloatingActionButton fabAddTask = findViewById(R.id.fab_add_task);
-        fabAddTask.setOnClickListener(view -> {
+        View.OnClickListener addTaskListener = view -> {
             Intent intent = new Intent(MainActivityV2.this, AddTaskActivity.class);
             startActivity(intent);
-        });
+        };
+        fabAddTask.setOnClickListener(addTaskListener);
+
+        findViewById(R.id.emptyStateAddTaskBtn).setOnClickListener(addTaskListener);
 
         findViewById(R.id.btn_open_settings).setOnClickListener(view -> {
             startActivity(new Intent(MainActivityV2.this, SettingsActivity.class));
