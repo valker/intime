@@ -34,10 +34,29 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
+    signingConfigs {
+        release {
+            if (System.getenv("SIGNING_KEY_STORE_PATH")) {
+                storeFile = file(System.getenv("SIGNING_KEY_STORE_PATH"))
+                storePassword = System.getenv("SIGNING_KEY_STORE_PASSWORD")
+                keyAlias = System.getenv("SIGNING_KEY_ALIAS")
+                keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
+            } else if (project.hasProperty("SIGNING_KEY_STORE_PATH")) {
+                storeFile = file(project.property("SIGNING_KEY_STORE_PATH"))
+                storePassword = project.property("SIGNING_KEY_STORE_PASSWORD")
+                keyAlias = project.property("SIGNING_KEY_ALIAS")
+                keyPassword = project.property("SIGNING_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (signingConfigs.release.storeFile) {
+                signingConfig = signingConfigs.release
+            }
         }
     }
     namespace 'com.vpe_soft.intime.intime'
