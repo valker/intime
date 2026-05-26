@@ -145,15 +145,20 @@ For now, dev icons are used. Update this before submitting to Play Store.
 
 ## R6.4: Privacy Policy
 
-The app is fully offline with no server communication. Privacy policy should state:
+✅ **Status:** DONE
 
-- No data leaves the device
-- No accounts required
-- No analytics or telemetry
-- No ads
-- Data is stored locally only
+**Location:** `PRIVACY_POLICY.md`
 
-**Current location:** Add to the Play Store listing when uploading
+The privacy policy clearly states:
+- ✅ No data leaves the device (fully offline)
+- ✅ No accounts required
+- ✅ No analytics or telemetry
+- ✅ No ads
+- ✅ Data is stored locally only
+- ✅ Permissions usage explained
+- ✅ Export/backup process documented
+
+**For Play Store:** Copy the content from PRIVACY_POLICY.md to the Play Store listing
 
 ---
 
@@ -180,25 +185,20 @@ When uploading to Google Play:
 
 ## R6.6: Changelog
 
-**v2.0.0** (First v2 Release)
+✅ **Status:** DONE
 
-New:
-- Modern Material Design UI
-- Exact reminder scheduling with AlarmManager
-- Permission management and status in Settings
-- Import/export tasks to JSON backup
-- Better error handling with clear messages
-- Empty state with call-to-action
+**Location:** `CHANGELOG.md`
 
-Improved:
-- Notification accuracy and reliability
-- Database schema with migration support
-- Offline-first architecture
+Comprehensive changelog for v2.0.0 including:
+- ✅ New features (Material Design, permission UI, import/export)
+- ✅ Improvements (scheduling accuracy, database modernization)
+- ✅ Bug fixes (overdue tasks, boot recovery, permission handling)
+- ✅ Migration guide for v1 users
+- ✅ Technical notes
+- ✅ Known limitations
+- ✅ Support and privacy information
 
-Fixed:
-- Overdue task handling
-- Boot reminder recovery
-- Notification permissions handling
+**For Release Notes:** Use content from CHANGELOG.md when publishing to Google Play Store
 
 ---
 

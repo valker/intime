@@ -207,9 +207,9 @@ Complete the v2 experience on current AppCompat/XML before a Compose pilot.
 | R6.1 | Configure release signing | ✓ Done (signing config in build.gradle + docs) |
 | R6.2 | Test release build with R8/ProGuard | ✓ Done (build successful, 3.0 MB APK, test plan created) |
 | R6.3 | Final app icon and adaptive icon | Dev icons removed from release manifest flavor |
-| R6.4 | Privacy policy (offline, local-only data) | URL or bundled doc ready for Play Console |
+| R6.4 | Privacy policy (offline, local-only data) | ✓ Done (PRIVACY_POLICY.md) |
 | R6.5 | Play Console declarations aligned with permissions | `SCHEDULE_EXACT_ALARM`, notifications, boot |
-| R6.6 | Changelog for existing users | Upgrade messaging ready |
+| R6.6 | Changelog for existing users | ✓ Done (CHANGELOG.md) |
 | R6.7 | Smoke matrix: API 24, 31, 33, 35 | Documented results |
 
 **Documentation:** See `RELEASE.md` for detailed instructions for all tasks.
@@ -246,7 +246,18 @@ WS0 should complete before large UI refactors so new screens do not copy
 4. **U4.1–U4.4** — Settings permission UX. ✓ DONE
 5. **V5.1–V5.3** — List sort, states, relative time.
 
-## Sprint 3 (current) — COMPLETED ✅
+## Sprint 4 (current) — Release Readiness
+
+1. **R6.1–R6.7** — Release preparation checklist
+   - R6.1: ✓ Done (release signing configured)
+   - R6.2: ✓ Done (release build successful, 3.0 MB)
+   - R6.3: App icons (requires graphic design)
+   - R6.4: ✓ Done (PRIVACY_POLICY.md)
+   - R6.5: Play Console declarations (next)
+   - R6.6: ✓ Done (CHANGELOG.md)
+   - R6.7: Smoke tests (final testing)
+
+## Sprint 3 — COMPLETED ✅
 
 1. **V5.4–V5.7** — Empty/error states, delete confirm, encoding cleanup. ✓ ALL DONE
    - V5.4: ✓ Done (empty state with CTA button)
