@@ -222,22 +222,18 @@ The privacy policy clearly states:
 
 ## R6.5: Play Console Declarations
 
-When uploading to Google Play:
+✅ **Status:** DONE
 
-1. **App access**
-   - Device & app history: Required for boot reminders
-   - Calendar: Not required
+**Location:** `google_play/PLAY_CONSOLE_DECLARATIONS.md`
 
-2. **Permissions**
-   - POST_NOTIFICATIONS (Android 13+): Required for reminders
-   - SCHEDULE_EXACT_ALARM (Android 12+): Required for precision
-   - RECEIVE_BOOT_COMPLETED: Required for boot reminders
+The Play Console declarations are aligned with the current manifest:
 
-3. **Advertising**
-   - No ads in this app
-
-4. **Content rating**
-   - Utility app, no sensitive content
+- ✅ `POST_NOTIFICATIONS` — reminders only, requested at runtime on Android 13+
+- ✅ `SCHEDULE_EXACT_ALARM` — reminder app use case, with fallback when unavailable
+- ✅ `RECEIVE_BOOT_COMPLETED` — reschedules user-created reminders after restart
+- ✅ No ads, analytics, tracking, accounts, cloud sync, or third-party data sharing
+- ✅ Data safety can state that no user data is collected or shared
+- ✅ App access does not require reviewer credentials
 
 ---
 
@@ -291,7 +287,7 @@ Test on these Android versions before release:
 - [ ] R6.2: Release build tested on real device
 - [ ] R6.3: App icons finalized
 - [ ] R6.4: Privacy policy ready
-- [ ] R6.5: Play Console declarations reviewed
+- [x] R6.5: Play Console declarations reviewed
 - [ ] R6.6: Changelog prepared
 - [ ] R6.7: Smoke tests passed on all API levels
 - [ ] Version code bumped in build.gradle
