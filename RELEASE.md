@@ -127,19 +127,77 @@ ProGuard output (line counts):
 
 ## R6.3: App Icons
 
+### Status: READY FOR DESIGNER
+
+**Design Guide:** `ICON_DESIGN_GUIDE.md` — Complete specifications for designers
+
 ### Current Icon Status
 
-- Dev icon: `app/src/main/res/drawable/app_icon_dev.png`
-- Dev adaptive icon: `app/src/main/res/drawable/app_icon_round_dev.png`
-- Release icon: Create production versions
+- Dev icons in use: `app_icon_dev.xml` with green DEV badge
+- Base icon: `app/src/main/res/drawable-xhdpi/app_icon.png`
+- Round icon: `app/src/main/res/drawable-xhdpi/app_icon_round.png`
 
-### Replace Icons for Release
+### What's Needed
 
-1. Prepare production icon (192x192 PNG for launcher icon)
-2. Create adaptive icon variant if needed
-3. Update `build.gradle` flavor or update manifest icon reference
+**Launcher Icon:**
+- All sizes (ldpi through xxxhdpi)
+- Remove DEV badge
+- Professional, clean design
+- Suitable for productivity/reminder app
 
-For now, dev icons are used. Update this before submitting to Play Store.
+**Adaptive Icon (Android 8+):**
+- Foreground: 108x108 dp with transparency
+- Background: Solid color
+- Safe zone: 72x72 dp
+
+**Round Icon (Optional):**
+- Same as launcher but with rounded corners
+- For devices supporting icon shapes
+
+### File Locations After Design
+
+```
+app/src/main/res/
+├── drawable-ldpi/app_icon.png (36x36)
+├── drawable-mdpi/app_icon.png (48x48)
+├── drawable-hdpi/app_icon.png (72x72)
+├── drawable-xhdpi/app_icon.png (96x96)
+├── drawable-xxhdpi/app_icon.png (144x144)
+├── drawable-xxxhdpi/app_icon.png (192x192)
+├── drawable-*/app_icon_round.png
+└── mipmap-anydpi-v33/
+    └── ic_launcher.xml (adaptive icon)
+```
+
+### Manifest Updates Required
+
+Change in `AndroidManifest.xml`:
+```xml
+<!-- FROM: -->
+android:icon="@drawable/app_icon_dev"
+android:roundIcon="@drawable/app_icon_round_dev"
+
+<!-- TO: -->
+android:icon="@drawable/app_icon"
+android:roundIcon="@drawable/app_icon_round"
+```
+
+### Next Steps
+
+1. Share `ICON_DESIGN_GUIDE.md` with designer
+2. Designer creates icons per specifications
+3. Place PNG files in correct directories
+4. Update manifest references
+5. Test on different devices (phone, tablet, wear)
+6. Include in release build
+
+### Using Android Studio Image Asset
+
+Alternative: Use Android Studio's built-in tool:
+1. Right-click `res/` → New → Image Asset
+2. Paste base icon image
+3. Studio generates all sizes
+4. Perfect for consistent scaling
 
 ---
 
