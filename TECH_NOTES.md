@@ -134,8 +134,27 @@ should restore the nearest reminder after `BOOT_COMPLETED` where permitted.
 
 ### Database Migration
 
-Room schema version is currently 6. Migration compatibility with older app
-versions should be tested before release.
+Room schema version is currently 6. Migration from v5 → v6 adds the `wasNotified`
+column (INTEGER NOT NULL DEFAULT 0) to track whether a task notification has been
+sent.
+
+### Migration Testing
+
+Migration safety is verified via instrumentation tests (`MigrationTest.java`):
+- `migration_5_to_6_addsWasNotifiedColumn`: Verifies new column exists
+- `migration_5_to_6_preservesExistingData`: Verifies row count preserved
+- `migration_5_to_6_initializeWasNotifiedToZero`: Verifies new column defaults to 0
+- `migration_5_to_6_preservesDataIntegrity`: Verifies multiple tasks with various data
+
+Run tests with: `./gradlew connectedAndroidTest`
+
+### Real Data Testing
+
+Before release, test migration on a real backup from old production DB:
+1. Export tasks from old v1 app (if available)
+2. Create database with old schema (v5)
+3. Run migration and verify data integrity
+4. Check that reminders still function correctly post-migration
 
 Future database work should consider a separate history table for reminder and
 acknowledgement timestamps. This is not required for the first v2 release, but it
