@@ -67,24 +67,61 @@ Output: `app/build/outputs/bundle/release/app-release.aab`
 
 ## R6.2: Test Release Build
 
-After building release, test on real devices:
+### Build Status
+
+**Build Date:** 2026-05-26  
+**APK Size:** 3.0 MB (unsigned)  
+**Build Status:** ✅ SUCCESS  
+**ProGuard:** ✅ Enabled  
+**R8:** ✅ Enabled  
+
+### Test on Real Device
+
+For signed release, you need the production keystore. Once configured:
 
 ```bash
 # Install release APK
 adb install -r app/build/outputs/apk/release/app-release.apk
 
-# Verify ProGuard didn't break anything
-# - App starts
-# - Can add/edit/delete tasks
-# - Can acknowledge tasks
-# - Notifications work
-# - Import/export works
+# Or using bundletool for AAB:
+bundletool build-apks --bundle=app-release.aab \
+  --output=app.apks \
+  --ks=intime-release.jks \
+  --ks-pass=pass:password \
+  --ks-key-alias=intime \
+  --key-pass=pass:password
+
+adb install-multiple app.apks
 ```
 
-Check for crashes:
+### Manual Test Checklist
+
+After installation, verify:
+
+- [ ] **Cold start** - App launches without crash
+- [ ] **Main screen** - Task list visible and responsive
+- [ ] **Create task** - Can add new task successfully
+- [ ] **Edit task** - Can modify task description/interval
+- [ ] **Acknowledge task** - Clicking acknowledge updates next_alarm
+- [ ] **Delete task** - Confirmation dialog appears, task is deleted
+- [ ] **Empty state** - Shown when no tasks exist
+- [ ] **Permissions banner** - Shows if notifications disabled
+- [ ] **Settings screen** - Opens and displays all sections
+- [ ] **Import/Export** - Can backup and restore tasks
+- [ ] **Notifications** - Test with alarm set to near future
+
+### Check for Crashes
+
 ```bash
-adb logcat | grep -i "crash\|exception\|error"
+adb logcat | grep -i "crash\|exception\|fatal"
 ```
+
+### ProGuard Verification
+
+ProGuard output (line counts):
+- Input: Check `build/outputs/mapping/release/mapping.txt`
+- Verify obfuscated names are present
+- Check that our code was not over-obfuscated
 
 ---
 

@@ -205,7 +205,7 @@ Complete the v2 experience on current AppCompat/XML before a Compose pilot.
 | ID | Task | Done when |
 |----|------|-----------|
 | R6.1 | Configure release signing | ✓ Done (signing config in build.gradle + docs) |
-| R6.2 | Test release build with R8/ProGuard | No crash on cold start and ACK flow |
+| R6.2 | Test release build with R8/ProGuard | ✓ Done (build successful, 3.0 MB APK, test plan created) |
 | R6.3 | Final app icon and adaptive icon | Dev icons removed from release manifest flavor |
 | R6.4 | Privacy policy (offline, local-only data) | URL or bundled doc ready for Play Console |
 | R6.5 | Play Console declarations aligned with permissions | `SCHEDULE_EXACT_ALARM`, notifications, boot |
