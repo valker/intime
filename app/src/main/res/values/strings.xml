@@ -65,7 +65,6 @@
     <string name="delete_task_message">This action cannot be undone</string>
     <string name="delete_task_confirm">Delete</string>
     <string name="delete_task_cancel">Cancel</string>
-    <string name="task_deleted">Task deleted</string>
     <string-array name="interval_options">
         <item>Минута</item>
         <item>Час</item>
