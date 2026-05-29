@@ -1,6 +1,5 @@
 package com.vpe_soft.intime.intime.database.repositories;
 
-import android.app.Application;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;

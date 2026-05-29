@@ -153,7 +153,7 @@ public class MainActivityV2 extends V2Activity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_CODE_NOTIFICATIONS) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Log.d("MainActivity", "Разрешение на уведомления получено");
+                Log.d("MainActivityV2", "Разрешение на уведомления получено");
             } else {
                 Toast.makeText(this, "Уведомления отключены. Вы можете включить их в настройках.", Toast.LENGTH_LONG).show();
             }

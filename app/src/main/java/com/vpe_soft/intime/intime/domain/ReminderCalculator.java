@@ -1,5 +1,7 @@
 package com.vpe_soft.intime.intime.domain;
 
+import com.vpe_soft.intime.intime.Constants;
+
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -33,7 +35,7 @@ public class ReminderCalculator {
             Locale locale
     ) {
         long nextAlarm = getNextAlarm(interval, amount, acknowledgementTime, quant, locale);
-        long cautionPeriod = (long) ((nextAlarm - acknowledgementTime) * 0.95);
+        long cautionPeriod = (long) ((nextAlarm - acknowledgementTime) * Constants.CAUTION_FACTOR);
         long nextCaution = acknowledgementTime + cautionPeriod;
         return new ReminderTimes(nextAlarm, nextCaution);
     }

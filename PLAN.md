@@ -11,7 +11,7 @@ architecture direction.
   Room, `TaskRepository`, and `SchedulingCoordinator` are extended for all new work.
 - **v1 stays in the repo for reference:** `MainActivity`, `NewTaskActivity`,
   `DatabaseUtil`, `OneTask`, etc. are not registered as entry points and must not
-  be called from v2 code.
+  be called from v2 code. These files could be removed at some moment.
 - **No new v2 → v1 dependencies.** Fixes to scheduling, ACK, and UI do not go
   through legacy SQLite helpers.
 - **Cleanup is optional later:** move legacy files to a `legacy/` package or delete

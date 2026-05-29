@@ -34,7 +34,7 @@ extended.
 
 - Old UI and data-access paths kept in the repo as historical reference, for
   example `MainActivity`, `NewTaskActivity`, `DatabaseUtil`, `OneTask`,
-  `TaskRecyclerViewAdapter`, and related XML layouts.
+  `TaskRecyclerViewAdapter`, and related XML layouts. These files could be removed at some moment.
 - Legacy code must not be reachable at runtime:
   - not declared as launcher or exported entry points in `AndroidManifest.xml`;
   - not started via `Intent` from v2 code;
