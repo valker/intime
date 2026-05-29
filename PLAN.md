@@ -64,7 +64,8 @@ Gaps that block a releasable v2:
 
 - Cloud sync, accounts, collaboration, ads, paid features.
 - Server-side logic and complex calendar recurrence.
-- Timestamp history table and recommendations (future only).
+- Timestamp history table and recommendations remain future work unless a later
+  sprint explicitly starts WS7.
 - Full Compose rewrite in the first execution pass of this plan.
 
 ## Workstreams
@@ -196,8 +197,6 @@ Complete the v2 experience on current AppCompat/XML before a Compose pilot.
 |----|------|-----------|
 | V5.8 | Kotlin + Compose pilot for task list only | v2-only; does not reference legacy activities |
 
----
-
 ### WS6: Release Readiness (Phase 6)
 
 **Tasks:**
@@ -213,6 +212,36 @@ Complete the v2 experience on current AppCompat/XML before a Compose pilot.
 | R6.7 | Smoke matrix: API 24, 31, 33, 35 | Documented results |
 
 **Documentation:** See `RELEASE.md` for detailed instructions for all tasks.
+
+---
+
+### WS7: Task Interaction and Event History (future)
+
+These items are planned after the current release-readiness work. They extend the
+main task list from a simple management screen into a richer interaction surface
+and prepare the data model for statistics and recommendations.
+
+**Tasks:**
+
+| ID | Task | Done when |
+|----|------|-----------|
+| H7.1 | Add swipe-to-acknowledge on task tiles in the main screen | Swiping a task tile acknowledges it, recalculates `next_alarm` from now, updates scheduling, and provides clear undo/confirmation feedback |
+| H7.2 | Add a task event table | Add/create, due/alarm, acknowledge, edit, delete, import/export-relevant events can be persisted with event type, task reference, and event timestamp |
+| H7.3 | Write events from key task flows | Task creation, alarm firing, acknowledgement, task edits, deletion, and import replacement record appropriate events without blocking the UI |
+| H7.4 | Short click opens task details | Tapping a task opens the detail screen; the detail screen remains the place for rename, interval changes, future statistics, and recommendations |
+| H7.5 | Long click enters multi-select mode on the main screen | Task rows show checkboxes, selected state is obvious, and the top action bar exposes bulk actions such as acknowledge and delete |
+| H7.6 | Implement bulk task actions | Bulk acknowledge and bulk delete operate only on selected tasks, confirm destructive actions, update scheduling once, and record task events |
+| H7.7 | Add app-level back navigation on secondary screens | Every non-main screen shows a top-left back arrow that returns to the main screen/app flow without relying only on system navigation |
+
+**Design notes:**
+
+- Swipe acknowledgement should be fast but recoverable enough to avoid accidental
+  data changes.
+- Multi-select mode should not conflict with normal tap-to-open behavior.
+- The event table is infrastructure for later statistics and recommendations;
+  the first implementation does not need to expose analytics in the UI.
+- Event timestamps should use a single consistent time source and be stored in a
+  migration-safe format.
 
 ---
 

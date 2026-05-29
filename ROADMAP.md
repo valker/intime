@@ -246,3 +246,21 @@ Done when:
 10. Disconnect v2 from legacy v1: replace `MainActivity.isOnScreen` with a v2-owned
     visibility flag; ensure receivers and ACK use only `TaskRepository` / Room.
 11. Audit manifest and imports so legacy activities are not registered or referenced.
+
+## Future Interaction and History Backlog
+
+These items are planned after the current release-readiness pass:
+
+1. Add swipe-to-acknowledge on task tiles in the main task list.
+2. Add a task event table that stores task lifecycle events with timestamps,
+   including creation, reminder/alarm firing, acknowledgement, edits, deletion,
+   and import-related changes.
+3. Record task events from the relevant flows so the table can later support
+   statistics and recommendations.
+4. Make a short click on a task open the task detail screen, where rename,
+   interval changes, future statistics, and recommendations belong.
+5. Make a long click on a task enter multi-select mode on the main screen, with
+   checkboxes on tasks and top actions such as acknowledge and delete.
+6. Add bulk actions for selected tasks, including acknowledgement and deletion.
+7. Add a top-left back arrow to every non-main screen so users can return through
+   app UI as well as system navigation.
