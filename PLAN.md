@@ -5,17 +5,16 @@ reviewable work plan for the `chatgpt` branch. It assumes `PRODUCT.md`,
 `ROADMAP.md`, and `TECH_NOTES.md` remain the source of truth for behavior and
 architecture direction.
 
-## v1 / v2 Code Strategy (from ROADMAP)
+## Runtime Code Strategy (from ROADMAP)
 
-- **v2 is the only running app:** `MainActivityV2` is the launcher; v2 screens,
+- **Current stack is the only running app:** `MainActivityV2` is the launcher; screens,
   Room, `TaskRepository`, and `SchedulingCoordinator` are extended for all new work.
-- **v1 stays in the repo for reference:** `MainActivity`, `NewTaskActivity`,
-  `DatabaseUtil`, `OneTask`, etc. are not registered as entry points and must not
-  be called from v2 code. These files could be removed at some moment.
-- **No new v2 → v1 dependencies.** Fixes to scheduling, ACK, and UI do not go
-  through legacy SQLite helpers.
-- **Cleanup is optional later:** move legacy files to a `legacy/` package or delete
-  after v2 parity, not as part of every feature PR.
+- **Legacy v1 UI/data code has been removed:** old activities, SQLite helpers,
+  adapters, and layouts are no longer kept as in-repo reference code.
+- **Do not reintroduce old runtime paths.** Fixes to scheduling, ACK, persistence,
+  and UI go through the Room-backed current stack.
+- **Cleanup now means shrinking remaining transitional code and dependencies,**
+  not preserving a parallel v1 tree.
 
 ## Current Baseline
 
@@ -42,14 +41,10 @@ Work already present on the branch:
 
 Gaps that block a releasable v2:
 
-- **Legacy tree:** v1 classes remain in source (intentional) but must not gain new
-  runtime call sites; periodic manifest/import audits.
-- Export backup is missing from settings.
-- Room migration instrumentation tests (v5 → v6) not yet added.
-- No user-facing guidance for exact-alarm permission on Android 12+.
-- UI does not yet meet all Phase 4 criteria (relative time, caution states,
-  polished empty/error states).
-- Release readiness (signing, R8, final icons, privacy policy) is not started.
+- **Post-v1 cleanup:** documentation, unused classes, and dependencies should stay
+  aligned with the now-current-only source tree.
+- Release smoke testing is still needed on the supported API matrix.
+- Final production icon/adaptive icon work still needs designer input.
 
 ## Goals
 
@@ -57,7 +52,8 @@ Gaps that block a releasable v2:
 2. Use Room as the single source of truth for scheduling decisions.
 3. Preserve product rules: ACK recalculates from now, one overdue state per task,
    calm follow-up reminders, full-replacement import.
-4. Keep v1 code archived in-repo while **only v2** is built, shipped, and extended.
+4. Keep the removed v1 runtime paths from returning; build, ship, and extend only
+   the current Room-backed app stack.
 5. Reach a releasable v2 without cloud, accounts, ads, or history analytics.
 
 ## Non-Goals (unchanged from PRODUCT.md)
@@ -70,10 +66,11 @@ Gaps that block a releasable v2:
 
 ## Workstreams
 
-### WS0: Disconnect v2 from legacy v1 (Phase 2)
+### WS0: Remove legacy v1 runtime paths (Phase 2) — done
 
-**Problem:** v2 runtime still touches v1 types (`MainActivity.isOnScreen`). That
-blurs the “reference only” rule and causes confusion when fixing v2 bugs.
+**Problem (resolved):** earlier v2 runtime paths touched v1 types and old SQLite
+helpers. That blurred the current-stack-only rule and made future work harder to
+reason about.
 
 **Tasks:**
 
@@ -82,11 +79,12 @@ blurs the “reference only” rule and causes confusion when fixing v2 bugs.
 | L0.1 | Introduce v2-owned foreground visibility flag (no `MainActivity` import) | Done (`UiVisibility`) |
 | L0.2 | v2 activities track visibility via `V2Activity`; session timestamp on launcher pause | Done |
 | L0.3 | Audit `AndroidManifest.xml`: no legacy activities as launcher or exported | Done (only `MainActivityV2`) |
-| L0.4 | Grep audit: no v2 → `DatabaseUtil` / `OneTask` / `NewTaskActivity` imports | Done (v2 runtime paths clean) |
-| L0.5 | Align `TECH_NOTES.md` active vs legacy file lists with manifest | Done |
+| L0.4 | Grep audit: no current code imports `DatabaseUtil` / `OneTask` / `NewTaskActivity` | Done |
+| L0.5 | Align `TECH_NOTES.md` active file lists with manifest | Done |
+| L0.6 | Delete unused v1 activities, SQLite helpers, adapters, views, and layouts | Done |
 
-**Acceptance:** v2 APK behavior unchanged; legacy files remain in tree but are
-unreachable from v2 code paths.
+**Acceptance:** APK behavior unchanged; old v1 files are not present or reachable
+from current runtime code paths.
 
 ---
 
@@ -116,13 +114,13 @@ unreachable from v2 code paths.
 |----|------|-----------|
 | S1.1 | Add `TaskDao` query for the nearest `next_alarm` in the future | Query is covered by a test or documented contract |
 | S1.2 | Introduce `SchedulingCoordinator` (or equivalent) that wraps alarm schedule/cancel | All reschedule calls go through one class |
-| S1.3 | Rewrite `AlarmUtil.setupAlarmIfRequired` to use Room, not `InTimeOpenHelper` | No raw SQLite in alarm setup |
-| S1.4 | Update `AlarmReceiver` to use Room / repository APIs for overdue count and `markTaskNotified` | Legacy `DatabaseUtil` removed from receiver path |
+| S1.3 | Rewrite `AlarmUtil.setupAlarmIfRequired` to use Room, not old SQLite helpers | No raw SQLite in alarm setup |
+| S1.4 | Update `AlarmReceiver` to use Room / repository APIs for overdue count and `markTaskNotified` | Old SQLite helper removed from receiver path |
 | S1.5 | Call reschedule from `MainActivityV2` (or `Application`) on cold start | Nearest alarm restored after opening app |
 | S1.6 | Ensure `BootReceiver` uses the same coordinator | Reboot smoke test passes |
 | S1.7 | Review `TaskNotificationWorker`: only reconciliation / follow-up overdue reminders | Worker does not replace exact first-due notifications |
 | S1.8 | Document final scheduling flow in `TECH_NOTES.md` | Done |
-| S1.9 | `SchedulingCoordinator` safe on main thread (dispatches to executor) | No Room crash from UI/legacy callers |
+| S1.9 | `SchedulingCoordinator` safe on main thread (dispatches to executor) | No Room crash from UI/background callers |
 
 **Acceptance checks (manual):**
 
@@ -195,7 +193,7 @@ Complete the v2 experience on current AppCompat/XML before a Compose pilot.
 
 | ID | Task | Done when |
 |----|------|-----------|
-| V5.8 | Kotlin + Compose pilot for task list only | v2-only; does not reference legacy activities |
+| V5.8 | Kotlin + Compose pilot for task list only | Uses the current Room-backed stack only |
 
 ### WS6: Release Readiness (Phase 6)
 
@@ -248,7 +246,7 @@ and prepare the data model for statistics and recommendations.
 ## Suggested Execution Order
 
 ```
-WS0 (disconnect v2 from legacy) — early, small PRs alongside other work
+WS0 (remove legacy v1 runtime paths) — done
 WS1 (scheduling) — done; device smoke only
 WS2 (tests) ─┬─ parallel
 WS3 (backup) ┘
@@ -257,8 +255,7 @@ WS3 (backup) ┘
 → WS6 (release)
 ```
 
-WS0 should complete before large UI refactors so new screens do not copy
-`MainActivity` patterns. WS2 migration tests can proceed in parallel with WS3.
+WS0 is complete. WS2 migration tests can proceed in parallel with WS3.
 
 ## Sprint 1 — completed
 
@@ -269,7 +266,7 @@ WS0 should complete before large UI refactors so new screens do not copy
 
 ## Sprint 2 Proposal (current)
 
-1. **L0.1–L0.5** — Remove v2 → legacy coupling; manifest/import audit.
+1. **L0.1–L0.6** — Remove legacy coupling and unused v1 code; manifest/import audit. ✓ DONE
 2. **B3.1–B3.2** — Backup format doc + export.
 3. **T2.1–T2.3, T2.5** — Calculator edge cases and migration tests.
 4. **U4.1–U4.4** — Settings permission UX. ✓ DONE
@@ -304,8 +301,8 @@ WS0 should complete before large UI refactors so new screens do not copy
 ## Review Checklist
 
 - [x] Room-only scheduling (WS1) for runtime paths.
-- [x] v1 code in repo as reference; v2 is the only running stack (see ROADMAP).
-- [x] No v2 imports of legacy UI/data helpers (WS0).
+- [x] Legacy v1 UI/data code removed; current app stack is the only runtime path (see ROADMAP).
+- [x] No imports or manifest entries for removed legacy UI/data helpers (WS0).
 - [x] Notification and exact-alarm permission UI with user settings access (U4.1–U4.4).
 - [ ] `WorkManager` remains reconciliation-only, not primary exact reminders.
 - [ ] Import stays full-replacement for v2; failed import must not wipe data.
@@ -316,5 +313,5 @@ WS0 should complete before large UI refactors so new screens do not copy
 ## References
 
 - `PRODUCT.md` — behavior and non-goals
-- `ROADMAP.md` — phase definitions, **v1 / v2 code strategy**, done criteria
-- `TECH_NOTES.md` — active vs legacy files, risks, scheduling direction
+- `ROADMAP.md` — phase definitions, runtime code strategy, done criteria
+- `TECH_NOTES.md` — active files, risks, scheduling direction

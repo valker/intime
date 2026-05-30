@@ -3,33 +3,33 @@
 These notes summarize the current technical state of the `chatgpt` branch and
 collect decisions that should be made before larger refactoring.
 
-See `ROADMAP.md` (**v1 / v2 Code Strategy**) for the rule that v1 code may remain
-in the repository as reference but must not be part of the running app.
+See `ROADMAP.md` (**Runtime Code Strategy**) for the rule that the deleted v1
+UI/data-access tree should not be restored as a normal runtime path.
 
 ## Current State
 
 - Branch: `chatgpt`.
 - Android application module: `app`.
 - Implementation language: mostly Java (Kotlin planned for new code).
-- **Active UI:** v2 XML screens; launcher is `MainActivityV2`.
+- **Active UI:** XML screens; launcher is `MainActivityV2`.
 - **Persistence (runtime):** Room with `TaskEntity`, schema version 6.
 - **Scheduling (runtime):** `SchedulingCoordinator` + `AlarmManager`; `BootReceiver`
   and `AlarmReceiver` registered; `TaskNotificationWorker` for reconciliation.
-- **Legacy UI/data paths:** still present in source for reference, not registered
-  as launcher in `AndroidManifest.xml`.
+- **Legacy UI/data paths:** removed from source after the current stack reached
+  parity for the main flows.
 - Target SDK: 35; min SDK: 24.
 
-## v1 / v2 Code Layout
+## Runtime Code Layout
 
 | Role | Examples | Rule |
 |------|----------|------|
-| Active v2 | `MainActivityV2`, `AddTaskActivity`, `TaskRepository`, `SchedulingCoordinator` | Extend, wire in manifest, test |
-| Legacy v1 (reference) | `MainActivity`, `NewTaskActivity`, `DatabaseUtil`, `OneTask` | Do not call from v2; do not register as entry points |
-| Shared / transitional | `AlarmUtil` (date strings), `InTimeOpenHelper` (file name only; avoid new SQLite use) | Prefer Room; shrink over time |
+| Active app code | `MainActivityV2`, `AddTaskActivity`, `TaskRepository`, `SchedulingCoordinator` | Extend, wire in manifest, test |
+| Removed v1 code | old `MainActivity`, `NewTaskActivity`, `DatabaseUtil`, `InTimeOpenHelper`, `OneTask`, legacy adapters/views/layouts | Inspect through git history only; do not restore as runtime paths |
+| Shared / transitional | `AlarmUtil` (date strings / reminder helpers), remaining Java activities and adapters | Prefer Room/domain/repository APIs; shrink over time |
 
-New features and bug fixes go through the v2 stack only.
+New features and bug fixes go through the current Room-backed stack only.
 
-## Active v2 Files (runtime)
+## Active Files (runtime)
 
 - `activity/MainActivityV2.java` — launcher, list, permission prompt, worker enqueue
 - `activity/AddTaskActivity.java`, `activity/TaskDetailsActivity.java` —
@@ -50,18 +50,18 @@ New features and bug fixes go through the v2 stack only.
 - `receiver/AlarmUtil.java` — reminder math helpers and notification copy (no DB)
 - `ui/UiVisibility.java`, `activity/V2Activity.java` — v2 foreground tracking
 
-## Legacy v1 Files (reference only)
+## Removed v1 Files
 
-Not used by the v2 launcher flow; kept to compare behavior with the old app.
+The old v1 UI/data-access tree has been deleted from the working source tree:
 
-- `activity/MainActivity.java`, `activity/NewTaskActivity.java`
-- `database/DatabaseUtil.java`, `database/InTimeOpenHelper.java`
-- `OneTask.java`
-- `recyclerview/TaskRecyclerViewAdapter.java`
-- Related v1 layouts under `res/layout/` (for example `activity_main.xml` if distinct
-  from v2)
+- legacy activities such as `MainActivity.java` and `NewTaskActivity.java`;
+- legacy SQLite helpers such as `DatabaseUtil.java` and `InTimeOpenHelper.java`;
+- legacy task model/adapters/views such as `OneTask.java`,
+  `TaskRecyclerViewAdapter.java`, and old custom view helpers;
+- v1-only layouts and animation resources.
 
-Do not add new imports from v2 code into these classes.
+Use git history to compare old behavior when needed. Do not restore these files
+for normal app execution.
 
 ## v2 Foreground Visibility
 
@@ -75,8 +75,8 @@ Do not add new imports from v2 code into these classes.
   overdue notifications disappear when the user opens the app (launcher or
   notification tap).
 
-Legacy `MainActivity.isOnScreen` is only used inside v1 `MainActivity` (reference
-code); v2 must not read it.
+The old `MainActivity.isOnScreen` path has been removed; current foreground
+visibility goes through `UiVisibility`.
 
 ## Current Risks
 
@@ -86,7 +86,7 @@ code); v2 must not read it.
 reminders. It is useful as a background safety mechanism, but it should not be
 the only mechanism for user-visible reminder timing.
 
-Potential direction:
+Implemented policy:
 
 - Use `AlarmManager` for the nearest due reminder.
 - Use `WorkManager` for periodic reconciliation.
@@ -113,8 +113,8 @@ The UI also explains that reminders may be delayed if exact alarms are unavailab
 
 ### Notification Channel
 
-Android 8+ requires notification channels. The app should create a stable channel
-before posting task notifications.
+Android 8+ requires notification channels. `NotificationHelper` creates the
+stable overdue-task channel before posting task notifications.
 
 If `POST_NOTIFICATIONS` is not granted on Android 13+, notification workers
 should finish successfully without marking tasks as notified. Permission denial is
@@ -129,8 +129,9 @@ disappears automatically when the permission is enabled.
 
 ### Boot Handling
 
-Scheduled reminders do not automatically survive device reboot. Boot handling
-should restore the nearest reminder after `BOOT_COMPLETED` where permitted.
+Scheduled reminders do not automatically survive device reboot.
+`BootReceiver` restores the nearest reminder after `BOOT_COMPLETED` where
+permitted.
 
 ### Database Migration
 
@@ -173,8 +174,8 @@ large text/UI work, source encoding and resource text should be normalized.
 
 ## Suggested Architecture Direction
 
-All **runtime** work follows the v2 stack. Legacy v1 Java/XML stays in the repo
-only as reference until optional cleanup.
+All **runtime** work follows the current Room-backed app stack. The old v1
+Java/XML tree has been removed.
 
 New code should move toward:
 
@@ -186,8 +187,8 @@ New code should move toward:
 - Compose for new screens (pilot on task list after XML MVP);
 - tests for domain logic, import, and database migrations.
 
-Do not re-enable legacy activities in the manifest or call `DatabaseUtil` /
-`OneTask` from v2 components.
+Do not restore legacy activities in the manifest or reintroduce old SQLite/model
+paths such as `DatabaseUtil`, `InTimeOpenHelper`, or `OneTask`.
 
 ## Scheduling Model
 

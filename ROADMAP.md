@@ -15,13 +15,13 @@ Release a modern Android version of Intime that:
 - has a clear, modern UI;
 - is maintainable for future development.
 
-## v1 / v2 Code Strategy
+## Runtime Code Strategy
 
-Intime v2 is not a side-by-side rewrite where both UIs stay live. The repository may
-still contain v1 code for reference, but only the v2 stack is built, shipped, and
+Intime is no longer a side-by-side rewrite. The old v1 UI/data-access tree has
+been removed, and only the current Room-backed app stack is built, shipped, and
 extended.
 
-### Active v2 code (used and evolving)
+### Active code (used and evolving)
 
 - Entry point and screens under the v2 flow, for example `MainActivityV2`,
   `AddTaskActivity`, `TaskDetailsActivity`, `SettingsActivity`.
@@ -30,36 +30,31 @@ extended.
   scheduling (`SchedulingCoordinator`), receivers and workers wired for v2.
 - New features and bug fixes land here first.
 
-### Legacy v1 code (reference only, not executed)
+### Removed v1 code
 
-- Old UI and data-access paths kept in the repo as historical reference, for
-  example `MainActivity`, `NewTaskActivity`, `DatabaseUtil`, `OneTask`,
-  `TaskRecyclerViewAdapter`, and related XML layouts. These files could be removed at some moment.
-- Legacy code must not be reachable at runtime:
-  - not declared as launcher or exported entry points in `AndroidManifest.xml`;
-  - not started via `Intent` from v2 code;
-  - not referenced by v2 receivers, workers, repositories, or ViewModels.
-- Legacy code does not need to compile against every new v2 change, but it
-  should remain readable enough to compare behavior when migrating or debugging.
+- Old UI and data-access paths have been deleted from the working source tree,
+  including the legacy activities, SQLite helpers, adapters, custom views, and
+  v1-only layouts.
+- Historical behavior can still be inspected through git history when needed.
+- The manifest must keep `MainActivityV2` as the only launcher entry point.
 
 ### Rules for new work
 
-1. Do not add new dependencies from v2 code to legacy v1 classes.
-2. Do not fix v2 bugs by extending legacy SQLite helpers (`InTimeOpenHelper`,
-   `DatabaseUtil`) unless the change is explicitly a one-time migration step.
-3. When behavior is moved to v2, update manifest and call sites so the old path
-   is dead; leave the old file in place only as reference until cleanup.
-4. Prefer deleting or moving legacy files to a clearly named package (for
-   example `legacy/`) only after v2 parity is confirmed, not as part of every
-   small change.
+1. Do not restore deleted v1 activities, adapters, layouts, or SQLite helpers for
+   normal runtime behavior.
+2. Fix scheduling, ACK, persistence, and UI through the current Room-backed stack.
+3. Keep manifest, documentation, and imports aligned with the current-only source
+   tree.
+4. Treat any old-database compatibility code as an explicit migration concern, not
+   as an alternate runtime data path.
 
 ### Done when (code strategy)
 
 - `MainActivityV2` is the only launcher activity.
-- No v2 component imports or calls `MainActivity`, `NewTaskActivity`, `OneTask`,
-  or `DatabaseUtil` for normal operation.
+- Deleted v1 classes are not imported, registered, or recreated for normal
+  operation.
 - Notification, boot, and ACK flows use Room and v2 repositories only.
-- `TECH_NOTES.md` lists active vs legacy files and stays aligned with the manifest.
+- `TECH_NOTES.md` lists active files and stays aligned with the manifest.
 
 ## Phase 0: Product Definition
 
@@ -111,21 +106,21 @@ Done when:
 
 ## Phase 2: Architecture Modernization
 
-Purpose: prepare the v2 codebase for long-term development while v1 code remains
-in the repository only as reference.
+Purpose: prepare the current codebase for long-term development after the v1
+runtime tree has been removed.
 
 Recommended direction:
 
-- Follow the v1 / v2 code strategy above: evolve v2, do not wire legacy UI back
-  into the running app.
+- Follow the runtime code strategy above: evolve the current stack and do not
+  restore legacy UI/data paths.
 - Use Kotlin for new application code.
 - Use Room as the local source of truth for all runtime paths.
 - Move business logic out of activities, receivers, and workers.
 - Introduce a testable domain layer for interval and reminder calculations.
 - Prefer coroutines and Flow for new asynchronous code.
 - Introduce dependency injection only when it reduces real wiring complexity.
-- Remove cross-links from v2 to legacy helpers (for example `MainActivity.isOnScreen`,
-  `OneTask`, `DatabaseUtil` in receivers).
+- Keep any remaining transitional helpers small, documented, and moving toward
+  Room/domain/repository APIs.
 
 Done when:
 
@@ -133,7 +128,7 @@ Done when:
 - New UI code does not directly manipulate database or scheduling internals.
 - The app has a clear separation between UI, domain logic, data access, and
   scheduling.
-- v2 entry points and background components do not depend on legacy v1 classes.
+- Entry points and background components depend only on current app classes.
 
 ## Phase 3: Reminder Logic
 
@@ -234,18 +229,13 @@ Done when:
 
 ## Near-Term Backlog
 
-1. Write tests for reminder date calculation.
-2. Review current notification implementation.
-3. Add notification channel creation.
-4. Add user-facing exact-alarm settings guidance for Android 12+.
-5. Restore boot-time reminder rescheduling.
-6. Extract reminder calculation into a testable class.
-7. Define notification actions for just-overdue versus already-overdue tasks.
-8. Document and test full-replacement import behavior.
-9. Start Kotlin/Compose migration with the task list screen.
-10. Disconnect v2 from legacy v1: replace `MainActivity.isOnScreen` with a v2-owned
-    visibility flag; ensure receivers and ACK use only `TaskRepository` / Room.
-11. Audit manifest and imports so legacy activities are not registered or referenced.
+1. Run final smoke tests on the supported Android API matrix.
+2. Finish final app icon/adaptive icon assets.
+3. Keep documentation and dependency cleanup aligned with the removed v1 source tree.
+4. Audit manifest and imports periodically so deleted legacy paths are not restored.
+5. Remove any remaining unused classes or dependencies discovered after v1 cleanup.
+6. Start Kotlin/Compose migration with the task list screen when the XML release
+   baseline is stable.
 
 ## Future Interaction and History Backlog
 
