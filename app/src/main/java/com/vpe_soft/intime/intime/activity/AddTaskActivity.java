@@ -28,6 +28,7 @@ public class AddTaskActivity extends V2Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_task);
+        setupMainScreenBackButton();
 
         editTaskDescription = findViewById(R.id.edit_task_description);
         btnSaveTask = findViewById(R.id.btn_save_task);

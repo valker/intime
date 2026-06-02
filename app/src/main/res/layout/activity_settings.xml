@@ -14,14 +14,27 @@
         android:padding="16dp"
         android:fitsSystemWindows="true">
 
+        <ImageButton
+            android:id="@+id/btn_back_to_main"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/content_description_back_to_main"
+            android:padding="12dp"
+            android:src="@drawable/ic_arrow_back_24"
+            android:tint="@color/black"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
         <TextView
             android:id="@+id/textView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/action_settings"
             android:textSize="24sp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintBottom_toBottomOf="@+id/btn_back_to_main"
+            app:layout_constraintStart_toEndOf="@+id/btn_back_to_main"
+            app:layout_constraintTop_toTopOf="@+id/btn_back_to_main" />
 
         <TextView
             android:id="@+id/version_text"

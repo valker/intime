@@ -23,6 +23,7 @@ public class TaskDetailsActivity extends V2Activity {
         super.onCreate(savedInstanceState);
         taskRepository = new TaskRepository(getApplication());
         setContentView(R.layout.activity_task_details);
+        setupMainScreenBackButton();
 
         taskId = getIntent().getLongExtra("task_id", -1);
 

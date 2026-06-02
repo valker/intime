@@ -21,6 +21,7 @@
     <string name="task_acknowledged">Task acknowledged</string>
     <string name="settings_group_dbwork">Database work</string>
     <string name="content_description_open_settings">Open settings</string>
+    <string name="content_description_back_to_main">Back to task list</string>
     <string name="channel_name">Overdue tasks</string>
     <string name="channel_description">Shows notification about tasks that were overdue recently</string>
     <string name="version_format_string">Version: %1$s (%2$s)</string>
@@ -28,6 +29,7 @@
     <string name="privacy_policy_url">Privacy policy: https://valker.github.io/intime_privacy_policy.html</string>
     <string name="go_to_google_play_button_text">This application in Google Play</string>
     <string name="add_task">Add Task</string>
+    <string name="task_details_title">Task Details</string>
     <string name="task_description">Task Description</string>
     <string name="save">Save</string>
     <string name="title_activity_add_task_v2">AddTaskActivityV2</string>

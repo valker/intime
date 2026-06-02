@@ -46,6 +46,7 @@ public class SettingsActivity extends V2Activity {
         super.onCreate(savedInstanceState);
         ActivitySettingsBinding binding =
                 DataBindingUtil.setContentView(this, R.layout.activity_settings);
+        setupMainScreenBackButton();
         binding.setAppVersion(String.format(getString(R.string.version_format_string),
                 BuildConfig.VERSION_NAME,
                 BuildConfig.GIT_LAST_COMMIT_HASH));

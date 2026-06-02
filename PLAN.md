@@ -229,7 +229,7 @@ and prepare the data model for statistics and recommendations.
 | H7.4 | Short click opens task details | Tapping a task opens the detail screen; the detail screen remains the place for rename, interval changes, future statistics, and recommendations |
 | H7.5 | Long click enters multi-select mode on the main screen | Task rows show checkboxes, selected state is obvious, and the top action bar exposes bulk actions such as acknowledge and delete |
 | H7.6 | Implement bulk task actions | Bulk acknowledge and bulk delete operate only on selected tasks, confirm destructive actions, update scheduling once, and record task events |
-| H7.7 | Add app-level back navigation on secondary screens | Every non-main screen shows a top-left back arrow that returns to the main screen/app flow without relying only on system navigation |
+| H7.7 | Add app-level back navigation on secondary screens | Done: non-main screens show a top-left back arrow that returns to the main screen/app flow without relying only on system navigation |
 
 **Design notes:**
 
