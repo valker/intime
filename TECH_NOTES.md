@@ -245,13 +245,86 @@ This ensures users understand what went wrong and can take corrective action.
 
 Used for v2 import/export in Settings. Compatible with the legacy app export shape.
 
+Schema, expressed as JSON Schema draft 2020-12:
+
 ```json
 {
-  "meta": { "version": 1, "exportedAt": 1700000000000 },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["meta", "tables"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["version", "exportedAt"],
+      "properties": {
+        "version": { "type": "integer", "const": 1 },
+        "exportedAt": { "type": "integer", "description": "Unix epoch milliseconds" }
+      }
+    },
+    "tables": {
+      "type": "object",
+      "required": ["tasks"],
+      "properties": {
+        "tasks": {
+          "type": "object",
+          "required": ["rows"],
+          "properties": {
+            "rows": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "minItems": 8,
+                "prefixItems": [
+                  { "type": "integer", "description": "id" },
+                  { "type": "string", "description": "description" },
+                  { "type": "integer", "minimum": 0, "maximum": 5, "description": "interval" },
+                  { "type": "integer", "minimum": 1, "description": "amount" },
+                  { "type": "integer", "description": "next_alarm, Unix epoch milliseconds" },
+                  { "type": "integer", "description": "next_caution, Unix epoch milliseconds" },
+                  { "type": "integer", "description": "last_ack, Unix epoch milliseconds" },
+                  { "type": "integer", "minimum": 1, "description": "quant" }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Example exported from a real database shape:
+
+```json
+{
+  "meta": {
+    "version": 1,
+    "exportedAt": 1780419600000
+  },
   "tables": {
     "tasks": {
       "rows": [
-        [id, "description", interval, amount, next_alarm, next_caution, last_ack, quant]
+        [
+          1,
+          "Water the plants",
+          2,
+          3,
+          1780660800000,
+          1780649400000,
+          1780401600000,
+          1
+        ],
+        [
+          2,
+          "Pay internet bill",
+          4,
+          1,
+          1782997200000,
+          1782870300000,
+          1780318800000,
+          1
+        ]
       ]
     }
   }
@@ -259,6 +332,10 @@ Used for v2 import/export in Settings. Compatible with the legacy app export sha
 ```
 
 - Column order matches `BackupImport` / `BackupExport` (8 fields per row).
+- `interval` values are `0` minute, `1` hour, `2` day, `3` week, `4` month,
+  `5` year.
+- Time fields are Unix epoch milliseconds.
+- IDs are preserved on import.
 - `wasNotified` is not stored; imported tasks default to `wasNotified = 0`.
 - Import validates JSON before delete; export uses pretty-printed JSON (`toString(2)`).
 
