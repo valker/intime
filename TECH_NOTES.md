@@ -424,3 +424,23 @@ Before release, verify:
 - app upgrade from the old production package;
 - behavior on Android versions that differ in notification and alarm
   permissions.
+
+## Debugging
+
+### Accessing Database Files
+
+To access the SQLite database from the emulator without binary corruption:
+
+1. Stop the application:
+   `adb shell am force-stop com.vpe_soft.intime.intime.dev`
+
+2. Download files using `adb exec-out` and `cmd` to avoid PowerShell binary corruption:
+   ```cmd
+   adb exec-out "run-as com.vpe_soft.intime.intime.dev cat /data/data/com.vpe_soft.intime.intime.dev/databases/main" > main.db
+   adb exec-out "run-as com.vpe_soft.intime.intime.dev cat /data/data/com.vpe_soft.intime.intime.dev/databases/main-wal" > main.db-wal
+   adb exec-out "run-as com.vpe_soft.intime.intime.dev cat /data/data/com.vpe_soft.intime.intime.dev/databases/main-shm" > main.db-shm
+   ```
+
+3. Query the database locally:
+   `sqlite3 main.db "SELECT description FROM tasks;"`
+
