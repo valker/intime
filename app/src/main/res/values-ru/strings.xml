@@ -62,4 +62,6 @@
     <string name="delete_task_message">Это действие невозможно отменить</string>
     <string name="delete_task_confirm">Удалить</string>
     <string name="delete_task_cancel">Отмена</string>
+    <string name="edit_task">Редактировать</string>
+    <string name="confirm_task">Подтвердить задачу</string>
 </resources>

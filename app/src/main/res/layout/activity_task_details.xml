@@ -46,10 +46,17 @@
         android:textSize="14sp"
         android:textStyle="bold"/>
     <Button
+        android:id="@+id/btnEditTask"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/edit_task"
+        android:layout_marginTop="16dp"/>
+
+    <Button
         android:id="@+id/btnAckTask"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Подтвердить задачу"
+        android:text="@string/confirm_task"
         android:backgroundTint="@color/green"
         android:textColor="@android:color/white"
         android:layout_marginTop="16dp"/>

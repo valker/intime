@@ -31,6 +31,8 @@
     <string name="add_task">Add Task</string>
     <string name="task_details_title">Task Details</string>
     <string name="task_description">Task Description</string>
+    <string name="edit_task">Edit Task</string>
+    <string name="confirm_task">Confirm Task</string>
     <string name="save">Save</string>
     <string name="title_activity_add_task_v2">AddTaskActivityV2</string>
     <string name="import_tasks_from_json">Import tasks from JSON</string>

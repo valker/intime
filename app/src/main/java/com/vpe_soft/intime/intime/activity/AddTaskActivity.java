@@ -23,6 +23,8 @@ public class AddTaskActivity extends V2Activity {
     private Spinner spinnerInterval;
     private NumberPicker numberPickerAmount;
     private NumberPicker numberPickerQuant;
+    private long editTaskId = -1;
+    private long existingLastAck = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,7 +42,7 @@ public class AddTaskActivity extends V2Activity {
         spinnerInterval = findViewById(R.id.spinner_interval);
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
                 this,
-                R.array.interval_options, // Создадим в ресурсах
+                R.array.interval_options,
                 android.R.layout.simple_spinner_item
         );
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -58,6 +60,20 @@ public class AddTaskActivity extends V2Activity {
         numberPickerQuant.setMaxValue(10);
         numberPickerQuant.setValue(1);
 
+        editTaskId = getIntent().getLongExtra("task_id", -1);
+        if (editTaskId != -1) {
+            setTitle(R.string.edit_task_activity_title);
+            taskViewModel.getTaskById(editTaskId).observe(this, task -> {
+                if (task != null) {
+                    editTaskDescription.setText(task.description);
+                    spinnerInterval.setSelection(task.interval);
+                    numberPickerAmount.setValue(task.amount);
+                    numberPickerQuant.setValue(task.quant);
+                    existingLastAck = task.lastAck;
+                }
+            });
+        }
+
         btnSaveTask.setOnClickListener(view -> saveTask());
     }
 
@@ -68,17 +84,24 @@ public class AddTaskActivity extends V2Activity {
             return;
         }
 
-        int interval = spinnerInterval.getSelectedItemPosition(); // 0 - минута, 1 - час, 2 - день и т.д.
-        int amount = numberPickerAmount.getValue(); // Количество интервалов
-        int quant = numberPickerQuant.getValue();   // Дробление интервала
+        int interval = spinnerInterval.getSelectedItemPosition();
+        int amount = numberPickerAmount.getValue();
+        int quant = numberPickerQuant.getValue();
 
-        final long lastAck = System.currentTimeMillis();
-        Pair<Long, Long> next = AlarmUtil.getNextAlarmAndCaution(interval, amount, lastAck, quant, getResources().getConfiguration().locale);
+        final long ackTime = (editTaskId != -1 && existingLastAck > 0) ? existingLastAck : System.currentTimeMillis();
+        Pair<Long, Long> next = AlarmUtil.getNextAlarmAndCaution(interval, amount, ackTime, quant, getResources().getConfiguration().locale);
 
-        TaskEntity newTask = new TaskEntity(description, interval, amount, next.first, next.second, 0, quant);
-        taskViewModel.addTask(newTask);
+        if (editTaskId != -1) {
+            TaskEntity updatedTask = new TaskEntity(description, interval, amount, next.first, next.second, existingLastAck, quant);
+            updatedTask.setId(editTaskId);
+            taskViewModel.updateTask(updatedTask);
+            Toast.makeText(this, "Задача обновлена", Toast.LENGTH_SHORT).show();
+        } else {
+            TaskEntity newTask = new TaskEntity(description, interval, amount, next.first, next.second, 0, quant);
+            taskViewModel.addTask(newTask);
+            Toast.makeText(this, "Задача добавлена", Toast.LENGTH_SHORT).show();
+        }
 
-        Toast.makeText(this, "Задача добавлена", Toast.LENGTH_SHORT).show();
-        finish(); // Закрываем экран после сохранения
+        finish();
     }
 }
