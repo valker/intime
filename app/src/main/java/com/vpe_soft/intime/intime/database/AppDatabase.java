@@ -17,7 +17,14 @@ import com.vpe_soft.intime.intime.database.entities.TaskEntity;
 public abstract class AppDatabase extends RoomDatabase {
     public abstract TaskDao taskDao();
 
-    private static volatile AppDatabase INSTANCE; // Синглтон для базы данных
+    private static volatile AppDatabase INSTANCE;
+
+    /**
+     * Replaces the singleton instance with a test database. Caller must close and reset after test.
+     */
+    public static void setTestInstance(AppDatabase testDb) {
+        INSTANCE = testDb;
+    }
 
     static final Migration MIGRATION_5_6 = new Migration(5, 6) {
         @Override
