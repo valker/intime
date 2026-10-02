@@ -16,7 +16,7 @@ import com.vpe_soft.intime.intime.database.dao.TaskDao;
 import com.vpe_soft.intime.intime.notifications.NotificationHelper;
 import com.vpe_soft.intime.intime.scheduling.SchedulingCoordinator;
 
-import java.util.concurrent.Executors;
+import com.vpe_soft.intime.intime.concurrent.AppExecutors;
 
 public class BootReceiver extends BroadcastReceiver {
     private static final String TAG = "BootReceiver";
@@ -30,13 +30,10 @@ public class BootReceiver extends BroadcastReceiver {
         }
 
         final PendingResult pendingResult = goAsync();
-        Executors.newSingleThreadExecutor().execute(() -> {
-            try {
-                handleBootCompleted(context);
-            } finally {
-                pendingResult.finish();
-            }
-        });
+        Context appContext = context.getApplicationContext();
+        AppExecutors.executeReceiver(TAG, () -> {
+            handleBootCompleted(appContext);
+        }, pendingResult::finish);
     }
 
     private static void handleBootCompleted(Context context) {

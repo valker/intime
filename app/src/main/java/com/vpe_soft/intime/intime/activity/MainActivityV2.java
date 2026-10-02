@@ -35,7 +35,6 @@ import com.vpe_soft.intime.intime.scheduling.SchedulingCoordinator;
 import com.vpe_soft.intime.intime.view_models.TaskViewModel;
 import com.vpe_soft.intime.intime.workers.TaskNotificationWorker;
 
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivityV2 extends V2Activity {
@@ -133,7 +132,7 @@ public class MainActivityV2 extends V2Activity {
                     }
                 });
 
-        Executors.newSingleThreadExecutor().execute(() -> SchedulingCoordinator.reschedule(getApplicationContext()));
+        SchedulingCoordinator.reschedule(getApplicationContext());
 
         // запускаем воркер отправки уведомлений
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(TaskNotificationWorker.class.getName(), ExistingPeriodicWorkPolicy.KEEP,
@@ -177,8 +176,7 @@ public class MainActivityV2 extends V2Activity {
             }
         }
 
-        Executors.newSingleThreadExecutor().execute(
-                () -> SchedulingCoordinator.reschedule(getApplicationContext()));
+        SchedulingCoordinator.reschedule(getApplicationContext());
     }
 
     @Override

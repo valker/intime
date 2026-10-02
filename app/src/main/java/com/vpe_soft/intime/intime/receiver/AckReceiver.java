@@ -9,7 +9,7 @@ import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.database.repositories.TaskRepository;
 import com.vpe_soft.intime.intime.notifications.NotificationHelper;
 
-import java.util.concurrent.Executors;
+import com.vpe_soft.intime.intime.concurrent.AppExecutors;
 
 public class AckReceiver extends BroadcastReceiver {
     private static final String TAG = "AckReceiver";
@@ -25,13 +25,9 @@ public class AckReceiver extends BroadcastReceiver {
 
         final PendingResult pendingResult = goAsync();
         Context appContext = context.getApplicationContext();
-        Executors.newSingleThreadExecutor().execute(() -> {
-            try {
-                NotificationHelper.dismissAllAppNotifications(appContext);
-                new TaskRepository(appContext).acknowledgeTaskById(taskId);
-            } finally {
-                pendingResult.finish();
-            }
-        });
+        AppExecutors.executeReceiver(TAG, () -> {
+            NotificationHelper.dismissAllAppNotifications(appContext);
+            new TaskRepository(appContext).acknowledgeTaskById(taskId);
+        }, pendingResult::finish);
     }
 }

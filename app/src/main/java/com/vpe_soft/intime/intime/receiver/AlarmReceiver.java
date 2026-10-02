@@ -20,7 +20,7 @@ import com.vpe_soft.intime.intime.database.entities.TaskEntity;
 import com.vpe_soft.intime.intime.notifications.NotificationHelper;
 import com.vpe_soft.intime.intime.scheduling.SchedulingCoordinator;
 
-import java.util.concurrent.Executors;
+import com.vpe_soft.intime.intime.concurrent.AppExecutors;
 import java.util.List;
 
 /**
@@ -34,13 +34,10 @@ public class AlarmReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         Log.d(TAG, "onReceive");
         final PendingResult pendingResult = goAsync();
-        Executors.newSingleThreadExecutor().execute(() -> {
-            try {
-                handleAlarm(context, intent);
-            } finally {
-                pendingResult.finish();
-            }
-        });
+        Context appContext = context.getApplicationContext();
+        AppExecutors.executeReceiver(TAG, () -> {
+            handleAlarm(appContext, intent);
+        }, pendingResult::finish);
     }
 
     static void handleAlarm(Context context, Intent intent) {

@@ -449,6 +449,23 @@ Settings UI calls `TaskRepository.replaceAllWithImportFromJson()`.
 5. Notification scheduling decisions.
 6. Full-replacement import behavior.
 
+## Background queues (R2.1)
+
+`AppExecutors` owns two lazily started single-thread queues for the lifetime of
+the application process: `intime-tasks` for repository operations (including
+import/export) and UI scheduling requests, and `intime-receivers` for alarm,
+ACK and boot broadcasts. Activity instances do not create or shut down these
+queues. WorkManager and Room keep their own managed executors.
+
+Repository requests share FIFO ordering across repository instances. Broadcasts
+use a separate queue so a large backup does not directly delay `goAsync` work;
+database locks can still delay either queue. Runtime failures are logged with
+the operation name, and broadcast completion runs in `finally`.
+
+This does not yet serialize every call to `SchedulingCoordinator`: background
+callers still execute scheduling inline. Cross-queue scheduling races are R2.2;
+rapid edit/ACK/delete/import and full `PendingResult` coverage are R2.3.
+
 ## Build Notes
 
 Before release, verify:

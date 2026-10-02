@@ -18,7 +18,7 @@ import com.vpe_soft.intime.intime.scheduling.SchedulingCoordinator;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.Executors;
+import com.vpe_soft.intime.intime.concurrent.AppExecutors;
 
 public class TaskRepository {
     private static final String TAG = "TaskRepository";
@@ -44,28 +44,28 @@ public class TaskRepository {
     }
 
     public void insert(TaskEntity task) {
-        Executors.newSingleThreadExecutor().execute(() -> {
+        AppExecutors.executeTask("insert", () -> {
             task.setId(taskDao.insert(task));
             rescheduleNextAlarm();
         });
     }
 
     public void update(TaskEntity task) {
-        Executors.newSingleThreadExecutor().execute(() -> {
+        AppExecutors.executeTask("update", () -> {
             taskDao.update(task);
             rescheduleNextAlarm();
         });
     }
 
     public void delete(TaskEntity task) {
-        Executors.newSingleThreadExecutor().execute(() -> {
+        AppExecutors.executeTask("delete", () -> {
             taskDao.delete(task);
             rescheduleNextAlarm();
         });
     }
 
     public void deleteTaskById(long taskId) {
-        Executors.newSingleThreadExecutor().execute(() -> {
+        AppExecutors.executeTask("deleteById", () -> {
             final TaskEntity taskById = taskDao.getRawTaskById(taskId);
             if (taskById != null) {
                 taskDao.delete(taskById);
@@ -78,7 +78,7 @@ public class TaskRepository {
      * Acknowledges a task on a background thread. Safe to call from broadcast receivers and UI.
      */
     public void acknowledgeTaskAsync(long taskId) {
-        Executors.newSingleThreadExecutor().execute(() -> acknowledgeTaskById(taskId));
+        AppExecutors.executeTask("acknowledge", () -> acknowledgeTaskById(taskId));
     }
 
     /**
@@ -123,7 +123,7 @@ public class TaskRepository {
             java.util.function.Consumer<String> onJsonReady,
             java.util.function.Consumer<Exception> onError) {
         Handler mainHandler = new Handler(Looper.getMainLooper());
-        Executors.newSingleThreadExecutor().execute(() -> {
+        AppExecutors.executeTask("export", () -> {
             try {
                 String json = BackupExport.toJson(taskDao.getAllTasksSync());
                 mainHandler.post(() -> onJsonReady.accept(json));
@@ -138,7 +138,7 @@ public class TaskRepository {
      */
     public void replaceAllWithImportFromJson(Context context, String jsonContent, Runnable onSuccess, java.util.function.Consumer<Exception> onError) {
         Handler mainHandler = new Handler(Looper.getMainLooper());
-        Executors.newSingleThreadExecutor().execute(() -> {
+        AppExecutors.executeTask("import", () -> {
             try {
                 ImportReplacement.replaceAll(db, jsonContent);
                 rescheduleNextAlarm();

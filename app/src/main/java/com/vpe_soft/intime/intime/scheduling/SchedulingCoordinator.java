@@ -14,8 +14,7 @@ import com.vpe_soft.intime.intime.database.entities.TaskEntity;
 import com.vpe_soft.intime.intime.receiver.AlarmReceiver;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import com.vpe_soft.intime.intime.concurrent.AppExecutors;
 
 /**
  * Schedules the nearest future task reminder via AlarmManager using Room as source of truth.
@@ -24,7 +23,6 @@ public final class SchedulingCoordinator {
 
     private static final String TAG = "SchedulingCoordinator";
     private static final int ALARM_REQUEST_CODE = 199709;
-    private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
 
     private SchedulingCoordinator() {
     }
@@ -36,7 +34,7 @@ public final class SchedulingCoordinator {
     public static void reschedule(Context context) {
         Context appContext = context.getApplicationContext();
         if (Looper.myLooper() == Looper.getMainLooper()) {
-            EXECUTOR.execute(() -> rescheduleInternal(appContext));
+            AppExecutors.executeTask("reschedule", () -> rescheduleInternal(appContext));
             return;
         }
         rescheduleInternal(appContext);
