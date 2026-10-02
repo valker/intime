@@ -223,9 +223,9 @@ public class ReminderCalculatorTest {
     }
 
     /**
-     * Проверяет: Повторение одинакового расчёта двухчасового интервала с одной отметкой времени и
-     * Locale.US. Ожидается равенство результатов. US/Eastern создаётся, но не используется:
-     * фактической смены часового пояса и проверки независимости от него здесь нет.
+     * Проверяет: Один двухчасовой интервал от той же Unix-отметки вычисляется явно в UTC и
+     * US/Eastern. Ожидается одинаковый следующий Unix-срок: часы измеряют реальную длительность.
+     * Календарные дни и переходы DST проверяются отдельно в ReminderBoundariesTest.
      */
     @Test
     public void getNextAlarm_isConsistentAcrossTimeZones() {
@@ -236,7 +236,7 @@ public class ReminderCalculatorTest {
                 2,
                 acknowledgementTime,
                 1,
-                LOCALE
+                LOCALE, UTC
         );
 
         TimeZone estZone = TimeZone.getTimeZone("US/Eastern");
@@ -245,7 +245,7 @@ public class ReminderCalculatorTest {
                 2,
                 acknowledgementTime,
                 1,
-                Locale.US
+                Locale.US, estZone
         );
 
         assertEquals(nextAlarmUTC, nextAlarmEST);

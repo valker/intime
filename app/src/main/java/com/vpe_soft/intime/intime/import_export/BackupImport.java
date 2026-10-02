@@ -3,6 +3,7 @@ package com.vpe_soft.intime.intime.import_export;
 import androidx.annotation.NonNull;
 
 import com.vpe_soft.intime.intime.database.entities.TaskEntity;
+import com.vpe_soft.intime.intime.domain.ReminderCalculator;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -12,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Locale;
 
 /**
  * Parses backup JSON and produces list of TaskEntity.
@@ -100,10 +102,18 @@ public final class BackupImport {
             String description = (String) descriptionValue;
             int interval = (int) integer(row.get(IDX_INTERVAL), path + "interval", 0, 5);
             int amount = (int) integer(row.get(IDX_AMOUNT), path + "amount", 1, Integer.MAX_VALUE);
-            long nextAlarm = integer(row.get(IDX_NEXT_ALARM), path + "next_alarm", 0, Long.MAX_VALUE);
-            long nextCaution = integer(row.get(IDX_NEXT_CAUTION), path + "next_caution", 0, Long.MAX_VALUE);
-            long lastAck = integer(row.get(IDX_LAST_ACK), path + "last_ack", 0, Long.MAX_VALUE);
+            long nextAlarm = integer(row.get(IDX_NEXT_ALARM), path + "next_alarm", 0, ReminderCalculator.MAX_SUPPORTED_TIME);
+            long nextCaution = integer(row.get(IDX_NEXT_CAUTION), path + "next_caution", 0, ReminderCalculator.MAX_SUPPORTED_TIME);
+            long lastAck = integer(row.get(IDX_LAST_ACK), path + "last_ack", 0, ReminderCalculator.MAX_SUPPORTED_TIME);
             int quant = (int) integer(row.get(IDX_QUANT), path + "quant", 1, Integer.MAX_VALUE);
+            long now = System.currentTimeMillis();
+            try {
+                // Проверка не меняет сохранённые сроки: исключаем невозможный следующий ACK.
+                ReminderCalculator.getNextAlarm(interval, amount, now, quant, Locale.getDefault());
+                if (lastAck > 0) ReminderCalculator.getNextAlarm(interval, amount, lastAck, quant, Locale.getDefault());
+            } catch (IllegalArgumentException exception) {
+                throw new IllegalArgumentException(path + "uncomputable schedule: " + exception.getMessage(), exception);
+            }
 
             TaskEntity entity = new TaskEntity(description, interval, amount, nextAlarm, nextCaution, lastAck, quant);
             entity.setId(id);

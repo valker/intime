@@ -29,7 +29,8 @@ public class Constants {
     /**
      * Factor to calculate time interval for cautions
      */
-    public static final double CAUTION_FACTOR = 0.95;
+    public static final int CAUTION_PERCENT = 95;
+    public static final double CAUTION_FACTOR = CAUTION_PERCENT / 100.0;
 
     /**
      * Key in SharedPreferences that points to last usage timestamp

@@ -26,7 +26,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ImportValidationStateTest {
     /**
      * Создаёт две задачи в Room в памяти, включая wasNotified = true, и устанавливает будущий alarm.
-     * Через асинхронный репозиторий последовательно импортирует неверные параметры, ID/дубликаты,
+     * Через асинхронный репозиторий последовательно импортирует неверные параметры, переполнение
+     * календарного интервала, нулевой результат деления, слишком большую дату, ID/дубликаты,
      * типы, версию и порядок columns. В части файлов первая строка корректна, ошибка находится
      * позже: нельзя применить частичный импорт. После каждого callback ошибки проверяет все поля
      * обеих задач, wasNotified, число строк и тот же объект alarm с неизменным сроком; успех не
@@ -60,7 +61,10 @@ public class ImportValidationStateTest {
                     rows(valid + ",[8,\"Bad type\",1,1.5,2000,1000,0,1]"),
                     rows(valid + ",[8,null,1,1,2000,1000,0,1]"),
                     "{\"meta\":{\"version\":2},\"tables\":{\"tasks\":{\"rows\":[]}}}",
-                    "{\"tables\":{\"tasks\":{\"columns\":[],\"rows\":[]}}}"
+                    "{\"tables\":{\"tasks\":{\"columns\":[],\"rows\":[]}}}",
+                    rows(valid + ",[8,\"Years overflow\",5,2147483647,2000,1900,0,1]"),
+                    rows(valid + ",[8,\"Zero interval\",0,1,2000,1900,0,60001]"),
+                    rows(valid + ",[8,\"Date overflow\",0,1,253402300800000,1900,0,1]")
             };
             AtomicInteger errors = new AtomicInteger();
             for (int i = 0; i < invalid.length; i++) {

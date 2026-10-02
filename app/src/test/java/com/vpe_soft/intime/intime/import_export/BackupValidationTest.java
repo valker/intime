@@ -81,15 +81,15 @@ public class BackupValidationTest {
     /**
      * Подставляет interval вне 0–5, amount/quant нулевые, отрицательные и больше int.MAX_VALUE.
      * Проверяет отклонение каждой строки и сообщение с именем неверного поля. Граничные
-     * положительные int.MAX_VALUE принимаются как представимые параметры; безопасность
-     * вычисления календарного срока с ними проверяется отдельно в R3.2.
+     * положительные int.MAX_VALUE принимаются для минут с большим quant: такой расчёт
+     * остаётся в допустимом диапазоне дат и продвигает срок вперёд.
      */
     @Test public void rejectsInvalidParametersWithoutIntegerTruncation() throws Exception {
         for (String[] value : new String[][]{{"2", "-1"}, {"2", "6"}, {"3", "0"}, {"3", "-1"},
                 {"3", "2147483648"}, {"7", "0"}, {"7", "-1"}, {"7", "2147483648"}}) {
             rejectField(Integer.parseInt(value[0]), value[1]);
         }
-        assertEquals(Integer.MAX_VALUE, BackupImport.parseTasks(wrap("[7,\"Task\",1,2147483647,2000,1900,0,2147483647]")).get(0).amount.intValue());
+        assertEquals(Integer.MAX_VALUE, BackupImport.parseTasks(wrap("[7,\"Task\",0,2147483647,2000,1900,0,2147483647]")).get(0).amount.intValue());
     }
 
     /**
@@ -119,7 +119,7 @@ public class BackupValidationTest {
 
     /**
      * Проверяет отказ для отрицательных трёх временных полей и сохранение нулевых значений.
-     * Поля должны быть неотрицательными целыми Unix-миллисекундами в пределах long.
+     * Поля должны быть неотрицательными целыми Unix-миллисекундами в поддерживаемом диапазоне дат.
      * Отношения lastAck/caution/alarm и дальнейшая календарная арифметика не проверяются.
      */
     @Test public void rejectsNegativeTimestampsAndAcceptsZero() throws Exception {

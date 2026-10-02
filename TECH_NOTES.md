@@ -253,10 +253,19 @@ Product decisions:
   acknowledgement time.
 - An overdue task waits for acknowledgement and does not accumulate multiple
   overdue occurrences.
-- Caution time remains a fixed percentage of the full interval.
+- Caution is floor(95% of the scheduled interval after quant division), using integer arithmetic.
 - A just-overdue task notification may include an `ACK` action.
 - Later reminders about existing overdue tasks should not include `ACK`; they
   should open the task list.
+
+`ReminderCalculator` supports anchors and complete interval ends from epoch zero
+through 253402300799999 (9999-12-31T23:59:59.999Z). Amounts are bounded before
+Calendar.add to avoid its internal integer overflow; years use Calendar.YEAR
+directly. Results must advance the anchor and quant must leave at least 1 ms.
+Arithmetic uses checked long operations. Minute/hour intervals measure elapsed
+time; days/weeks/months/years follow GregorianCalendar in the current time zone.
+An explicit-TimeZone overload supports reproducible calendar/DST checks.
+Month-end clipping and leap-day behavior remain covered by regressions.
 
 Implemented flow:
 
@@ -383,9 +392,9 @@ Schema, expressed as JSON Schema draft 2020-12:
                   { "type": "string", "description": "description" },
                   { "type": "integer", "minimum": 0, "maximum": 5, "description": "interval" },
                   { "type": "integer", "minimum": 1, "maximum": 2147483647, "description": "amount" },
-                  { "type": "integer", "minimum": 0, "maximum": 9223372036854775807, "description": "next_alarm, Unix epoch milliseconds" },
-                  { "type": "integer", "minimum": 0, "maximum": 9223372036854775807, "description": "next_caution, Unix epoch milliseconds" },
-                  { "type": "integer", "minimum": 0, "maximum": 9223372036854775807, "description": "last_ack, Unix epoch milliseconds" },
+                  { "type": "integer", "minimum": 0, "maximum": 253402300799999, "description": "next_alarm, Unix epoch milliseconds" },
+                  { "type": "integer", "minimum": 0, "maximum": 253402300799999, "description": "next_caution, Unix epoch milliseconds" },
+                  { "type": "integer", "minimum": 0, "maximum": 253402300799999, "description": "last_ack, Unix epoch milliseconds" },
                   { "type": "integer", "minimum": 1, "maximum": 2147483647, "description": "quant" }
                 ]
               }
@@ -452,6 +461,9 @@ Example exported from a real database shape:
 - Unknown root/table/meta properties are ignored for compatibility. Unknown
   explicit versions and data after the root object are rejected. Empty rows is valid.
 - Import validates all rows before delete; export uses pretty-printed JSON (`toString(2)`).
+- Import also verifies that parameters produce a supported, advancing next ACK
+  from now and from a positive last_ack. It preserves stored deadlines rather than
+  recalculating them. Schema integer ranges alone do not express this dynamic rule.
 
 ## Import Behavior
 
