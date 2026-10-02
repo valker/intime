@@ -65,6 +65,26 @@ android {
         // Проверьте, что указано 'androidTest', а не просто 'test' или 'main'
         androidTest.assets.srcDirs += files("$projectDir/schemas".toString())
     }
+
+    testOptions {
+        unitTests.all {
+            systemProperty 'file.encoding', 'UTF-8'
+            systemProperty 'user.timezone', 'UTC'
+            if (project.hasProperty('testOffline')) {
+                systemProperty 'robolectric.offline', 'true'
+                systemProperty 'robolectric.dependency.dir', rootProject.file('.test-tools/robolectric').absolutePath
+            }
+        }
+    }
+}
+
+// Always produce fresh test results without recompiling every prerequisite task.
+if (project.hasProperty('forceTestRun')) {
+    tasks.configureEach {
+        if (name in ['testDebugUnitTest', 'connectedDebugAndroidTest']) {
+            outputs.upToDateWhen { false }
+        }
+    }
 }
 
 dependencies {

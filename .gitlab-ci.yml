@@ -13,11 +13,11 @@ variables:
 
   # ANDROID_COMPILE_SDK is the version of Android you're compiling with.
   # It should match compileSdkVersion.
-  ANDROID_COMPILE_SDK: "34"
+  ANDROID_COMPILE_SDK: "35"
 
   # ANDROID_BUILD_TOOLS is the version of the Android build tools you are using.
   # It should match buildToolsVersion.
-  ANDROID_BUILD_TOOLS: "34.0.0"
+  ANDROID_BUILD_TOOLS: "35.0.0"
 
   # It's what version of the command line tools we're going to download from the official site.
   # Official Site-> https://developer.android.com/studio/index.html
@@ -69,7 +69,7 @@ lintDebug:
   interruptible: true
   stage: build
   script:
-    - ./gradlew -Pci --console=plain :app:lintDebug -PbuildDir=lint
+    - ./gradlew -Pci --console=plain --no-watch-fs :app:lintDebug
 
 # Make Project
 assembleDebug:
@@ -77,14 +77,47 @@ assembleDebug:
   stage: build
   script:
     - echo "JAVA_HOME - ${JAVA_HOME}"
-    - ./gradlew assembleDebug
+    - ./gradlew --no-watch-fs assembleDebug
   artifacts:
     paths:
-      - intime/app/build/outputs/
+      - app/build/outputs/apk/debug/
 
 # Run all tests, if any fails, interrupt the pipeline(fail it)
 debugTests:
   interruptible: true
   stage: test
   script:
-    - ./gradlew -Pci --console=plain :app:testDebug
+    - ./gradlew -Pci --console=plain --no-watch-fs :app:testDebugUnitTest
+  artifacts:
+    when: always
+    reports:
+      junit: app/build/test-results/testDebugUnitTest/*.xml
+    paths:
+      - app/build/reports/tests/testDebugUnitTest/
+      - app/build/test-results/testDebugUnitTest/
+
+instrumentedTests:
+  stage: test
+  when: manual
+  tags:
+    - android-emulator
+  script:
+    - test -r /dev/kvm && test -w /dev/kvm
+    - sdkmanager --sdk_root=${ANDROID_HOME} "emulator" "system-images;android-35;google_apis;x86_64"
+    - echo no | avdmanager create avd --name Intime_CI_API35 --package "system-images;android-35;google_apis;x86_64"
+    - '${ANDROID_HOME}/emulator/emulator -avd Intime_CI_API35 -port 5580 -no-window -no-audio -no-snapshot -gpu swiftshader_indirect > emulator.log 2>&1 &'
+    - export ANDROID_SERIAL=emulator-5580
+    - timeout 300 bash -c 'until adb -s emulator-5580 shell getprop sys.boot_completed 2>/dev/null | tr -d "\r" | grep -q "^1$"; do sleep 2; done'
+    - ./gradlew --console=plain --no-watch-fs :app:connectedDebugAndroidTest
+  after_script:
+    - ${CI_PROJECT_DIR}/android-home/platform-tools/adb -s emulator-5580 logcat -d > logcat.log || true
+    - ${CI_PROJECT_DIR}/android-home/platform-tools/adb -s emulator-5580 emu kill || true
+  artifacts:
+    when: always
+    reports:
+      junit: app/build/outputs/androidTest-results/connected/debug/**/*.xml
+    paths:
+      - app/build/outputs/androidTest-results/
+      - app/build/reports/androidTests/
+      - emulator.log
+      - logcat.log

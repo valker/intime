@@ -6,3 +6,5 @@
 /build
 /captures
 /app/release/
+/.test-tools/
+/app/build/
