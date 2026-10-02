@@ -291,7 +291,7 @@ Implemented flow:
    are ordered by deadline and ID. UI-visible or blocked sends leave flags unchanged.
    NotificationManager is external to SQLite: process failure between posting and
    commit can still lead to a later repeat. Background queues and rescheduling
-   serialization are described below; rapid operation sequences remain R2.3.
+   serialization and rapid operation regression checks are described below.
 10. The last successful post time is persisted in SharedPreferences
     (`notification_reminder_state/last_successful_post`) for alarm, worker and boot.
     Blocked sends and UI suppression do not update it. Clock rollback permits one
@@ -449,7 +449,7 @@ Settings UI calls `TaskRepository.replaceAllWithImportFromJson()`.
 5. Notification scheduling decisions.
 6. Full-replacement import behavior.
 
-## Background queues and scheduling (R2.1/R2.2)
+## Background queues and scheduling (R2.1–R2.3)
 
 `AppExecutors` owns two lazily started single-thread queues for the lifetime of
 the application process: `intime-tasks` for repository operations (including
@@ -473,8 +473,25 @@ Call scheduling after database changes commit, outside Room transactions: taking
 the scheduling lock while holding a database transaction can invert lock order.
 The current repository/import, alarm and boot call sites follow this rule.
 The lock does not make task mutations and platform delivery one atomic operation;
-stale delivered alarms still use the receiver's Room checks. Rapid edit/ACK/delete/
-import and full `PendingResult` coverage remain R2.3.
+stale delivered alarms still use the receiver's Room checks.
+
+ACK reads the current task parameters and writes acknowledgement times in one
+Room transaction. An import with reused IDs therefore cannot replace the row
+between that read and write. Scheduling follows the commit, outside the transaction.
+Edit requests copy the submitted values before queueing. Their transaction reads
+the current row: if ACK changed while the form was open, the edit preserves the
+current `lastAck` and recalculates times with the edited interval from that anchor.
+Saving an edit of a deleted row does not recreate it.
+
+R2.3 local regressions cover 120 queued insert/edit/ACK/delete operations, import
+ordering and callback errors, an ACK/import interleaving with the same ID, stale
+forms after ACK and mutable submitted objects. All three receivers are tested
+through `onReceive` and a Robolectric `PendingResult`, including injected errors,
+rollback where applicable, completion and subsequent queue work. Android tests
+also send real ACK PendingIntents for absent tasks and a deliberately closed
+in-memory test database, then verify a following successful ACK. These are
+bounded scenarios, not a guarantee against OS process death or broadcast timeouts
+under arbitrary load. NotificationManager posts are not rolled back with Room.
 
 ## Build Notes
 

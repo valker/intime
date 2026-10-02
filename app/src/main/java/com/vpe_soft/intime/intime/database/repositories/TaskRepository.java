@@ -51,8 +51,28 @@ public class TaskRepository {
     }
 
     public void update(TaskEntity task) {
+        // Фиксируем значения формы на момент отправки, не передаём изменяемый объект в очередь.
+        TaskEntity edited = new TaskEntity(task.description, task.interval, task.amount,
+                task.nextAlarm, task.nextCaution, task.lastAck, task.quant);
+        edited.setId(task.id);
+        edited.setWasNotified(task.isWasNotified());
         AppExecutors.executeTask("update", () -> {
-            taskDao.update(task);
+            db.runInTransaction(() -> {
+                TaskEntity current = taskDao.getRawTaskById(edited.id);
+                if (current == null) return;
+                // ACK мог прийти, пока форма была открыта: сохраняем свежую отметку
+                // и пересчитываем срок с новыми параметрами относительно неё.
+                if (!current.lastAck.equals(edited.lastAck)) {
+                    edited.lastAck = current.lastAck;
+                    long anchor = current.lastAck > 0 ? current.lastAck : System.currentTimeMillis();
+                    Pair<Long, Long> next = AlarmUtil.getNextAlarmAndCaution(
+                            edited.interval, edited.amount, anchor, edited.quant, resolveLocale());
+                    edited.nextAlarm = next.first;
+                    edited.nextCaution = next.second;
+                    edited.setWasNotified(false);
+                }
+                taskDao.update(edited);
+            });
             rescheduleNextAlarm();
         });
     }
@@ -85,13 +105,20 @@ public class TaskRepository {
      * Must run on a background thread (uses Room and schedules alarms).
      */
     public void acknowledgeTaskById(long taskId) {
+        // Импорт не должен заменить запись между чтением её параметров и обновлением ACK.
+        db.runInTransaction(() -> acknowledgeCurrentTask(taskId));
+        // Перепланирование — после commit, вне транзакции (порядок блокировок R2.2).
+        rescheduleNextAlarm();
+    }
+
+    private void acknowledgeCurrentTask(long taskId) {
         TaskEntity task = taskDao.getRawTaskById(taskId);
         if (task == null) {
             Log.w(TAG, "acknowledgeTaskById: task not found, id=" + taskId);
             return;
         }
         Locale locale = resolveLocale();
-        acknowledgeTask(
+        updateAcknowledgement(
                 taskId,
                 System.currentTimeMillis(),
                 task.interval,
@@ -102,10 +129,14 @@ public class TaskRepository {
     }
 
     public void acknowledgeTask(long taskId, long currentTimeMillis, int interval, int amount, int quant, Locale locale) {
+        updateAcknowledgement(taskId, currentTimeMillis, interval, amount, quant, locale);
+        rescheduleNextAlarm();
+    }
+
+    private void updateAcknowledgement(long taskId, long currentTimeMillis, int interval, int amount, int quant, Locale locale) {
         final Pair<Long, Long> nextAlarmAndCaution = AlarmUtil.getNextAlarmAndCaution(interval, amount, currentTimeMillis, quant, locale);
 
         taskDao.acknowledgeTask(taskId, currentTimeMillis, nextAlarmAndCaution.first, nextAlarmAndCaution.second);
-        rescheduleNextAlarm();
     }
 
     public List<TaskEntity> getTasksForNotification(long now) {

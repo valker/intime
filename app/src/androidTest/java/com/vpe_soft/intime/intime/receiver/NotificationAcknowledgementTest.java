@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import android.app.Notification;
 import android.content.Context;
+import android.database.SQLException;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -74,5 +75,55 @@ public class NotificationAcknowledgementTest {
     private Notification notification(long id) {
         return AlarmReceiver.createNotification(context, "Task",
                 new NotificationCompat.Builder(context, Constants.TASK_OVERDUE_CHANNEL_ID), id);
+    }
+
+    /**
+     * Отправляет настоящий ACK PendingIntent для несуществующего положительного ID и дожидается
+     * callback завершения broadcast до 10 секунд. База должна остаться пустой. Затем в той же
+     * очереди receiver отправляет ACK для существующей задачи и проверяет lastAck и будущий срок.
+     * Проверяется системная доставка и завершение goAsync без записи для первого ID; шторка
+     * уведомлений, reboot и убийство процесса здесь не проверяются.
+     */
+    @Test
+    public void missingTaskAck_finishesAndAllowsFollowingAck() throws Exception {
+        sendAndWait(404);
+        assertEquals(0, dao.getTaskCount());
+        long past = System.currentTimeMillis() - 60000;
+        long id = dao.insert(new TaskEntity("Following", 1, 1, past, past, 0, 1));
+        sendAndWait(id);
+        assertTrue(dao.getRawTaskById(id).lastAck > 0);
+        assertTrue(dao.getRawTaskById(id).nextAlarm > System.currentTimeMillis());
+    }
+
+    /**
+     * Закрывает исключительно внедрённую Room-базу в памяти, оставляя её доступной через test
+     * singleton. Перед отправкой настоящего ACK PendingIntent подтверждает SQLException
+     * при запросе к закрытой базе. Ошибка в receiver не должна задержать завершение broadcast:
+     * ожидается callback до 10 секунд. После него
+     * внедряется новая база в памяти и проверяется успешный ACK следующей задачи в той же очереди.
+     * Production-база и пользовательские данные не открываются; системные сбои не имитируются.
+     */
+    @Test
+    public void databaseFailureAck_finishesAndQueueRecovers() throws Exception {
+        assertEquals(0, dao.getTaskCount());
+        database.close();
+        assertThrows(SQLException.class, () -> dao.getTaskCount());
+        sendAndWait(404);
+        database = Room.inMemoryDatabaseBuilder(context, AppDatabase.class).build();
+        AppDatabase.setTestInstance(database);
+        dao = database.taskDao();
+        long past = System.currentTimeMillis() - 60000;
+        long id = dao.insert(new TaskEntity("After failure", 1, 1, past, past, 0, 1));
+        sendAndWait(id);
+        assertTrue(dao.getRawTaskById(id).lastAck > 0);
+        assertTrue(dao.getRawTaskById(id).nextAlarm > System.currentTimeMillis());
+    }
+
+    private void sendAndWait(long id) throws Exception {
+        CountDownLatch completed = new CountDownLatch(1);
+        notification(id).actions[0].actionIntent.send(context, 0, null,
+                (pendingIntent, intent, resultCode, resultData, resultExtras) -> completed.countDown(),
+                new Handler(Looper.getMainLooper()));
+        assertTrue("ACK broadcast did not finish", completed.await(10, TimeUnit.SECONDS));
     }
 }
