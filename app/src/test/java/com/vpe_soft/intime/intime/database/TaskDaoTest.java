@@ -40,6 +40,10 @@ public class TaskDaoTest {
         database.close();
     }
 
+    /**
+     * Проверяет: В тестовую Room-базу добавляется неуведомлённая задача со сроком на пять секунд
+     * раньше now. Выборка для уведомлений должна вернуть ровно одну задачу с описанием Overdue.
+     */
     @Test
     public void getTasksForNotification_returnsOverdueUnnotifiedTask() {
         long now = System.currentTimeMillis();
@@ -51,6 +55,10 @@ public class TaskDaoTest {
         assertEquals("Overdue", result.get(0).description);
     }
 
+    /**
+     * Проверяет: Просроченная на пять секунд задача предварительно помечается через markTaskNotified.
+     * Запрос на момент now должен вернуть пустой список, исключая уже уведомлённую задачу.
+     */
     @Test
     public void getTasksForNotification_excludesNotifiedTask() {
         long now = System.currentTimeMillis();
@@ -62,6 +70,10 @@ public class TaskDaoTest {
         assertEquals(0, result.size());
     }
 
+    /**
+     * Проверяет: Добавляется задача с nextAlarm на 100 секунд позже now. Запрос задач для уведомлений
+     * на момент now должен быть пустым, поскольку срок ещё не наступил.
+     */
     @Test
     public void getTasksForNotification_excludesFutureTask() {
         long now = System.currentTimeMillis();
@@ -72,6 +84,10 @@ public class TaskDaoTest {
         assertEquals(0, result.size());
     }
 
+    /**
+     * Проверяет: До отметки просроченная задача присутствует в выборке в единственном экземпляре.
+     * После markTaskNotified повторный запрос с тем же now должен вернуть ноль задач.
+     */
     @Test
     public void markTaskNotified_excludesTaskFromSubsequentQueries() {
         long now = System.currentTimeMillis();
@@ -84,6 +100,11 @@ public class TaskDaoTest {
         assertEquals(0, taskDao.getTasksForNotification(now).size());
     }
 
+    /**
+     * Проверяет: Уведомлённая просроченная задача подтверждается с новым сроком через 100 секунд.
+     * Выборка остаётся пустой до и после подтверждения из-за будущего срока. Сам сброс wasNotified
+     * напрямую не утверждается этим тестом.
+     */
     @Test
     public void acknowledgeTask_resetsWasNotified() {
         long now = System.currentTimeMillis();
@@ -99,6 +120,11 @@ public class TaskDaoTest {
         assertEquals(0, taskDao.getTasksForNotification(now).size());
     }
 
+    /**
+     * Проверяет: Уведомлённая просроченная задача сначала отсутствует в выборке. После подтверждения
+     * со сроком на секунду раньше now она должна снова появиться единственной записью, подтверждая
+     * сброс признака уведомления.
+     */
     @Test
     public void acknowledgeTask_makesOverdueTaskReappearIfStillOverdue() {
         long now = System.currentTimeMillis();

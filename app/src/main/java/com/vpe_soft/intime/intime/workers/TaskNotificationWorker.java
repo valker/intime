@@ -1,16 +1,10 @@
 package com.vpe_soft.intime.intime.workers;
 
-import android.Manifest;
-import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.content.Context;
-import android.content.pm.PackageManager;
-import android.os.Build;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
-import androidx.core.content.ContextCompat;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
@@ -38,11 +32,8 @@ public class TaskNotificationWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.POST_NOTIFICATIONS)
-                    != PackageManager.PERMISSION_GRANTED) {
-                return Result.success();
-            }
+        if (!NotificationHelper.canPostTaskNotifications(getApplicationContext())) {
+            return Result.success();
         }
 
         long now = System.currentTimeMillis();
@@ -52,7 +43,9 @@ public class TaskNotificationWorker extends Worker {
             return Result.success();
         }
 
-        showNotification(tasks);
+        if (!showNotification(tasks)) {
+            return Result.success();
+        }
         for (TaskEntity task : tasks) {
             taskRepository.markTaskNotified(task.getId());
         }
@@ -60,8 +53,7 @@ public class TaskNotificationWorker extends Worker {
         return Result.success();
     }
 
-    @SuppressLint("MissingPermission")
-    private void showNotification(List<TaskEntity> tasks) {
+    private boolean showNotification(List<TaskEntity> tasks) {
         Context context = getApplicationContext();
         NotificationHelper.ensureTaskOverdueChannel(context);
         String contentText = getNotificationContentText(context, tasks);
@@ -74,9 +66,8 @@ public class TaskNotificationWorker extends Worker {
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true);
 
-        NotificationManagerCompat manager = NotificationManagerCompat.from(context);
         final Notification notification = builder.build();
-        manager.notify(AlarmUtil.NOTIFICATION_TAG, 1, notification);
+        return NotificationHelper.postTaskNotification(context, notification);
     }
 
     private String getNotificationContentText(Context context, List<TaskEntity> tasks) {

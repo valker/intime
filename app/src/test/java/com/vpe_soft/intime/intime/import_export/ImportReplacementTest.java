@@ -40,6 +40,11 @@ public class ImportReplacementTest {
         database.close();
     }
 
+    /**
+     * Проверяет: В базе заранее есть одна задача, после чего replaceAll получает JSON {}. Ожидаются
+     * IllegalArgumentException и сохранение одной записи после ошибки. Содержимое этой записи отдельно
+     * не сравнивается.
+     */
     @Test
     public void replaceAll_invalidJson_keepsExistingTasks() {
         taskDao.insert(sampleTask("Keep me", 1000L));
@@ -51,6 +56,11 @@ public class ImportReplacementTest {
         assertEquals(1, taskDao.getTaskCount());
     }
 
+    /**
+     * Проверяет: В базе есть Old task, а резервная копия содержит Imported с id = 7. После replaceAll
+     * ожидается ровно одна запись и описание Imported у id = 7, подтверждающие замену вместо
+     * добавления к старым задачам.
+     */
     @Test
     public void replaceAll_validJson_replacesTasks() throws Exception {
         taskDao.insert(sampleTask("Old task", 1000L));

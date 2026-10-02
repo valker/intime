@@ -1,7 +1,6 @@
 package com.vpe_soft.intime.intime.receiver;
 
 import android.app.Notification;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -9,6 +8,7 @@ import android.content.Intent;
 import androidx.core.app.NotificationCompat;
 
 import android.os.Build;
+import android.net.Uri;
 import android.util.Log;
 
 import com.vpe_soft.intime.intime.Constants;
@@ -41,7 +41,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         });
     }
 
-    private static void handleAlarm(Context context, Intent intent) {
+    static void handleAlarm(Context context, Intent intent) {
         String notificationString = intent.getStringExtra(Constants.EXTRA_TASK_DESCRIPTION);
         long overdueTaskId = intent.getLongExtra(Constants.EXTRA_TASK_ID, -1);
 
@@ -62,9 +62,9 @@ public class AlarmReceiver extends BroadcastReceiver {
         context.sendOrderedBroadcast(broadcastIntent, null);
 
         if (!UiVisibility.isV2UiVisible()) {
-            Log.d(TAG, "handleAlarm: will show notification");
-            showNotification(context, notificationString, overdueTaskId);
-            if (overdueTaskId >= 0) {
+            Log.d(TAG, "handleAlarm: trying to post notification");
+            boolean posted = showNotification(context, notificationString, overdueTaskId);
+            if (posted && overdueTaskId >= 0) {
                 taskDao.markTaskNotified(overdueTaskId);
             }
         } else {
@@ -74,26 +74,23 @@ public class AlarmReceiver extends BroadcastReceiver {
         SchedulingCoordinator.reschedule(context);
     }
 
-    private static void showNotification(Context context, String notificationString, long overdueTaskId) {
+    private static boolean showNotification(Context context, String notificationString, long overdueTaskId) {
         Log.d(TAG, "showNotification");
 
         NotificationCompat.Builder builder;
-        NotificationManager notificationManager;
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationHelper.ensureTaskOverdueChannel(context);
-            notificationManager = context.getSystemService(NotificationManager.class);
             builder = new NotificationCompat.Builder(context, Constants.TASK_OVERDUE_CHANNEL_ID);
         } else {
-            notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             builder = new NotificationCompat.Builder(context);
         }
 
         Notification notification = createNotification(context, notificationString, builder, overdueTaskId);
-        notificationManager.notify(AlarmUtil.NOTIFICATION_TAG, 1, notification);
+        return NotificationHelper.postTaskNotification(context, notification);
     }
 
-    private static Notification createNotification(Context context, String contentText, NotificationCompat.Builder builder, long overdueTaskId) {
+    static Notification createNotification(Context context, String contentText, NotificationCompat.Builder builder, long overdueTaskId) {
         builder.setContentTitle(context.getResources().getString(R.string.app_name));
         builder.setContentText(contentText);
         builder.setSmallIcon(R.drawable.notification_icon);
@@ -103,11 +100,13 @@ public class AlarmReceiver extends BroadcastReceiver {
         if (overdueTaskId >= 0) {
             Intent ackTaskIntent = new Intent(context, AckReceiver.class);
             ackTaskIntent.setAction(Constants.ACTION_ACKNOWLEDGE);
+            // Extras не участвуют в идентичности PendingIntent: ID задаём также в URI.
+            ackTaskIntent.setData(Uri.parse("intime://ack/task/" + overdueTaskId));
             ackTaskIntent.putExtra(Constants.EXTRA_TASK_ID, overdueTaskId);
             PendingIntent acknowledgePendingIntent = PendingIntent.getBroadcast(context,
                     0,
                     ackTaskIntent,
-                    PendingIntent.FLAG_IMMUTABLE);
+                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
             builder.addAction(R.drawable.acknowledge,
                     context.getString(R.string.acknowledge_from_notification),
                     acknowledgePendingIntent);

@@ -11,6 +11,11 @@ import java.util.List;
 
 public class BackupExportTest {
 
+    /**
+     * Проверяет: Задача Water plants экспортируется в JSON и снова импортируется. Ожидается одна
+     * задача с исходными id = 42, описанием и nextAlarm = 1000. Другие поля отдельными утверждениями
+     * не проверяются.
+     */
     @Test
     public void roundTrip_preservesTaskFields() throws Exception {
         TaskEntity task = new TaskEntity("Water plants", 2, 3, 1000L, 900L, 100L, 1);

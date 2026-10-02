@@ -1,18 +1,13 @@
 package com.vpe_soft.intime.intime.receiver;
 
-import android.Manifest;
 import android.app.Notification;
-import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.os.Build;
 import android.content.SharedPreferences;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
-import androidx.core.content.ContextCompat;
 
 import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.R;
@@ -65,21 +60,18 @@ public class BootReceiver extends BroadcastReceiver {
     }
 
     private static void showBootNotification(Context context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED) {
-            Log.d(TAG, "showBootNotification: notification permission is not granted");
+        if (!NotificationHelper.canPostTaskNotifications(context)) {
+            Log.d(TAG, "showBootNotification: notifications are disabled");
             return;
         }
 
         NotificationHelper.ensureTaskOverdueChannel(context);
-        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, Constants.TASK_OVERDUE_CHANNEL_ID);
         builder.setContentTitle(context.getString(R.string.channel_name));
         builder.setContentText(context.getString(R.string.boot_completed_overdue_tasks_notification));
         builder.setSmallIcon(R.drawable.notification_icon);
         builder.setContentIntent(NotificationHelper.createOpenTaskListPendingIntent(context));
         Notification notification = builder.build();
-        notificationManager.notify(AlarmUtil.NOTIFICATION_TAG, 1, notification);
+        NotificationHelper.postTaskNotification(context, notification);
     }
 }

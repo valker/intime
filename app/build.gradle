@@ -67,6 +67,7 @@ android {
     }
 
     testOptions {
+        unitTests.includeAndroidResources = true
         unitTests.all {
             systemProperty 'file.encoding', 'UTF-8'
             systemProperty 'user.timezone', 'UTC'
@@ -104,6 +105,7 @@ dependencies {
     testImplementation 'org.json:json:20251224'
     testImplementation 'org.robolectric:robolectric:4.16.1'
     testImplementation 'androidx.test:core:1.7.0'
+    testImplementation 'androidx.work:work-testing:2.11.2'
 
     androidTestImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.3.0'

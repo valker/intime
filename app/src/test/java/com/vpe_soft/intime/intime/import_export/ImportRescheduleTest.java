@@ -49,6 +49,11 @@ public class ImportRescheduleTest {
         AppDatabase.setTestInstance(null);
     }
 
+    /**
+     * Проверяет: Импортируется задача id = 7 со сроком через час, проверяются её наличие и описание.
+     * После фонового вызова SchedulingCoordinator и ожидания его завершения ожидается ровно один
+     * будильник Robolectric с точным сроком из JSON.
+     */
     @Test
     public void importReplacementThenReschedule_schedulesAlarmForImportedTask() throws Exception {
         TaskDao taskDao = database.taskDao();
@@ -81,6 +86,11 @@ public class ImportRescheduleTest {
         assertEquals(futureAlarm, alarms.get(0).triggerAtTime);
     }
 
+    /**
+     * Проверяет: Импортируется задача со сроком на 100 секунд раньше now, затем выполняется фоновое
+     * перепланирование. Ожидается пустой список будильников Robolectric. Предварительный будильник не
+     * создаётся, поэтому отмена существующего расписания непосредственно не проверяется.
+     */
     @Test
     public void importReplacementWithoutFutureTasks_cancelsAlarm() throws Exception {
         long now = System.currentTimeMillis();
@@ -106,6 +116,11 @@ public class ImportRescheduleTest {
         assertEquals(0, alarms.size());
     }
 
+    /**
+     * Проверяет: Импортируется rows = [], после чего проверяется отсутствие задач в базе. После
+     * фонового перепланирования ожидается также пустой список будильников. Ранее установленный
+     * будильник не создаётся: проверяется итоговое отсутствие расписания.
+     */
     @Test
     public void importReplacementWithoutTasks_cancelsAlarm() throws Exception {
         String json = "{"

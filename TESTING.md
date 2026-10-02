@@ -14,9 +14,28 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode devic
 ```
 
 Local mode runs JUnit and Robolectric, including Room/import/scheduling integration
-checks. Device mode runs Android instrumentation tests, currently four Room
-migration checks. Robolectric does not replace testing Android platform behavior
+checks. Device mode runs Android instrumentation tests: four Room migration checks
+and an ACK action check through a real PendingIntent/broadcast. Robolectric does not replace testing Android platform behavior
 on a device.
+
+## Комментарии к тестам
+
+Каждый новый тест должен содержать подробный комментарий на русском языке
+в формате Javadoc (`/** ... */`) непосредственно перед аннотацией `@Test`.
+Правило распространяется на все юнит- и интеграционные тесты в `app/src/test`
+и `app/src/androidTest`, включая инструментальные тесты Android.
+
+В комментарии необходимо описать:
+
+- исходные условия и значимые тестовые данные;
+- действие или вызов, поведение которого проверяется;
+- ожидаемый результат и конкретные проверяемые утверждения;
+- существенные границы проверки, если название теста или сценарий могут
+  создать впечатление более широкого покрытия.
+
+Комментарий должен соответствовать фактическому коду: не приписывайте тесту
+проверки, которых в нём нет. При изменении сценария или утверждений обновляйте
+комментарий вместе с тестом. Используйте существующие комментарии как образец.
 
 ## Environment
 

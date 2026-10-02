@@ -10,6 +10,11 @@ import org.junit.Test;
 import java.util.List;
 
 public class BackupImportTest {
+    /**
+     * Проверяет: Разбираются две строки JSON с идентификаторами 42 и 43. Проверяются число задач и оба
+     * описания и id; для первой также точно сверяются interval, amount, nextAlarm, nextCaution,
+     * lastAck и quant. Остальные поля второй задачи не сравниваются.
+     */
     @Test
     public void parseTasks_readsTasksAndPreservesIds() throws Exception {
         String json = "{"
@@ -39,11 +44,19 @@ public class BackupImportTest {
         assertEquals("Take a break", tasks.get(1).description);
     }
 
+    /**
+     * Проверяет: В parseTasks передаётся пустой JSON-объект {} без обязательной структуры tables.
+     * Ожидается IllegalArgumentException, исключающий успешный разбор такой резервной копии.
+     */
     @Test
     public void parseTasks_rejectsMissingTables() {
         assertThrows(IllegalArgumentException.class, () -> BackupImport.parseTasks("{}"));
     }
 
+    /**
+     * Проверяет: В структуре tables/tasks/rows передаётся строка только с id и описанием Broken. Из-за
+     * отсутствия остальных обязательных значений ожидается IllegalArgumentException.
+     */
     @Test
     public void parseTasks_rejectsShortRows() {
         String json = "{"

@@ -15,17 +15,30 @@ public class UiVisibilityTest {
         }
     }
 
+    /**
+     * Проверяет: При отсутствии зарегистрированных запусков Activity запрашивается видимость
+     * интерфейса. Ожидается false, то есть отсутствие видимости без активных Activity.
+     */
     @Test
     public void isV2UiVisible_falseWhenNoActivityStarted() {
         assertFalse(UiVisibility.isV2UiVisible());
     }
 
+    /**
+     * Проверяет: Регистрируется запуск одной Activity через onV2ActivityStarted. Последующий
+     * isV2UiVisible должен вернуть true. Проверяется счётчик видимости, без запуска настоящей Android
+     * Activity.
+     */
     @Test
     public void isV2UiVisible_trueWhileActivityStarted() {
         UiVisibility.onV2ActivityStarted();
         assertTrue(UiVisibility.isV2UiVisible());
     }
 
+    /**
+     * Проверяет: Регистрируются два запуска Activity и одна остановка: видимость должна остаться true.
+     * После второй остановки ожидается false, поскольку остановлена последняя учтённая Activity.
+     */
     @Test
     public void isV2UiVisible_tracksNestedActivities() {
         UiVisibility.onV2ActivityStarted();

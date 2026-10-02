@@ -9,6 +9,12 @@ Run relevant tests proactively when changing this project. The user has authoriz
 local tests and instrumented tests on the dedicated project test emulator.
 See TESTING.md for commands and environment requirements.
 
+- Every new test must have a detailed Russian Javadoc comment immediately before
+  its @Test annotation, covering initial conditions, the action under test and
+  expected assertions. Describe actual coverage and relevant limits without
+  claiming checks the test does not perform. Keep the comment current when
+  changing the test. This applies to unit and integration tests in both src/test
+  and src/androidTest; see TESTING.md for the comment convention.
 - Domain calculations, JSON backup, DAO, repository and scheduling changes:
   run local tests, preferably the affected class first and the full suite after.
 - Database/schema/migration changes: also run device tests.

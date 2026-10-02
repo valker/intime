@@ -1,5 +1,10 @@
 # Intime v2 Implementation Plan
 
+> Текущий порядок и проверенный статус находятся в [ROADMAP.md](ROADMAP.md),
+> обновлённом 2 октября 2026 года. Ниже сохранён исторический перечень работ.
+> Его отметки Done не подтверждают production-миграцию, signing или device smoke;
+> эти проверки остаются открытыми в актуальном roadmap.
+
 This document turns the product roadmap and technical notes into a concrete,
 reviewable work plan for the `chatgpt` branch. It assumes `PRODUCT.md`,
 `ROADMAP.md`, and `TECH_NOTES.md` remain the source of truth for behavior and

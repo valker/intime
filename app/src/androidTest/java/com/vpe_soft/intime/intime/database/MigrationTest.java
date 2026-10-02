@@ -22,6 +22,11 @@ public class MigrationTest {
             AppDatabase.class
     );
 
+    /**
+     * Проверяет: MigrationTestHelper создаёт тестовую базу версии 5 с одной задачей и применяет
+     * MIGRATION_5_6 с проверкой схемы Room. Затем PRAGMA table_info(tasks) должен обнаружить столбец
+     * wasNotified.
+     */
     @Test
     public void migration_5_to_6_addsWasNotifiedColumn() throws Exception {
         SupportSQLiteDatabase db = helper.createDatabase(TEST_DB, 5);
@@ -48,6 +53,11 @@ public class MigrationTest {
         db.close();
     }
 
+    /**
+     * Проверяет: В тестовую базу версии 5 добавляется одна задача и выполняется MIGRATION_5_6 с
+     * проверкой схемы. SELECT COUNT(*) должен вернуть один. Точные значения полей сохранившейся записи
+     * здесь не сравниваются.
+     */
     @Test
     public void migration_5_to_6_preservesExistingData() throws Exception {
         SupportSQLiteDatabase db = helper.createDatabase(TEST_DB, 5);
@@ -70,6 +80,11 @@ public class MigrationTest {
         db.close();
     }
 
+    /**
+     * Проверяет: В тестовую базу версии 5 добавляется задача id = 1, затем выполняется MIGRATION_5_6 с
+     * проверкой схемы. Запрос нового поля wasNotified для этой задачи должен вернуть 0; отсутствие
+     * строки оставило бы значение -1 и провалило проверку.
+     */
     @Test
     public void migration_5_to_6_initializeWasNotifiedToZero() throws Exception {
         SupportSQLiteDatabase db = helper.createDatabase(TEST_DB, 5);
@@ -92,6 +107,11 @@ public class MigrationTest {
         db.close();
     }
 
+    /**
+     * Проверяет: В базу версии 5 добавляются три разные задачи и выполняется MIGRATION_5_6 с проверкой
+     * схемы. Ожидаются три строки, положительные id и interval и непустое описание каждой. Точное
+     * сохранение amount, временных отметок и остальных полей не утверждается.
+     */
     @Test
     public void migration_5_to_6_preservesDataIntegrity() throws Exception {
         SupportSQLiteDatabase db = helper.createDatabase(TEST_DB, 5);

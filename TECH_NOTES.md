@@ -271,10 +271,16 @@ Implemented flow:
 6. `TaskNotificationWorker` (15-minute periodic work) is reconciliation only:
    notifies for `next_alarm <= now AND wasNotified = 0`, opens the task list,
    never adds `ACK`, and does not schedule alarms.
-7. If `POST_NOTIFICATIONS` is denied, workers and receivers exit without
-   treating permission denial as a failure.
+7. `NotificationHelper.postTaskNotification()` checks `POST_NOTIFICATIONS`,
+   app-level notification availability and channel importance. Blocked posts
+   do not set `wasNotified`; alarm handling still reschedules future tasks.
+   A permission revocation during posting is handled as a blocked post.
 8. When any v2 activity starts, all notifications posted by the app are dismissed
    (`NotificationManager.cancelAll()`).
+
+ACK PendingIntents use a task-specific data URI (`intime://ack/task/<id>`),
+because extras do not participate in PendingIntent identity. Regression tests
+cover consecutive notifications, blocked posts and permission recovery via worker.
 
 Key classes:
 

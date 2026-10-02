@@ -1,18 +1,67 @@
 package com.vpe_soft.intime.intime.notifications;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Build;
+import android.util.Log;
+
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
 
 import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.activity.MainActivityV2;
+import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 
 public class NotificationHelper {
     private NotificationHelper() {
+    }
+
+    /** Проверяем разрешение, общий запрет и настройки канала перед отправкой. */
+    public static boolean canPostTaskNotifications(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            return false;
+        }
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+            return false;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager manager = context.getSystemService(NotificationManager.class);
+            if (manager == null) {
+                return false;
+            }
+            NotificationChannel channel = manager.getNotificationChannel(Constants.TASK_OVERDUE_CHANNEL_ID);
+            if (channel != null && channel.getImportance() == NotificationManager.IMPORTANCE_NONE) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** true означает, что notify выполнен; это не подтверждение прочтения пользователем. */
+    @SuppressLint("MissingPermission") // Разрешение проверяется в canPostTaskNotifications.
+    public static boolean postTaskNotification(Context context, Notification notification) {
+        if (!canPostTaskNotifications(context)) {
+            return false;
+        }
+        try {
+            NotificationManagerCompat.from(context).notify(
+                    AlarmUtil.NOTIFICATION_TAG, 1, notification);
+            return true;
+        } catch (SecurityException e) {
+            // Разрешение могло быть отозвано между проверкой и отправкой.
+            Log.w("NotificationHelper", "Notification permission changed before posting", e);
+            return false;
+        }
     }
 
     public static void ensureTaskOverdueChannel(Context context) {
