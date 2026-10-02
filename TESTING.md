@@ -11,12 +11,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode local
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode local -Filter '*ReminderCalculatorTest'
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -Offline
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 33 -Offline
 ```
 
 Local mode runs JUnit and Robolectric, including Room/import/scheduling integration
-checks. Device mode runs Android instrumentation tests: four Room migration checks
-and an ACK action check through a real PendingIntent/broadcast. Robolectric does not replace testing Android platform behavior
-on a device.
+checks. Device mode runs four Room migration checks, an ACK PendingIntent check,
+and four platform notification checks (real AlarmManager delivery/ACK, denied
+POST_NOTIFICATIONS, silent worker output and a disabled channel). Two reboot-phase
+tests are skipped in a normal suite and run separately by the smoke script.
+The denied-permission test skips when permission is already granted; the smoke
+script always revokes it before a separate run. A skipped test is not verification.
+Robolectric does not replace testing Android platform behavior on a device.
 
 ## Комментарии к тестам
 
@@ -47,7 +52,9 @@ on a device.
 - For device mode: platform-tools, modern emulator/emulator.exe, hardware
   virtualization and a system image. On this machine the installed image is
   system-images/android-35/google_apis_playstore_ps16k/x86_64.
-  -SystemImage can choose another installed API 35 x86_64 image relative to SDK.
+  -TestApi 33 uses system-images/android-33/google_apis/x86_64 (revision 17
+  installed here). -SystemImage can choose another installed x86_64 image for
+  the selected API, relative to SDK; compilation still requires platform 35.
 - Initial builds require network access to Google Maven/Maven Central and the
   wrapper distribution. Robolectric also resolves Android runtime JARs. An online
   local run copies available instrumented runtime JARs from the user's Maven cache
@@ -61,9 +68,13 @@ on a device.
 
 The runner creates a small dedicated AVD inside .test-tools/avd, launches it
 without a window, waits for boot completion and sets ANDROID_SERIAL explicitly.
-Default port is 5580; use -EmulatorPort with another even port if occupied.
+Default port is 5580 for API 35 and 5582 for API 33; use -EmulatorPort with another
+even port if occupied. Each API has its own Intime_Test_API<API> AVD.
 It refuses to use an emulator of another name on that port. No existing personal
-AVD is copied or reset. Test data survives between runs.
+AVD is copied or reset. AVD disk data persists, but Gradle removes test APKs after
+the suite, which can remove the test app's data. The smoke script installs APKs
+once before its phases and does not reinstall them between preparation and reboot
+verification, so that fixture must survive the actual reboot.
 
 By default the runner stops an emulator it started. -KeepEmulator retains it for
 another run; a reused emulator is left running. To stop the retained test emulator:
@@ -75,6 +86,48 @@ adb -s emulator-5580 emu kill
 
 Do not run Gradle or tests in this checkout concurrently with the runner. A lock
 prevents two runner invocations from sharing reports or the AVD.
+
+## Реальная доставка и перезагрузка
+
+Для каждого API сначала выполняется обычная suite с сохранением AVD, затем smoke:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 35 -Offline -KeepEmulator
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-notification-smoke.ps1 -TestApi 35
+# После остановки AVD API 35 повторить оба запуска с -TestApi 33.
+```
+
+Smoke использует стандартные порты 5580/5582. Перед сменой API остановите прежний
+проектный AVD: запись владения рассчитана на один живой экземпляр. Скрипт проверяет
+имя AVD, API, PID и время старта, блокирует параллельные прогоны и сохраняет логи
+в `.test-tools/runs/*-notification-smoke`. Он оставляет AVD запущенным; остановка
+показана выше (для API 33 используйте `emulator-5582` и ожидайте `Intime_Test_API33`).
+
+APK устанавливаются из последней сборки через `adb install -r`. Разрешения изменяются
+только у `.dev`-приложения на проектном AVD. Запуск launcher и уход домой перед
+фикстурой снимают `stopped/notLaunched`: одной instrumentation после установки
+недостаточно для получения BOOT_COMPLETED. Отзыв POST_NOTIFICATIONS выполняется
+до instrumentation, поскольку Android может завершить процесс при отзыве.
+
+Фазы проверки:
+
+1. Отказ в POST_NOTIFICATIONS и реальная доставка AlarmManager с ACK.
+2. Создание двух синтетических задач в файловой Room-базе тестового приложения.
+3. Настоящий `adb reboot`; ожидание нового BOOT_COUNT и восстановленного будильника
+   AlarmReceiver с точно тем же сроком в `dumpsys alarm`.
+4. Проверка сохранности задач и опубликованной сводки BootReceiver без ACK,
+   затем удаление только задач фикстуры и восстановление отметки использования.
+
+`sys.boot_completed=1` не означает, что BOOT_COMPLETED доставлен приложению.
+Instrumentation до доставки может подавить ожидающий broadcast, поэтому smoke
+сначала ждёт восстановления будильника. Тест не заменяет системный reboot вызовом
+обработчика. При сбое до второй фазы фикстура может остаться; её проверка и очистка
+выполняются отдельным запуском `RebootRecoveryTest#verifyAfterReboot` с тем же APK.
+
+Проверки подтверждают публикацию в Android NotificationManager, параметры тишины,
+ACK и восстановление расписания. Прочтение уведомления и физическое звучание на
+реальном телефоне ими не подтверждаются. После успешного smoke исходные
+пользовательские `main*.db` в рабочем каталоге не используются и не изменяются.
 
 ## Results and diagnosis
 

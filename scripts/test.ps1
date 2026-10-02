@@ -9,6 +9,8 @@ param(
     # Режим запуска и необязательный фильтр класса/метода теста.
     [ValidateSet('local', 'device')][string]$Mode = 'local',
     [string]$Filter,
+    # API тестового устройства; компиляция приложения по-прежнему использует SDK 35.
+    [ValidateSet(33, 35)][int]$TestApi = 35,
     # Пути можно задать явно; иначе скрипт найдёт SDK и JDK в окружении.
     [string]$SdkPath,
     [string]$JdkPath,
@@ -139,6 +141,13 @@ try {
 
     # Локальным тестам эмулятор не нужен. Всё ниже выполняется только в режиме device.
     if ($Mode -eq 'device') {
+        # Для каждого API — собственные AVD, данные и порт. Не смешиваем образы.
+        if (-not $PSBoundParameters.ContainsKey('EmulatorPort') -and $TestApi -eq 33) { $EmulatorPort = 5582 }
+        $serial = "emulator-$EmulatorPort"
+        if (-not $PSBoundParameters.ContainsKey('SystemImage') -and $TestApi -eq 33) {
+            $SystemImage = 'system-images\android-33\google_apis\x86_64'
+        }
+        if ($SystemImage -notmatch "^system-images[\\/]android-$TestApi[\\/]") { throw 'SystemImage must match TestApi.' }
         if ($EmulatorPort % 2 -ne 0) { throw 'Emulator port must be even.' }
         $script:adb = Join-Path $SdkPath 'platform-tools\adb.exe'
         $emulator = Join-Path $SdkPath 'emulator\emulator.exe'
@@ -148,13 +157,13 @@ try {
         # AVD — профиль виртуального устройства. Создаём его внутри проекта,
         # отдельно от личных эмуляторов, настроенных в Android Studio.
         $avdHome = Join-Path $work 'avd'
-        $avdName = 'Intime_Test_API35'
+        $avdName = "Intime_Test_API$TestApi"
         $avdPath = Join-Path $avdHome "$avdName.avd"
         New-Item -ItemType Directory -Path $avdPath -Force | Out-Null
-        # Начальная конфигурация: API 35, 2 ядра, 2 ГБ RAM, программная графика.
+        # Начальная конфигурация: выбранный API, 2 ядра, 2 ГБ RAM, программная графика.
         $config = @"
 AvdId=$avdName
-avd.ini.displayname=Intime Test API 35
+avd.ini.displayname=Intime Test API $TestApi
 avd.ini.encoding=UTF-8
 abi.type=x86_64
 hw.cpu.arch=x86_64
@@ -171,8 +180,8 @@ hw.camera.back=none
 hw.camera.front=none
 disk.dataPartition.size=2G
 image.sysdir.1=$imagePath\
-tag.id=google_apis_playstore
-target=android-35
+tag.id=$(if ($TestApi -eq 33) { 'google_apis' } else { 'google_apis_playstore' })
+target=android-$TestApi
 showDeviceFrame=no
 fastboot.forceColdBoot=yes
 "@
@@ -187,7 +196,7 @@ fastboot.forceColdBoot=yes
             if (-not [IO.Path]::IsPathRooted($storedImagePath)) { $storedImagePath = Join-Path $SdkPath $storedImagePath }
             if ([IO.Path]::GetFullPath($storedImagePath).TrimEnd('\') -ne [IO.Path]::GetFullPath($imagePath).TrimEnd('\')) { throw 'Existing test AVD uses a different system image; select its original image.' }
         }
-        Set-Content (Join-Path $avdHome "$avdName.ini") "avd.ini.encoding=UTF-8`npath=$avdPath`ntarget=android-35" -Encoding ASCII
+        Set-Content (Join-Path $avdHome "$avdName.ini") "avd.ini.encoding=UTF-8`npath=$avdPath`ntarget=android-$TestApi" -Encoding ASCII
         $env:ANDROID_AVD_HOME = $avdHome
         $devices = Invoke-Adb @('devices')
         # Если порт занят, проверяем имя AVD, сохранённый PID и время старта процесса.
@@ -202,6 +211,14 @@ fastboot.forceColdBoot=yes
             $deviceOwned = $true
         } else {
             # Новый экземпляр запускаем в фоне после проверки аппаратного ускорения.
+            # Перед сменой API останавливаем прежний проектный AVD: запись владения одна.
+            if (Test-Path $emulatorState) {
+                $otherState = Get-Content $emulatorState -Raw | ConvertFrom-Json
+                $otherProcess = Get-Process -Id $otherState.processId -ErrorAction SilentlyContinue
+                if ($otherProcess -and $otherProcess.StartTime.ToUniversalTime().ToString('o') -eq $otherState.started) {
+                    throw 'Stop the retained project emulator before switching API or port.'
+                }
+            }
             $check = Join-Path $SdkPath 'emulator\emulator-check.exe'
             if ((Invoke-LoggedProcess $check @('accel') 'acceleration' 30) -ne 0) { throw 'Hardware acceleration unavailable. See acceleration logs.' }
             $argsLine = (@('-avd', $avdName, '-port', "$EmulatorPort", '-no-window', '-no-audio', '-no-snapshot', '-gpu', 'software') | ForEach-Object { Quote-Argument $_ }) -join ' '
@@ -224,6 +241,7 @@ fastboot.forceColdBoot=yes
         # Явно направляем инструментальные тесты только на выбранное тестовое устройство.
         $env:ANDROID_SERIAL = $serial
         $summary.serial = $serial
+        $summary.testApi = $TestApi
     }
 
     $task = if ($Mode -eq 'local') { ':app:testDebugUnitTest' } else { ':app:connectedDebugAndroidTest' }

@@ -303,6 +303,14 @@ ACK PendingIntents use a task-specific data URI (`intime://ack/task/<id>`),
 because extras do not participate in PendingIntent identity. Regression tests
 cover consecutive notifications, blocked posts and permission recovery via worker.
 
+Platform regression checks ran on dedicated API 33 and 35 emulators on 2 October
+2026: real AlarmManager delivery and ACK, denied POST_NOTIFICATIONS, disabled
+channel and silent worker output. A separate host-controlled smoke test performs
+a real reboot, checks BOOT_COUNT, waits for the same AlarmReceiver deadline in
+AlarmManager, then verifies persisted tasks and the BootReceiver summary. It
+launches the installed app once before reboot and waits for boot delivery before
+starting instrumentation. See DEVICE_TEST_RESULTS.md for reports and coverage limits.
+
 Key classes:
 
 - `scheduling/SchedulingCoordinator.java`
