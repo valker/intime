@@ -261,7 +261,9 @@ Implemented flow:
 1. Room (`TaskDao`) is the source of truth for scheduling queries.
 2. `SchedulingCoordinator.reschedule()` schedules only the nearest task with
    `next_alarm > now` through `AlarmManager`.
-3. `AlarmReceiver` handles the exact alarm: shows the first-due notification,
+3. `AlarmReceiver` reads the fired task from Room rather than trusting Intent text.
+   Deleted tasks, future deadlines and already notified tasks only trigger
+   rescheduling; eligible tasks use their current description. It shows the first-due notification,
    may include `ACK`, marks the fired task as `wasNotified = 1`, then
    reschedules the next alarm.
 4. Exact alarms use `setExactAndAllowWhileIdle` when permitted; otherwise the

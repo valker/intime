@@ -16,6 +16,7 @@ import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.ui.UiVisibility;
 import com.vpe_soft.intime.intime.database.AppDatabase;
 import com.vpe_soft.intime.intime.database.dao.TaskDao;
+import com.vpe_soft.intime.intime.database.entities.TaskEntity;
 import com.vpe_soft.intime.intime.notifications.NotificationHelper;
 import com.vpe_soft.intime.intime.scheduling.SchedulingCoordinator;
 
@@ -42,15 +43,18 @@ public class AlarmReceiver extends BroadcastReceiver {
     }
 
     static void handleAlarm(Context context, Intent intent) {
-        String notificationString = intent.getStringExtra(Constants.EXTRA_TASK_DESCRIPTION);
         long overdueTaskId = intent.getLongExtra(Constants.EXTRA_TASK_ID, -1);
-
-        notificationString = notificationString == null || notificationString.isEmpty()
-                ? "unknown"
-                : notificationString;
-
         final long currentTimeMillis = System.currentTimeMillis();
         TaskDao taskDao = AppDatabase.getInstance(context).taskDao();
+        TaskEntity task = taskDao.getRawTaskById(overdueTaskId);
+        // Старый Intent мог остаться после удаления, ACK или переноса срока задачи.
+        // Для повторного события уже уведомлённой задачи также достаточно перепланирования.
+        if (task == null || task.nextAlarm > currentTimeMillis || task.isWasNotified()) {
+            SchedulingCoordinator.reschedule(context);
+            return;
+        }
+        String notificationString = task.description == null || task.description.isEmpty()
+                ? "unknown" : task.description;
         int overdueCount = taskDao.countOverdueTasks(currentTimeMillis);
 
         if (overdueCount > 1) {

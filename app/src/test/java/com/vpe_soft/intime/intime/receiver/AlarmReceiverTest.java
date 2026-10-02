@@ -209,6 +209,72 @@ public class AlarmReceiverTest {
         assertFalse(dao.getRawTaskById(id).isWasNotified());
     }
 
+    /**
+     * Проверяет устаревший будильник удалённой задачи: запись удаляется до обработки
+     * сохранённого Intent. Уведомление не должно появиться, база остаётся пустой.
+     */
+    @Test
+    public void deletedTask_staleAlarmDoesNotNotify() throws Exception {
+        long id = addDueTask("Deleted");
+        Intent intent = alarmIntent(id, "Deleted");
+        dao.delete(dao.getRawTaskById(id));
+        fireIntent(intent);
+        assertNull(currentNotification());
+        assertEquals(0, dao.getTaskCount());
+    }
+
+    /**
+     * Проверяет старый будильник после подтверждения и переноса срока в будущее.
+     * Обрабатывается сохранённый Intent: уведомления нет, wasNotified остаётся false,
+     * а первый запланированный будильник получает новый срок задачи.
+     */
+    @Test
+    public void acknowledgedTask_staleAlarmSchedulesNewDeadline() throws Exception {
+        long id = addDueTask("Due");
+        Intent intent = alarmIntent(id, "Due");
+        long now = System.currentTimeMillis();
+        long future = now + TimeUnit.HOURS.toMillis(1);
+        dao.acknowledgeTask(id, now, future, future);
+        fireIntent(intent);
+        assertNull(currentNotification());
+        assertFalse(dao.getRawTaskById(id).isWasNotified());
+        android.app.AlarmManager alarms = context.getSystemService(android.app.AlarmManager.class);
+        assertEquals(future, shadowOf(alarms).getScheduledAlarms().get(0).triggerAtTime);
+    }
+
+    /**
+     * Проверяет повторную доставку будильника уже уведомлённой задачи.
+     * После первой публикации уведомление удаляется из менеджера и событие повторяется.
+     * Новое уведомление не должно появиться, wasNotified должен остаться true.
+     */
+    @Test
+    public void repeatedAlarm_doesNotPostAgain() throws Exception {
+        long id = addDueTask("Due");
+        fireAlarm(id);
+        assertNotNull(currentNotification());
+        manager.cancelAll();
+        fireAlarm(id);
+        assertNull(currentNotification());
+        assertTrue(dao.getRawTaskById(id).isWasNotified());
+    }
+
+    /**
+     * Проверяет чтение актуального описания из Room вместо текста старого Intent.
+     * Задача переименовывается после создания Intent; уведомление должно содержать
+     * новое описание Updated и задача должна получить wasNotified = true.
+     */
+    @Test
+    public void renamedTask_alarmUsesCurrentDescription() throws Exception {
+        long id = addDueTask("Old");
+        Intent intent = alarmIntent(id, "Old");
+        TaskEntity task = dao.getRawTaskById(id);
+        task.description = "Updated";
+        dao.update(task);
+        fireIntent(intent);
+        assertEquals("Updated", currentNotification().extras.getCharSequence(Notification.EXTRA_TEXT));
+        assertTrue(dao.getRawTaskById(id).isWasNotified());
+    }
+
     private void disableChannel() {
         manager.createNotificationChannel(new NotificationChannel(
                 Constants.TASK_OVERDUE_CHANNEL_ID, "Disabled", NotificationManager.IMPORTANCE_NONE));
@@ -224,9 +290,16 @@ public class AlarmReceiverTest {
     }
 
     private void fireAlarm(long id) throws Exception {
-        Intent intent = new Intent(context, AlarmReceiver.class)
+        fireIntent(alarmIntent(id, dao.getRawTaskById(id).description));
+    }
+
+    private Intent alarmIntent(long id, String description) {
+        return new Intent(context, AlarmReceiver.class)
                 .putExtra(Constants.EXTRA_TASK_ID, id)
-                .putExtra(Constants.EXTRA_TASK_DESCRIPTION, dao.getRawTaskById(id).description);
+                .putExtra(Constants.EXTRA_TASK_DESCRIPTION, description);
+    }
+
+    private void fireIntent(Intent intent) throws Exception {
         // Выполняем обработчик синхронно на фоновом потоке, включая перепланирование.
         FutureTask<Void> work = new FutureTask<>(() -> {
             AlarmReceiver.handleAlarm(context, intent);
