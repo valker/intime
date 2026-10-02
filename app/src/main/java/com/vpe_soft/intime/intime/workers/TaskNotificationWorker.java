@@ -20,7 +20,7 @@ import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 import java.util.List;
 
 /**
- * Periodic reconciliation for overdue tasks that were not handled by the exact alarm.
+ * Periodic reconciliation and silent repeats for overdue tasks.
  * Does not schedule alarms. Notifications open the task list and never include ACK.
  */
 public class TaskNotificationWorker extends Worker {
@@ -45,16 +45,22 @@ public class TaskNotificationWorker extends Worker {
         }
 
         long now = System.currentTimeMillis();
-        List<TaskEntity> tasks = taskRepository.getTasksForNotification(now);
+        List<TaskEntity> pending = taskRepository.getTasksForNotification(now);
+        List<TaskEntity> tasks = AppDatabase.getInstance(getApplicationContext())
+                .taskDao().getOverdueTasks(now);
 
         if (tasks.isEmpty()) {
+            return Result.success();
+        }
+        if (pending.isEmpty()
+                && !NotificationHelper.isQuietReminderDue(getApplicationContext(), now)) {
             return Result.success();
         }
 
         if (!showNotification(tasks)) {
             return Result.success();
         }
-        for (TaskEntity task : tasks) {
+        for (TaskEntity task : pending) {
             taskRepository.markTaskNotified(task.getId());
         }
 
@@ -71,7 +77,9 @@ public class TaskNotificationWorker extends Worker {
                 .setContentTitle(context.getString(R.string.channel_name))
                 .setContentText(contentText)
                 .setContentIntent(NotificationHelper.createOpenTaskListPendingIntent(context))
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setSilent(true)
+                .setOnlyAlertOnce(true)
                 .setAutoCancel(true);
 
         final Notification notification = builder.build();

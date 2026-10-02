@@ -183,6 +183,7 @@ Important DAO queries:
 - `getAllTasks()` / `getAllTasksSync()`: list tasks ordered by `next_alarm ASC`.
 - `getNearestFutureTask(now)`: nearest task with `next_alarm > now`, used for exact alarm scheduling.
 - `getTasksForNotification(now)`: overdue tasks with `wasNotified = 0`, used by notification paths.
+- `getOverdueTasks(now)`: all overdue tasks, ordered by deadline and ID, used for worker summaries and repeats.
 - `acknowledgeTask(...)`: updates `last_ack`, `next_alarm`, `next_caution`, and resets `wasNotified = 0`.
 - `markTaskNotified(taskId)`: sets `wasNotified = 1` after the first overdue notification.
 - `countOverdueTasks(now)` and `countSkippedTasks(lastUsage, now)`: notification copy / boot diagnostics.
@@ -272,9 +273,13 @@ Implemented flow:
    app falls back to `setAndAllowWhileIdle`.
 5. `SchedulingCoordinator.reschedule()` runs after task CRUD/ACK/import, on
    `MainActivityV2` startup, and after `BOOT_COMPLETED`.
-6. `TaskNotificationWorker` (15-minute periodic work) is reconciliation only:
-   notifies for `next_alarm <= now AND wasNotified = 0`, opens the task list,
-   never adds `ACK`, and does not schedule alarms.
+6. `TaskNotificationWorker` (15-minute periodic work) reconciles missed notifications
+   and repeats reminders for all tasks with `next_alarm <= now`. New unnotified
+   tasks bypass the repeat cooldown. When all overdue tasks were already notified,
+   a repeat requires at least 15 minutes since the last successful app notification.
+   Every worker notification is silent, has low priority, opens the task list,
+   never adds `ACK`, and does not schedule alarms. ACK/delete removes tasks from
+   future summaries once they are no longer overdue or no longer exist.
 7. `NotificationHelper.postTaskNotification()` checks `POST_NOTIFICATIONS`,
    app-level notification availability and channel importance. Blocked posts
    do not set `wasNotified`; alarm handling still reschedules future tasks.
@@ -287,6 +292,12 @@ Implemented flow:
    NotificationManager is external to SQLite: process failure between posting and
    commit can still lead to a later repeat. Background queues and rescheduling
    serialization remain separate roadmap work.
+10. The last successful post time is persisted in SharedPreferences
+    (`notification_reminder_state/last_successful_post`) for alarm, worker and boot.
+    Blocked sends and UI suppression do not update it. Clock rollback permits one
+    repeat, after which the new timestamp starts the cooldown again. This is a
+    minimum pause for repeats, not a delivery deadline: Android may delay periodic
+    work. Clearing app data resets this timestamp; the Room schema stays at version 6.
 
 ACK PendingIntents use a task-specific data URI (`intime://ack/task/<id>`),
 because extras do not participate in PendingIntent identity. Regression tests

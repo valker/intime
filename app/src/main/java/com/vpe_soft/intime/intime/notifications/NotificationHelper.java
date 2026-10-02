@@ -21,6 +21,9 @@ import com.vpe_soft.intime.intime.activity.MainActivityV2;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
 
 public class NotificationHelper {
+    private static final String REMINDER_STATE = "notification_reminder_state";
+    private static final String LAST_POST = "last_successful_post";
+    private static final long QUIET_INTERVAL_MILLIS = java.util.concurrent.TimeUnit.MINUTES.toMillis(15);
     private NotificationHelper() {
     }
 
@@ -56,12 +59,23 @@ public class NotificationHelper {
         try {
             NotificationManagerCompat.from(context).notify(
                     AlarmUtil.NOTIFICATION_TAG, 1, notification);
+            // Повторный worker должен учитывать и первую отправку receiver/boot.
+            context.getSharedPreferences(REMINDER_STATE, Context.MODE_PRIVATE).edit()
+                    .putLong(LAST_POST, System.currentTimeMillis()).apply();
             return true;
         } catch (SecurityException e) {
             // Разрешение могло быть отозвано между проверкой и отправкой.
             Log.w("NotificationHelper", "Notification permission changed before posting", e);
             return false;
         }
+    }
+
+    /** Проверка паузы для спокойных повторов; новые задачи не зависят от этой паузы. */
+    public static boolean isQuietReminderDue(Context context, long now) {
+        long lastPost = context.getSharedPreferences(REMINDER_STATE, Context.MODE_PRIVATE)
+                .getLong(LAST_POST, 0);
+        // При переводе часов назад не блокируем повторы на неопределённое время.
+        return lastPost == 0 || now < lastPost || now - lastPost >= QUIET_INTERVAL_MILLIS;
     }
 
     public static void ensureTaskOverdueChannel(Context context) {

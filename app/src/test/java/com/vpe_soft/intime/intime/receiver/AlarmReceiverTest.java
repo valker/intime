@@ -50,6 +50,8 @@ public class AlarmReceiverTest {
     @Before
     public void setUp() {
         context = ApplicationProvider.getApplicationContext();
+        context.getSharedPreferences("notification_reminder_state", Context.MODE_PRIVATE)
+                .edit().clear().commit();
         database = Room.inMemoryDatabaseBuilder(context, AppDatabase.class)
                 .allowMainThreadQueries().build();
         AppDatabase.setTestInstance(database);
@@ -380,6 +382,120 @@ public class AlarmReceiverTest {
             }
             super.notify(tag, id, notification);
         }
+    }
+
+    /**
+     * Проверяет спокойный повтор уже уведомлённой просроченной задачи через 16 минут
+     * после первой отправки. Ожидаются новое уведомление с описанием задачи, отсутствие
+     * ACK, звука и вибрации, открытие списка по contentIntent и сохранение wasNotified.
+     * Реальная доставка и звук Android-канала этим Robolectric-тестом не проверяются.
+     */
+    @Test
+    public void notifiedTask_afterCooldownGetsSilentRepeat() throws Exception {
+        long id = addDueTask("Due");
+        fireAlarm(id);
+        Notification first = currentNotification();
+        ageLastPost(16);
+        runWorker();
+        Notification repeat = currentNotification();
+        assertNotNull(repeat);
+        assertNotSame(first, repeat);
+        assertEquals("Due", repeat.extras.getCharSequence(Notification.EXTRA_TEXT));
+        assertTrue(repeat.actions == null || repeat.actions.length == 0);
+        assertNull(repeat.sound);
+        assertNull(repeat.vibrate);
+        assertEquals(0, repeat.defaults & (Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE));
+        assertTrue(shadowOf(repeat.contentIntent).getSavedIntent().getComponent()
+                .getClassName().endsWith("MainActivityV2"));
+        assertTrue(dao.getRawTaskById(id).isWasNotified());
+    }
+
+    /**
+     * Проверяет ограничение частоты повторов: через 14 минут после успешной отправки
+     * worker не должен заменить уведомление. После разрешённого повтора через 16 минут
+     * немедленный второй запуск также не должен заменить его, поскольку пауза начинается заново.
+     */
+    @Test
+    public void quietRepeat_respectsCooldownAndRestartsIt() throws Exception {
+        long id = addDueTask("Due");
+        fireAlarm(id);
+        Notification first = currentNotification();
+        ageLastPost(14);
+        runWorker();
+        assertSame(first, currentNotification());
+        ageLastPost(16);
+        runWorker();
+        Notification repeat = currentNotification();
+        assertNotSame(first, repeat);
+        runWorker();
+        assertSame(repeat, currentNotification());
+    }
+
+    /**
+     * Проверяет отмену повтора при отсутствии просроченных задач после ACK.
+     * После первой отправки срок переносится на час вперёд, уведомление убирается,
+     * время отправки состаривается на 16 минут. Worker не должен публиковать уведомление;
+     * подтверждение сохраняет wasNotified = false для следующего срока задачи.
+     */
+    @Test
+    public void acknowledgedTask_doesNotGetQuietRepeat() throws Exception {
+        long id = addDueTask("Due");
+        fireAlarm(id);
+        long now = System.currentTimeMillis();
+        dao.acknowledgeTask(id, now, now + TimeUnit.HOURS.toMillis(1), now);
+        manager.cancelAll();
+        ageLastPost(16);
+        runWorker();
+        assertNull(currentNotification());
+        assertFalse(dao.getRawTaskById(id).isWasNotified());
+    }
+
+    /**
+     * Проверяет восстановление спокойного повтора после запрета уведомлений.
+     * Уже уведомлённая задача остаётся просроченной; после истечения паузы разрешение
+     * отзывается и worker не публикует уведомление. После возврата разрешения повтор
+     * появляется сразу: заблокированная попытка не обновляет время последней отправки.
+     */
+    @Test
+    public void blockedQuietRepeat_doesNotConsumeCooldown() throws Exception {
+        long id = addDueTask("Due");
+        fireAlarm(id);
+        manager.cancelAll();
+        ageLastPost(16);
+        shadowOf((Application) context).denyPermissions(Manifest.permission.POST_NOTIFICATIONS);
+        runWorker();
+        assertNull(currentNotification());
+        shadowOf((Application) context).grantPermissions(Manifest.permission.POST_NOTIFICATIONS);
+        runWorker();
+        assertNotNull(currentNotification());
+        assertTrue(dao.getRawTaskById(id).isWasNotified());
+    }
+
+    /**
+     * Проверяет немедленную обработку новой пропущенной задачи во время паузы повторов.
+     * Первая задача уже уведомлена, затем добавляется вторая просроченная без будильника.
+     * Worker должен заменить уведомление сводкой обеих задач и отметить вторую,
+     * не ожидая 15 минут; сводка не должна содержать действия ACK.
+     */
+    @Test
+    public void newlyMissedTask_bypassesQuietCooldown() throws Exception {
+        long firstId = addDueTask("First");
+        fireAlarm(firstId);
+        Notification first = currentNotification();
+        long secondId = addDueTask("Second");
+        runWorker();
+        Notification summary = currentNotification();
+        assertNotSame(first, summary);
+        assertEquals(AlarmUtil.getNotificationString(context, "First", 2),
+                summary.extras.getCharSequence(Notification.EXTRA_TEXT));
+        assertTrue(summary.actions == null || summary.actions.length == 0);
+        assertTrue(dao.getRawTaskById(secondId).isWasNotified());
+    }
+
+    private void ageLastPost(int minutes) {
+        context.getSharedPreferences("notification_reminder_state", Context.MODE_PRIVATE).edit()
+                .putLong("last_successful_post",
+                        System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(minutes)).commit();
     }
 
     private void disableChannel() {
