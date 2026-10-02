@@ -21,6 +21,7 @@ import com.vpe_soft.intime.intime.database.dao.TaskDao;
 import com.vpe_soft.intime.intime.database.entities.TaskEntity;
 import com.vpe_soft.intime.intime.notifications.NotificationHelper;
 import com.vpe_soft.intime.intime.workers.TaskNotificationWorker;
+import com.vpe_soft.intime.intime.ui.UiVisibility;
 
 import org.junit.After;
 import org.junit.Before;
@@ -31,6 +32,12 @@ import org.robolectric.annotation.Config;
 
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.robolectric.annotation.Implements;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.shadows.ShadowNotificationManager;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 35)
@@ -55,22 +62,26 @@ public class AlarmReceiverTest {
 
     @After
     public void tearDown() {
+        while (UiVisibility.isV2UiVisible()) {
+            UiVisibility.onV2ActivityStopped();
+        }
         manager.cancelAll();
         database.close();
         AppDatabase.setTestInstance(null);
     }
 
     /**
-     * Проверяет: Последовательно обрабатываются будильники двух просроченных задач. Оба уведомления
+     * Проверяет: Вторая просроченная задача создаётся после публикации уведомления первой.
+     * Затем обрабатывается её будильник. Оба уведомления
      * должны иметь по одному действию с разными PendingIntent. В сохранённом Intent каждого действия
      * проверяется id именно соответствующей задачи.
      */
     @Test
     public void consecutiveNotifications_keepAcknowledgementBoundToEachTask() throws Exception {
         long firstId = addDueTask("First");
-        long secondId = addDueTask("Second");
         fireAlarm(firstId);
         Notification first = currentNotification();
+        long secondId = addDueTask("Second");
         fireAlarm(secondId);
         Notification second = currentNotification();
 
@@ -273,6 +284,102 @@ public class AlarmReceiverTest {
         fireIntent(intent);
         assertEquals("Updated", currentNotification().extras.getCharSequence(Notification.EXTRA_TEXT));
         assertTrue(dao.getRawTaskById(id).isWasNotified());
+    }
+
+    /**
+     * Проверяет две задачи с одним прошедшим сроком: один будильник должен опубликовать
+     * сводку и отметить обе задачи. Последующий worker не должен заменять уведомление.
+     */
+    @Test
+    public void sameDeadline_marksBothTasksWithoutWorkerRepeat() throws Exception {
+        long past = System.currentTimeMillis() - 1000;
+        long first = dao.insert(new TaskEntity("First", 1, 1, past, past, past, 1));
+        long second = dao.insert(new TaskEntity("Second", 1, 1, past, past, past, 1));
+        fireAlarm(first);
+        Notification notification = currentNotification();
+        assertNotNull(notification);
+        assertEquals(AlarmUtil.getNotificationString(context, "First", 2),
+                notification.extras.getCharSequence(Notification.EXTRA_TEXT));
+        assertTrue(dao.getRawTaskById(first).isWasNotified());
+        assertTrue(dao.getRawTaskById(second).isWasNotified());
+        runWorker();
+        assertSame(notification, currentNotification());
+    }
+
+    /**
+     * Проверяет обработку при открытом интерфейсе: receiver и worker не публикуют
+     * уведомление и не отмечают задачу. После закрытия UI worker должен опубликовать
+     * уведомление и установить wasNotified, сохранив возможность последующей доставки.
+     */
+    @Test
+    public void visibleUi_defersReceiverAndWorkerUntilClosed() throws Exception {
+        long id = addDueTask("Due");
+        UiVisibility.onV2ActivityStarted();
+        fireAlarm(id);
+        runWorker();
+        assertNull(currentNotification());
+        assertFalse(dao.getRawTaskById(id).isWasNotified());
+        UiVisibility.onV2ActivityStopped();
+        runWorker();
+        assertNotNull(currentNotification());
+        assertTrue(dao.getRawTaskById(id).isWasNotified());
+    }
+
+    /**
+     * Проверяет конкуренцию worker и receiver для одной просроченной задачи.
+     * Тестовый NotificationManager удерживает первую отправку worker; receiver
+     * запускается на другом потоке и не должен завершиться до освобождения отправки.
+     * После завершения обоих ожидается ровно один вызов notify и wasNotified = true.
+     * Проверяется конкуренция внутри процесса в Robolectric, без системного reboot.
+     */
+    @Test
+    @Config(shadows = CountingNotificationManager.class)
+    public void concurrentWorkerAndReceiver_postOnlyOnce() throws Exception {
+        long id = addDueTask("Due");
+        CountingNotificationManager notifications = (CountingNotificationManager) shadowOf(manager);
+        FutureTask<Void> worker = new FutureTask<>(() -> { runWorker(); return null; });
+        FutureTask<Void> receiver = new FutureTask<>(() -> {
+            AlarmReceiver.handleAlarm(context, alarmIntent(id, "Due"));
+            return null;
+        });
+        new Thread(worker).start();
+        try {
+            assertTrue(notifications.entered.await(10, TimeUnit.SECONDS));
+            new Thread(receiver).start();
+            assertThrows(TimeoutException.class, () -> receiver.get(200, TimeUnit.MILLISECONDS));
+        } finally {
+            notifications.release.countDown();
+            worker.get(10, TimeUnit.SECONDS);
+            if (!receiver.isDone()) {
+                receiver.get(10, TimeUnit.SECONDS);
+            }
+        }
+        assertEquals(1, notifications.calls.get());
+        assertTrue(dao.getRawTaskById(id).isWasNotified());
+    }
+
+    @Implements(NotificationManager.class)
+    public static class CountingNotificationManager extends ShadowNotificationManager {
+        final AtomicInteger calls = new AtomicInteger();
+        final CountDownLatch entered = new CountDownLatch(1);
+        final CountDownLatch release = new CountDownLatch(1);
+
+        @Implementation
+        @Override
+        protected void notify(String tag, int id, Notification notification) {
+            if (calls.incrementAndGet() == 1) {
+                entered.countDown();
+                try {
+                    if (!release.await(10, TimeUnit.SECONDS)) {
+                        throw new AssertionError("Notification was not released");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError(e);
+                }
+            }
+            super.notify(tag, id, notification);
+        }
     }
 
     private void disableChannel() {

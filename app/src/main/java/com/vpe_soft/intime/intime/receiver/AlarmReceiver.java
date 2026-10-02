@@ -21,6 +21,7 @@ import com.vpe_soft.intime.intime.notifications.NotificationHelper;
 import com.vpe_soft.intime.intime.scheduling.SchedulingCoordinator;
 
 import java.util.concurrent.Executors;
+import java.util.List;
 
 /**
  * Receives AlarmManager callbacks when the nearest scheduled task becomes due.
@@ -43,19 +44,25 @@ public class AlarmReceiver extends BroadcastReceiver {
     }
 
     static void handleAlarm(Context context, Intent intent) {
+        AppDatabase database = AppDatabase.getInstance(context);
+        // Общая транзакция с worker сериализует выборку, отправку и отметку задач.
+        database.runInTransaction(() -> notifyDueTasks(context, intent, database.taskDao()));
+        SchedulingCoordinator.reschedule(context);
+    }
+
+    private static void notifyDueTasks(Context context, Intent intent, TaskDao taskDao) {
         long overdueTaskId = intent.getLongExtra(Constants.EXTRA_TASK_ID, -1);
         final long currentTimeMillis = System.currentTimeMillis();
-        TaskDao taskDao = AppDatabase.getInstance(context).taskDao();
         TaskEntity task = taskDao.getRawTaskById(overdueTaskId);
         // Старый Intent мог остаться после удаления, ACK или переноса срока задачи.
         // Для повторного события уже уведомлённой задачи также достаточно перепланирования.
         if (task == null || task.nextAlarm > currentTimeMillis || task.isWasNotified()) {
-            SchedulingCoordinator.reschedule(context);
             return;
         }
         String notificationString = task.description == null || task.description.isEmpty()
                 ? "unknown" : task.description;
-        int overdueCount = taskDao.countOverdueTasks(currentTimeMillis);
+        List<TaskEntity> pendingTasks = taskDao.getTasksForNotification(currentTimeMillis);
+        int overdueCount = pendingTasks.size();
 
         if (overdueCount > 1) {
             notificationString = AlarmUtil.getNotificationString(context, notificationString, overdueCount);
@@ -68,14 +75,16 @@ public class AlarmReceiver extends BroadcastReceiver {
         if (!UiVisibility.isV2UiVisible()) {
             Log.d(TAG, "handleAlarm: trying to post notification");
             boolean posted = showNotification(context, notificationString, overdueTaskId);
-            if (posted && overdueTaskId >= 0) {
-                taskDao.markTaskNotified(overdueTaskId);
+            if (posted) {
+                // Сводка представляет все ещё не уведомлённые просроченные задачи.
+                for (TaskEntity pendingTask : pendingTasks) {
+                    taskDao.markTaskNotified(pendingTask.id);
+                }
             }
         } else {
             Log.d(TAG, "handleAlarm: won't show notification");
         }
 
-        SchedulingCoordinator.reschedule(context);
     }
 
     private static boolean showNotification(Context context, String notificationString, long overdueTaskId) {

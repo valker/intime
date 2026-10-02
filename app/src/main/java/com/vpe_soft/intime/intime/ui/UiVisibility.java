@@ -21,7 +21,7 @@ public final class UiVisibility {
         }
     }
 
-    public static boolean isV2UiVisible() {
+    public static synchronized boolean isV2UiVisible() {
         return activeV2Activities > 0;
     }
 }

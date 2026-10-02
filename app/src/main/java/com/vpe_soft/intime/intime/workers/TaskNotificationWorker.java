@@ -11,6 +11,8 @@ import androidx.work.WorkerParameters;
 import com.vpe_soft.intime.intime.Constants;
 import com.vpe_soft.intime.intime.R;
 import com.vpe_soft.intime.intime.database.entities.TaskEntity;
+import com.vpe_soft.intime.intime.database.AppDatabase;
+import com.vpe_soft.intime.intime.ui.UiVisibility;
 import com.vpe_soft.intime.intime.database.repositories.TaskRepository;
 import com.vpe_soft.intime.intime.notifications.NotificationHelper;
 import com.vpe_soft.intime.intime.receiver.AlarmUtil;
@@ -32,7 +34,13 @@ public class TaskNotificationWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        if (!NotificationHelper.canPostTaskNotifications(getApplicationContext())) {
+        // Используем ту же Room-транзакцию, что receiver, до отметки всех задач.
+        return AppDatabase.getInstance(getApplicationContext()).runInTransaction(this::notifyDueTasks);
+    }
+
+    private Result notifyDueTasks() {
+        if (UiVisibility.isV2UiVisible()
+                || !NotificationHelper.canPostTaskNotifications(getApplicationContext())) {
             return Result.success();
         }
 

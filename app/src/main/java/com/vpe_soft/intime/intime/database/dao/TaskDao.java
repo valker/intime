@@ -44,7 +44,7 @@ public interface TaskDao {
     @Query("SELECT * FROM tasks WHERE id = :taskId LIMIT 1")
     TaskEntity getRawTaskById(long taskId);
 
-    @Query("SELECT * FROM tasks WHERE next_alarm <= :now AND wasNotified = 0")
+    @Query("SELECT * FROM tasks WHERE next_alarm <= :now AND wasNotified = 0 ORDER BY next_alarm ASC, id ASC")
     List<TaskEntity> getTasksForNotification(long now);
 
     @Query("SELECT * FROM tasks WHERE next_alarm > :now ORDER BY next_alarm ASC LIMIT 1")

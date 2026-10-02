@@ -66,7 +66,8 @@ for normal app execution.
 ## v2 Foreground Visibility
 
 - `UiVisibility` counts started v2 activities (`V2Activity.onStart` / `onStop`).
-- `AlarmReceiver` skips posting a notification when `UiVisibility.isV2UiVisible()`.
+- `AlarmReceiver` and `TaskNotificationWorker` skip posting when
+  `UiVisibility.isV2UiVisible()`; pending tasks remain unnotified for later reconciliation.
 - v2 screens extend `V2Activity`: `MainActivityV2`, `AddTaskActivity`,
   `TaskDetailsActivity`, `SettingsActivity`.
 - `MainActivityV2.onPause` still writes `LAST_USAGE_TIMESTAMP` for boot
@@ -264,7 +265,8 @@ Implemented flow:
 3. `AlarmReceiver` reads the fired task from Room rather than trusting Intent text.
    Deleted tasks, future deadlines and already notified tasks only trigger
    rescheduling; eligible tasks use their current description. It shows the first-due notification,
-   may include `ACK`, marks the fired task as `wasNotified = 1`, then
+   may include `ACK` for the fired task, marks all pending overdue tasks represented
+   by the summary as `wasNotified = 1`, then
    reschedules the next alarm.
 4. Exact alarms use `setExactAndAllowWhileIdle` when permitted; otherwise the
    app falls back to `setAndAllowWhileIdle`.
@@ -279,6 +281,12 @@ Implemented flow:
    A permission revocation during posting is handled as a blocked post.
 8. When any v2 activity starts, all notifications posted by the app are dismissed
    (`NotificationManager.cancelAll()`).
+9. Receiver and worker perform selection, posting and marking in a Room transaction
+   so competing handlers cannot both post the same pending batch. Pending tasks
+   are ordered by deadline and ID. UI-visible or blocked sends leave flags unchanged.
+   NotificationManager is external to SQLite: process failure between posting and
+   commit can still lead to a later repeat. Background queues and rescheduling
+   serialization remain separate roadmap work.
 
 ACK PendingIntents use a task-specific data URI (`intime://ack/task/<id>`),
 because extras do not participate in PendingIntent identity. Regression tests
