@@ -6,15 +6,21 @@ import com.vpe_soft.intime.intime.database.entities.TaskEntity;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 /**
  * Parses backup JSON and produces list of TaskEntity.
  * Expected structure: { "meta": { ... }, "tables": { "tasks": { "columns": [...], "rows": [[id, description, interval, amount, next_alarm, next_caution, last_ack, quant], ...] } } }
  */
 public final class BackupImport {
+    static final int FORMAT_VERSION = 1;
+    static final String[] COLUMNS = {"id", "description", "interval", "amount",
+            "next_alarm", "next_caution", "last_ack", "quant"};
 
     private static final String KEY_META = "meta";
     private static final String KEY_TABLES = "tables";
@@ -38,7 +44,22 @@ public final class BackupImport {
      */
     @NonNull
     public static List<TaskEntity> parseTasks(@NonNull String jsonContent) throws Exception {
-        JSONObject root = new JSONObject(jsonContent);
+        JSONTokener parser = new JSONTokener(jsonContent);
+        Object value = parser.nextValue();
+        if (!(value instanceof JSONObject) || parser.nextClean() != 0) {
+            throw new IllegalArgumentException("Backup must contain one JSON object");
+        }
+        JSONObject root = (JSONObject) value;
+        // Старые v1-файлы без meta остаются совместимыми. Явная версия обязательна,
+        // если meta присутствует: неизвестный формат нельзя трактовать как v1.
+        if (root.has(KEY_META)) {
+            JSONObject meta = root.optJSONObject(KEY_META);
+            if (meta == null || !meta.has("version")) {
+                throw new IllegalArgumentException("Unsupported backup metadata/version");
+            }
+            integer(meta.get("version"), "meta.version", FORMAT_VERSION, FORMAT_VERSION);
+            if (meta.has("exportedAt")) integer(meta.get("exportedAt"), "meta.exportedAt", 0, Long.MAX_VALUE);
+        }
         JSONObject tables = root.optJSONObject(KEY_TABLES);
         if (tables == null) {
             throw new IllegalArgumentException("Missing 'tables' in backup JSON");
@@ -47,30 +68,59 @@ public final class BackupImport {
         if (tasksTable == null) {
             throw new IllegalArgumentException("Missing 'tables.tasks' in backup JSON");
         }
+        if (tasksTable.has("columns")) {
+            JSONArray columns = tasksTable.optJSONArray("columns");
+            if (columns == null || columns.length() != COLUMNS.length) {
+                throw new IllegalArgumentException("Expected exactly 8 columns");
+            }
+            for (int i = 0; i < COLUMNS.length; i++) {
+                if (!COLUMNS[i].equals(columns.get(i))) {
+                    throw new IllegalArgumentException("Unexpected column at index " + i);
+                }
+            }
+        }
         JSONArray rows = tasksTable.optJSONArray(KEY_ROWS);
         if (rows == null) {
             throw new IllegalArgumentException("Missing 'tables.tasks.rows' in backup JSON");
         }
 
         List<TaskEntity> result = new ArrayList<>(rows.length());
+        Set<Long> ids = new HashSet<>();
         for (int i = 0; i < rows.length(); i++) {
-            JSONArray row = rows.getJSONArray(i);
-            if (row.length() < 8) {
-                throw new IllegalArgumentException("Row " + i + " has fewer than 8 columns");
+            JSONArray row = rows.optJSONArray(i);
+            if (row == null || row.length() != COLUMNS.length) {
+                throw new IllegalArgumentException("Row " + i + " must have exactly 8 columns");
             }
-            long id = row.getLong(IDX_ID);
-            String description = row.getString(IDX_DESCRIPTION);
-            int interval = row.getInt(IDX_INTERVAL);
-            int amount = row.getInt(IDX_AMOUNT);
-            long nextAlarm = row.getLong(IDX_NEXT_ALARM);
-            long nextCaution = row.getLong(IDX_NEXT_CAUTION);
-            long lastAck = row.getLong(IDX_LAST_ACK);
-            int quant = row.getInt(IDX_QUANT);
+            String path = "Row " + i + ": ";
+            // 0 заставляет Room назначить новый ID; Long.MAX_VALUE исчерпывает AUTOINCREMENT.
+            long id = integer(row.get(IDX_ID), path + "id", 1, Long.MAX_VALUE - 1);
+            if (!ids.add(id)) throw new IllegalArgumentException(path + "duplicate id " + id);
+            Object descriptionValue = row.get(IDX_DESCRIPTION);
+            if (!(descriptionValue instanceof String)) throw new IllegalArgumentException(path + "description must be a string");
+            String description = (String) descriptionValue;
+            int interval = (int) integer(row.get(IDX_INTERVAL), path + "interval", 0, 5);
+            int amount = (int) integer(row.get(IDX_AMOUNT), path + "amount", 1, Integer.MAX_VALUE);
+            long nextAlarm = integer(row.get(IDX_NEXT_ALARM), path + "next_alarm", 0, Long.MAX_VALUE);
+            long nextCaution = integer(row.get(IDX_NEXT_CAUTION), path + "next_caution", 0, Long.MAX_VALUE);
+            long lastAck = integer(row.get(IDX_LAST_ACK), path + "last_ack", 0, Long.MAX_VALUE);
+            int quant = (int) integer(row.get(IDX_QUANT), path + "quant", 1, Integer.MAX_VALUE);
 
             TaskEntity entity = new TaskEntity(description, interval, amount, nextAlarm, nextCaution, lastAck, quant);
             entity.setId(id);
             result.add(entity);
         }
         return result;
+    }
+
+    private static long integer(Object value, String field, long minimum, long maximum) {
+        // getInt/getLong допускают строки, дроби и усечение; backup требует целые JSON-числа.
+        if (!(value instanceof Integer) && !(value instanceof Long)) {
+            throw new IllegalArgumentException(field + " must be an integer JSON number");
+        }
+        long number = ((Number) value).longValue();
+        if (number < minimum || number > maximum) {
+            throw new IllegalArgumentException(field + " is out of range [" + minimum + ", " + maximum + "]");
+        }
+        return number;
     }
 }

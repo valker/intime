@@ -331,7 +331,12 @@ This ensures users understand what went wrong and can take corrective action.
 
 ## Backup JSON Format
 
-Used for v2 import/export in Settings. Compatible with the legacy app export shape.
+Used for v2 import/export in Settings. Format version 1 is distinct from Room
+schema version 6. Files without `meta` are accepted as legacy positional v1;
+if `meta` is present it must be an object with integer `version = 1`.
+`exportedAt` is optional on import and required only by the current exporter.
+New exports include explicit `columns`; older files without it keep the fixed
+eight-field order. See [BACKUP_FORMAT.md](BACKUP_FORMAT.md) for the import rules.
 
 Schema, expressed as JSON Schema draft 2020-12:
 
@@ -339,14 +344,14 @@ Schema, expressed as JSON Schema draft 2020-12:
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": ["meta", "tables"],
+  "required": ["tables"],
   "properties": {
     "meta": {
       "type": "object",
-      "required": ["version", "exportedAt"],
+      "required": ["version"],
       "properties": {
         "version": { "type": "integer", "const": 1 },
-        "exportedAt": { "type": "integer", "description": "Unix epoch milliseconds" }
+        "exportedAt": { "type": "integer", "minimum": 0, "maximum": 9223372036854775807, "description": "Unix epoch milliseconds" }
       }
     },
     "tables": {
@@ -357,20 +362,31 @@ Schema, expressed as JSON Schema draft 2020-12:
           "type": "object",
           "required": ["rows"],
           "properties": {
+            "columns": {
+              "type": "array", "minItems": 8, "maxItems": 8, "items": false,
+              "prefixItems": [
+                { "const": "id" }, { "const": "description" },
+                { "const": "interval" }, { "const": "amount" },
+                { "const": "next_alarm" }, { "const": "next_caution" },
+                { "const": "last_ack" }, { "const": "quant" }
+              ]
+            },
             "rows": {
               "type": "array",
               "items": {
                 "type": "array",
                 "minItems": 8,
+                "maxItems": 8,
+                "items": false,
                 "prefixItems": [
-                  { "type": "integer", "description": "id" },
+                  { "type": "integer", "minimum": 1, "maximum": 9223372036854775806, "description": "id" },
                   { "type": "string", "description": "description" },
                   { "type": "integer", "minimum": 0, "maximum": 5, "description": "interval" },
-                  { "type": "integer", "minimum": 1, "description": "amount" },
-                  { "type": "integer", "description": "next_alarm, Unix epoch milliseconds" },
-                  { "type": "integer", "description": "next_caution, Unix epoch milliseconds" },
-                  { "type": "integer", "description": "last_ack, Unix epoch milliseconds" },
-                  { "type": "integer", "minimum": 1, "description": "quant" }
+                  { "type": "integer", "minimum": 1, "maximum": 2147483647, "description": "amount" },
+                  { "type": "integer", "minimum": 0, "maximum": 9223372036854775807, "description": "next_alarm, Unix epoch milliseconds" },
+                  { "type": "integer", "minimum": 0, "maximum": 9223372036854775807, "description": "next_caution, Unix epoch milliseconds" },
+                  { "type": "integer", "minimum": 0, "maximum": 9223372036854775807, "description": "last_ack, Unix epoch milliseconds" },
+                  { "type": "integer", "minimum": 1, "maximum": 2147483647, "description": "quant" }
                 ]
               }
             }
@@ -392,6 +408,7 @@ Example exported from a real database shape:
   },
   "tables": {
     "tasks": {
+      "columns": ["id", "description", "interval", "amount", "next_alarm", "next_caution", "last_ack", "quant"],
       "rows": [
         [
           1,
@@ -423,9 +440,18 @@ Example exported from a real database shape:
 - `interval` values are `0` minute, `1` hour, `2` day, `3` week, `4` month,
   `5` year.
 - Time fields are Unix epoch milliseconds.
-- IDs are preserved on import.
+- IDs are positive, unique within the file and preserved on import. Zero and
+  Long.MAX_VALUE are rejected to avoid autoassignment and immediate AUTOINCREMENT exhaustion.
 - `wasNotified` is not stored; imported tasks default to `wasNotified = 0`.
-- Import validates JSON before delete; export uses pretty-printed JSON (`toString(2)`).
+- Rows have exactly eight fields; strings, fractional numbers, booleans and null
+  cannot substitute for numeric fields. Explicit columns must match the order above.
+  Integer tokens must be represented as Integer/Long by org.json; decimal literals
+  such as 1.0 are rejected. This additional restriction and uniqueness by ID are
+  runtime rules beyond the schema's semantic integer type. RFC-strict JSON syntax
+  is not implemented separately from the existing org.json parser.
+- Unknown root/table/meta properties are ignored for compatibility. Unknown
+  explicit versions and data after the root object are rejected. Empty rows is valid.
+- Import validates all rows before delete; export uses pretty-printed JSON (`toString(2)`).
 
 ## Import Behavior
 

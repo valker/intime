@@ -41,13 +41,16 @@ public final class BackupExport {
         }
 
         JSONObject tasksTable = new JSONObject();
+        JSONArray columns = new JSONArray();
+        for (String column : BackupImport.COLUMNS) columns.put(column);
+        tasksTable.put("columns", columns);
         tasksTable.put(KEY_ROWS, rows);
 
         JSONObject tables = new JSONObject();
         tables.put(KEY_TASKS, tasksTable);
 
         JSONObject meta = new JSONObject();
-        meta.put(KEY_VERSION, 1);
+        meta.put(KEY_VERSION, BackupImport.FORMAT_VERSION);
         meta.put(KEY_EXPORTED_AT, System.currentTimeMillis());
 
         JSONObject root = new JSONObject();
