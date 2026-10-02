@@ -474,7 +474,19 @@ Implementation:
 
 - `ImportReplacement.replaceAll()` parses via `BackupImport` before any delete;
 - replacement runs in a Room transaction;
-- invalid JSON leaves existing rows unchanged (`ImportReplacementTest`).
+- invalid JSON leaves existing rows unchanged (`ImportValidationStateTest`);
+- a second-insert failure rolls back both deletion and inserted rows, preserving
+  all original fields and wasNotified; a retry works after removing the fault;
+- a successful import preserves all eight backup fields and IDs, removes old-only
+  rows and initializes wasNotified to false, including reused IDs;
+- the repository schedules the nearest imported future task after commit, or
+  cancels the previous alarm for an empty/past-only list, before the success callback.
+
+`ImportTransactionStateTest` checks asynchronous main-thread callbacks and the
+Robolectric alarm model. `ImportTransactionPlatformTest` checks native SQLite/Room
+rollback, retry, replacement and empty import in a separate in-memory database.
+The fault is an AFTER INSERT trigger raising ABORT on the second row, not a
+commit failure or process crash. Room and AlarmManager do not share a transaction.
 
 Settings UI calls `TaskRepository.replaceAllWithImportFromJson()`.
 
