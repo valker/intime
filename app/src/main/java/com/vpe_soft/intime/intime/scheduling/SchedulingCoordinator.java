@@ -23,6 +23,9 @@ public final class SchedulingCoordinator {
 
     private static final String TAG = "SchedulingCoordinator";
     private static final int ALARM_REQUEST_CODE = 199709;
+    // Защищаем чтение Room вместе с применением результата: старый вызов не может
+    // записать свой будильник после более нового перепланирования другой очередью.
+    private static final Object SCHEDULE_LOCK = new Object();
 
     private SchedulingCoordinator() {
     }
@@ -30,14 +33,22 @@ public final class SchedulingCoordinator {
     /**
      * Reschedules the platform alarm for the nearest task with {@code next_alarm} in the future.
      * Safe to call from any thread; Room access always runs off the main thread.
+     * Background callers complete synchronously, including broadcast receivers before finish().
+     * Call after committing database changes, outside Room transactions to avoid lock inversion.
      */
     public static void reschedule(Context context) {
         Context appContext = context.getApplicationContext();
         if (Looper.myLooper() == Looper.getMainLooper()) {
-            AppExecutors.executeTask("reschedule", () -> rescheduleInternal(appContext));
+            AppExecutors.executeTask("reschedule", () -> rescheduleSerialized(appContext));
             return;
         }
-        rescheduleInternal(appContext);
+        rescheduleSerialized(appContext);
+    }
+
+    private static void rescheduleSerialized(Context appContext) {
+        synchronized (SCHEDULE_LOCK) {
+            rescheduleInternal(appContext);
+        }
     }
 
     private static void rescheduleInternal(Context appContext) {

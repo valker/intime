@@ -218,9 +218,9 @@ should be kept in mind when changing the schema.
 
 ### Threading
 
-The repository currently creates new single-thread executors per operation in
-several places. Future Kotlin code should prefer structured coroutines and
-consistent dispatchers.
+The repository and receivers use process-lifetime queues owned by `AppExecutors`.
+Scheduling reads and platform updates share the `SchedulingCoordinator` lock;
+see Background queues and scheduling below for the ordering and transaction rules.
 
 ### Encoding
 
@@ -291,7 +291,7 @@ Implemented flow:
    are ordered by deadline and ID. UI-visible or blocked sends leave flags unchanged.
    NotificationManager is external to SQLite: process failure between posting and
    commit can still lead to a later repeat. Background queues and rescheduling
-   serialization remain separate roadmap work.
+   serialization are described below; rapid operation sequences remain R2.3.
 10. The last successful post time is persisted in SharedPreferences
     (`notification_reminder_state/last_successful_post`) for alarm, worker and boot.
     Blocked sends and UI suppression do not update it. Clock rollback permits one
@@ -449,7 +449,7 @@ Settings UI calls `TaskRepository.replaceAllWithImportFromJson()`.
 5. Notification scheduling decisions.
 6. Full-replacement import behavior.
 
-## Background queues (R2.1)
+## Background queues and scheduling (R2.1/R2.2)
 
 `AppExecutors` owns two lazily started single-thread queues for the lifetime of
 the application process: `intime-tasks` for repository operations (including
@@ -462,9 +462,19 @@ use a separate queue so a large backup does not directly delay `goAsync` work;
 database locks can still delay either queue. Runtime failures are logged with
 the operation name, and broadcast completion runs in `finally`.
 
-This does not yet serialize every call to `SchedulingCoordinator`: background
-callers still execute scheduling inline. Cross-queue scheduling races are R2.2;
-rapid edit/ACK/delete/import and full `PendingResult` coverage are R2.3.
+`SchedulingCoordinator` uses one process-wide lock around the complete Room
+selection and AlarmManager update/cancellation. UI requests run on the task queue;
+background callers execute inline under the same lock. A later reschedule reads
+Room again after acquiring the lock, so an earlier snapshot cannot overwrite a
+newer completed reschedule. No extra executor or cross-queue synchronous wait is
+introduced; receivers complete scheduling before finishing their broadcast.
+
+Call scheduling after database changes commit, outside Room transactions: taking
+the scheduling lock while holding a database transaction can invert lock order.
+The current repository/import, alarm and boot call sites follow this rule.
+The lock does not make task mutations and platform delivery one atomic operation;
+stale delivered alarms still use the receiver's Room checks. Rapid edit/ACK/delete/
+import and full `PendingResult` coverage remain R2.3.
 
 ## Build Notes
 
