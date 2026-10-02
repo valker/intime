@@ -4,6 +4,10 @@ All notable changes to InTime are documented in this file.
 
 ## [2.0.0] - 2026-05-26
 
+Draft target release. The current build is still 1.1.8 with a `.dev` package;
+production release and installation upgrade are not confirmed. See ROADMAP.md
+and [UPGRADE.md](UPGRADE.md) for the checked status.
+
 ### New Features
 
 - **Modern Material Design UI** — Complete redesign with Material Design 3 components
@@ -22,7 +26,7 @@ All notable changes to InTime are documented in this file.
 - **Code Architecture** — Clean separation between UI, domain logic, and data access layers
 - **Multi-Language Support** — Full support for English and Russian with proper text encoding
 - **Offline-First** — Complete offline functionality, no server dependency
-- **Data Safety** — Automatic migration of old database format to new schema
+- **Data Safety** — Room 5 → 6 migration is implemented; older production database paths need verification
 
 ### Fixed
 
@@ -39,21 +43,17 @@ All notable changes to InTime are documented in this file.
 - **Architecture:** MVVM with LiveData and ViewModels
 - **Database:** Room 2.6.1 with schema versioning
 - **Scheduling:** AlarmManager + WorkManager coordination
-- **No Breaking Changes** — Full compatibility with v1 data through automatic migration
+- **Upgrade Compatibility** — Not yet confirmed for installed production v1; historical schema 4 has no migration path yet
 
 ### Migration from v1
 
-If you're upgrading from InTime v1:
-
-1. **Automatic Migration** — Your existing tasks will be automatically migrated to the new database format
-2. **Data Preserved** — All task information (description, interval, dates) is preserved
-3. **No Manual Action** — Simply install the app and your tasks will appear
-4. **Backup Recommended** — Consider exporting your tasks as backup before updating
-
-**If something goes wrong:**
-- Your original data is never deleted during migration
-- You can restore from Settings → Export/Import feature
-- Check Release Notes below for troubleshooting
+The intended path is an update of `com.vpe_soft.intime.intime` with a compatible
+signing certificate and a higher versionCode, retaining its `main` database.
+Current `.dev` APKs install separately and do not read production data.
+Migration of the actual v1 database and the installation upgrade still require
+R4.2 checks. A schema-4 database currently has no route to schema 6.
+See UPGRADE.md before preparing an update; JSON import is a separate replacement
+operation and does not prove automatic migration.
 
 ### Known Limitations
 
@@ -72,7 +72,8 @@ If you're upgrading from InTime v1:
 
 ## [1.x] - Legacy
 
-Previous versions available on GitHub. Data from v1 is automatically migrated to v2.
+Previous versions are available in Git history. Automatic migration from all v1
+versions is not confirmed; supported paths are tracked in UPGRADE.md.
 
 ---
 

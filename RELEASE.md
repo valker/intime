@@ -2,11 +2,19 @@
 
 This document describes the process for building and releasing Intime.
 
+> Актуальный статус — в ROADMAP.md, путь обновления v1 — в [UPGRADE.md](UPGRADE.md).
+> Текущая release-сборка имеет пакет `.dev` и не обновляет production v1.
+> Подпись старого APK и реальное обновление ещё не проверены; исторические
+> отметки сборки ниже не подтверждают готовность production-релиза.
+
 ## R6.1: Release Signing Configuration
 
 ### Create a Keystore (first time only)
 
-If you don't have a keystore yet, create one:
+For a new application only, if you don't have a keystore yet, create one.
+For an update to existing v1, use its compatible signing key; a newly generated
+unrelated key cannot update installed APKs. With Play App Signing, distinguish
+the upload key from the app signing key (see UPGRADE.md).
 
 ```bash
 keytool -genkey -v -keystore intime-release.jks \

@@ -194,9 +194,15 @@ Room schema version is currently 6. Migration from v5 → v6 adds the `wasNotifi
 column (INTEGER NOT NULL DEFAULT 0) to track whether a task notification has been
 sent.
 
+Production identity and the upgrade audit are documented in [UPGRADE.md](UPGRADE.md).
+The old package is `com.vpe_soft.intime.intime`; both current build types use `.dev`
+and cannot replace it. Historical v1 databases include SQLiteOpenHelper versions
+4 and 5. Only the 5 → 6 migration is registered; 4 → 6 is currently unsupported.
+
 ### Migration Testing
 
-Migration safety is verified via instrumentation tests (`MigrationTest.java`):
+Instrumentation tests (`MigrationTest.java`) verify the exported Room v5 fixture,
+not a real production SQLiteOpenHelper database or installation upgrade:
 - `migration_5_to_6_addsWasNotifiedColumn`: Verifies new column exists
 - `migration_5_to_6_preservesExistingData`: Verifies row count preserved
 - `migration_5_to_6_initializeWasNotifiedToZero`: Verifies new column defaults to 0
@@ -206,11 +212,11 @@ Run tests with: `./gradlew connectedAndroidTest`
 
 ### Real Data Testing
 
-Before release, test migration on a real backup from old production DB:
-1. Export tasks from old v1 app (if available)
-2. Create database with old schema (v5)
-3. Run migration and verify data integrity
-4. Check that reminders still function correctly post-migration
+Before release, follow R4.2 in UPGRADE.md: open historical SQLite 4/5 fixtures
+through Room, define missing migration paths, compare all fields, then test a
+separate authorized copy of real data and installation upgrade. A JSON import
+does not prove in-place migration. The installed v1 comes from Google Play;
+its exact version and signing certificate have not yet been verified.
 
 Future database work should consider a separate history table for reminder and
 acknowledgement timestamps. This is not required for the first v2 release, but it

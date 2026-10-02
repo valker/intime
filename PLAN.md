@@ -160,7 +160,7 @@ from current runtime code paths.
 | B3.1 | Document backup JSON format (short spec, example file) | Done (`TECH_NOTES.md`) |
 | B3.2 | Add export to JSON from Settings (symmetric with import) | Done (`BackupExport`, Settings) |
 | B3.3 | Validate import before delete (already intended; verify in code review) | Invalid file never calls `deleteAll` |
-| B3.4 | Test migration from old production DB on a real backup | ✓ Done (instrumentation tests + documentation) |
+| B3.4 | Test migration from old production DB on a real backup | Open: R4.2 / UPGRADE.md; existing tests use an exported Room fixture |
 
 ---
 
@@ -296,10 +296,10 @@ WS0 is complete. WS2 migration tests can proceed in parallel with WS3.
    - V5.6: ✓ Done (confirm delete dialog with icon)
    - V5.7: ✓ Done (UTF-8 encoding in build.gradle)
 
-2. **B3.4** — Migration verification. ✓ DONE
+2. **B3.4** — Synthetic Room 5 → 6 fixture verification done; real production upgrade remains R4.2.
    - Added 4 instrumentation tests for migration safety
    - Documented migration process in TECH_NOTES.md
-   - Verified data integrity across migration
+   - Checked synthetic rows; complete historical/real-data field comparison remains R4.2
 
 **Sprint 3 is ready for release prep (Sprint 4).**
 
