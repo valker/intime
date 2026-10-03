@@ -3,7 +3,8 @@
 This document describes the process for building and releasing Intime.
 
 > Актуальный статус — в ROADMAP.md, путь обновления v1 — в [UPGRADE.md](UPGRADE.md).
-> Текущая release-сборка имеет пакет `.dev` и не обновляет production v1.
+> По умолчанию release имеет пакет `.dev`. Production-кандидат включается явно
+> через `-PproductionRelease=true`; его проверка описана ниже.
 > Старый APK из Google Play проверен; обновление 24 → 25 прошло с debug-подписью
 > и синтетическими данными на API 35. Сертификат JKS отличается от подписи Play APK;
 > пользователь предоставил оба сертификата Console: JKS соответствует Upload key,
@@ -12,6 +13,42 @@ This document describes the process for building and releasing Intime.
 > отметки сборки ниже не подтверждают готовность production-релиза.
 
 ## R6.1: Release Signing Configuration
+
+### Production candidate — 3 октября 2026
+
+Обычные сборки остаются `.dev`/21/1.1.8. Production-режим сохраняет исходный пакет
+`com.vpe_soft.intime.intime`, требует явных releaseVersionCode (>24) и releaseVersionName.
+Разрешены только `:app:assembleRelease` и `:app:bundleRelease`; совмещение с upgradeSmoke
+отклоняется. Release использует R8. Код 25 и имя 2.0.0-rc1 — локальный кандидат;
+перед загрузкой проверить все использованные коды Console и согласовать финальную версию.
+
+Неподписанный кандидат для проверки упаковки (PowerShell, JDK 17 и SDK настроены):
+
+```powershell
+./gradlew.bat ':app:assembleRelease' ':app:bundleRelease' '-PproductionRelease=true' '-PunsignedProduction=true' '-PreleaseVersionCode=25' '-PreleaseVersionName=2.0.0-rc1' --offline --no-daemon --no-watch-fs --no-configuration-cache
+```
+
+`unsignedProduction` игнорирует signing credentials. Для подписанного AAB убрать этот флаг
+и предварительно настроить все четыре SIGNING_KEY_* значения в окружении или пользовательском
+Gradle-файле. Путь: `C:/Users/Valentin/vpe_soft.jks`, alias `intime`; пароли вводятся локально.
+Production-сборка без полного набора параметров подписи завершается ошибкой.
+Перед сборкой проверяется целостность keystore и публичный SHA-256 upload-сертификата
+`97b60110a8e894791b4770826a8d214dc5e3a551cd24bd41d646c29f64a1dd26`.
+Доступность приватного ключа с заданным key password проверяется при подписании артефакта.
+
+Текущий кандидат имеет targetSdk 35. Для загрузки обновления в Play требуется API 36:
+следующий отдельный шаг — переход SDK и регрессия поведения на Android 16.
+Источник: [требования Google Play](https://developer.android.com/google/play/requirements/target-sdk),
+проверены 3 октября 2026. Подпись upload key не делает локальный APK совместимым
+обновлением Play v1; нужен APK с app signing key через Play Console (UPGRADE.md).
+Сборка кандидата не публикует приложение.
+
+Неподписанная упаковка 3 октября прошла (R8 и lintVitalRelease), артефакты сохранены
+в `.test-tools/runs/production-candidate-20261003`. Полная local suite — 97 тестов;
+подписанные APK/AAB тоже собраны 3 октября, подпись и upload-сертификат проверены:
+`.test-tools/runs/production-signed-20261003-163519`. Настройки приватного ключа работают.
+Проверка release на устройстве ещё не выполнена; кандидат по-прежнему targetSdk 35.
+Подробные результаты и границы — DEVICE_TEST_RESULTS.md.
 
 ### Create a Keystore (first time only)
 

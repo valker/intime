@@ -4,8 +4,9 @@ All notable changes to InTime are documented in this file.
 
 ## [2.0.0] - 2026-05-26
 
-Draft target release. The current build is still 1.1.8 with a `.dev` package;
-production release and installation upgrade are not confirmed. See ROADMAP.md
+Draft target release. Default builds remain 1.1.8 with a `.dev` package;
+an explicit productionRelease candidate requires version parameters. Production
+signing and a real-data upgrade remain unverified. See ROADMAP.md
 and [UPGRADE.md](UPGRADE.md) for the checked status.
 
 ### New Features
@@ -41,7 +42,7 @@ and [UPGRADE.md](UPGRADE.md) for the checked status.
 - **Minimum SDK:** 24 (Android 7.0)
 - **Target SDK:** 35 (Android 15)
 - **Architecture:** MVVM with LiveData and ViewModels
-- **Database:** Room 2.6.1 with schema versioning
+- **Database:** Room 2.8.4, schema 6 with migrations from historical SQLite 4/5
 - **Scheduling:** AlarmManager + WorkManager coordination
 - **Upgrade Compatibility** — Not yet confirmed for installed production v1; historical schemas 4/5 now have migration paths
 

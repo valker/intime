@@ -1,5 +1,64 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Подписанный production-кандидат — 3 октября 2026
+
+Пользователь настроил четыре SIGNING_KEY_* поля в пользовательском Gradle-файле.
+Проверка наличия полей не выводила их значения. Сборка :app:assembleRelease и
+:app:bundleRelease с productionRelease=true, code 25/name 2.0.0-rc1 и без
+unsignedProduction завершилась успешно за 32 секунды, lintVitalRelease прошёл.
+R8 использовал актуальные результаты предыдущей сборки (UP-TO-DATE).
+Configuration cache отключён. Каталог: `.test-tools/runs/production-signed-20261003-163519`.
+
+- `intime-25-2.0.0-rc1-upload-signed.apk`: apksigner verify завершился с кодом 0,
+  подпись v2 проверена, один подписант с SHA-256
+  `97b60110a8e894791b4770826a8d214dc5e3a551cd24bd41d646c29f64a1dd26`.
+- `intime-25-2.0.0-rc1-upload-signed.aab`: jarsigner verify завершился с кодом 0,
+  jar verified; keytool -printcert -jarfile подтвердил тот же публичный SHA-256.
+  Предупреждения о самоподписанном сертификате, отсутствии доверенной цепочки/временной
+  метки и неподписанных POSIX-атрибутах сохранены в aab-signing.txt.
+- aapt: исходный production-пакет, code 25/name 2.0.0-rc1, minSdk 24/targetSdk 35.
+  Сохранены badging.txt, hashes.json, mapping.txt и отчёты подписи.
+
+Успешное подписание подтвердило доступ к приватному upload key и работоспособность
+локальных credentials. Keystore и пользовательский Gradle-файл не изменялись,
+пароли не копировались в проект/отчёты. Код приложения не менялся; local/device-тесты
+не повторялись (97 local прошли при подготовке предыдущего кандидата).
+APK не устанавливался, AAB не загружался в Play. Upload-подпись APK отличается от
+app signing key установленной Play v1: production-обновление ещё не проверено.
+Перед загрузкой требуется API 36 и регрессия Android 16; полная bundletool-валидация,
+финальная версия, Play-коды и R8 на устройстве остаются открытыми.
+
+## Production-кандидат — 3 октября 2026
+
+Добавлен явный productionRelease в app/build.gradle без изменения варианта по умолчанию.
+Неподписанные APK/AAB с R8 собраны задачами :app:assembleRelease/:app:bundleRelease;
+lintVitalRelease прошёл. Каталог артефактов/логов:
+`.test-tools/runs/production-candidate-20261003`.
+aapt подтвердил пакет com.vpe_soft.intime.intime, код 25, имя 2.0.0-rc1,
+minSdk 24 и targetSdk 35. AAB содержит BundleConfig.pb, manifest и dex;
+jarsigner -verify сообщил jar is unsigned. Полная bundletool-валидация не выполнялась.
+Сохранены копии обоих артефактов, hashes.json, badging.txt и mapping.txt.
+Код/имя являются предварительными, опубликованные коды Console отдельно не проверены.
+
+Первый запуск отклонён проверкой имени версии из-за передачи параметра без кавычек
+в Windows PowerShell; исправленная команда документирована в RELEASE.md.
+Затем offline-сборка остановилась из-за отсутствующих lint/упаковочных зависимостей.
+Повтор online прошёл: build-online.log, BUILD SUCCESSFUL, 54 задачи.
+Эти инфраструктурные попытки не считаются падением тестов приложения.
+
+Две отрицательные проверки конфигурации (--dry-run) подтвердили отказ для code 24
+и неподходящего debug-сертификата: reject-code24.log, reject-debug-certificate.log.
+Для последней использован стандартный debug.keystore, production-ключ не открывался.
+Полная обычная local suite: 97 выполненных, failures/errors/skipped = 0,
+`.test-tools/runs/20261003-163043-9122965a/summary.json`.
+Сгенерированный debug BuildConfig сохранил .dev/21/1.1.8.
+
+Подписанный production AAB, приватный upload key, APK с подписью Google и release
+на устройстве не проверены. Локальные signing credentials ещё не настроены.
+Перед загрузкой в Play нужен переход targetSdk 35 → 36 и регрессия Android 16;
+проверенный источник требования — RELEASE.md. Эмулятор/личный телефон на этом шаге
+не использовались, пользовательские main*.db не читались. R4.2/R5.1/R5.3 остаются открытыми.
+
 ## Сверка с Play Console — 3 октября 2026
 
 Пользователь последовательно предоставил SHA-256 App signing key certificate

@@ -2,6 +2,30 @@ apply plugin: 'com.android.application'
 
 // Только для smoke-обновления на проектном AVD; обычные сборки сохраняют пакет .dev.
 def upgradeSmoke = providers.gradleProperty('upgradeSmoke').getOrElse('false') == 'true'
+// Production включается явно; версия передаётся при сборке, а .dev остаётся по умолчанию.
+def productionRelease = providers.gradleProperty('productionRelease').getOrElse('false') == 'true'
+def unsignedProduction = providers.gradleProperty('unsignedProduction').getOrElse('false') == 'true'
+def productionCode = providers.gradleProperty('releaseVersionCode').getOrElse('')
+def productionName = providers.gradleProperty('releaseVersionName').getOrElse('')
+if (productionRelease && upgradeSmoke) {
+    throw new GradleException('productionRelease and upgradeSmoke are mutually exclusive')
+}
+if (unsignedProduction && !productionRelease) {
+    throw new GradleException('unsignedProduction requires productionRelease')
+}
+if (productionRelease) {
+    if (!productionCode.isInteger() || productionCode.toInteger() <= 24 || productionCode.toInteger() > 2100000000) {
+        throw new GradleException('releaseVersionCode must be an integer in 25..2100000000; check used Play codes first')
+    }
+    if (!(productionName ==~ /[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.]+)?/)) {
+        throw new GradleException('releaseVersionName is required, for example 2.0.0-rc1')
+    }
+    if (gradle.startParameter.taskNames.isEmpty() || gradle.startParameter.taskNames.any {
+        !(it in [':app:assembleRelease', ':app:bundleRelease'])
+    }) {
+        throw new GradleException('productionRelease permits only :app:assembleRelease and :app:bundleRelease')
+    }
+}
 if (upgradeSmoke && gradle.startParameter.taskNames.any {
     !(it in [':app:assembleDebug', ':app:assembleDebugAndroidTest', ':app:testDebugUnitTest'])
 }) {
@@ -27,11 +51,11 @@ android {
     }
 
     defaultConfig {
-        applicationId (upgradeSmoke ? 'com.vpe_soft.intime.intime' : 'com.vpe_soft.intime.intime.dev')
+        applicationId ((upgradeSmoke || productionRelease) ? 'com.vpe_soft.intime.intime' : 'com.vpe_soft.intime.intime.dev')
         minSdkVersion 24
         targetSdkVersion 35
-        versionCode (upgradeSmoke ? 25 : 21)
-        versionName (upgradeSmoke ? '1.1.8-upgrade-smoke' : '1.1.8')
+        versionCode (productionRelease ? productionCode.toInteger() : (upgradeSmoke ? 25 : 21))
+        versionName (productionRelease ? productionName : (upgradeSmoke ? '1.1.8-upgrade-smoke' : '1.1.8'))
         buildConfigField "String", "GIT_LAST_COMMIT_HASH", "\"${gitLastCommitHash}\""
 
         javaCompileOptions {
@@ -44,7 +68,10 @@ android {
     }
     signingConfigs {
         release {
-            if (System.getenv("SIGNING_KEY_STORE_PATH")) {
+            // Неподписанный кандидат не использует даже настроенные credentials.
+            if (unsignedProduction) {
+                // Подпись проверяется отдельной production-сборкой без этого флага.
+            } else if (System.getenv("SIGNING_KEY_STORE_PATH")) {
                 storeFile = file(System.getenv("SIGNING_KEY_STORE_PATH"))
                 storePassword = System.getenv("SIGNING_KEY_STORE_PASSWORD")
                 keyAlias = System.getenv("SIGNING_KEY_ALIAS")
@@ -55,6 +82,24 @@ android {
                 keyAlias = project.property("SIGNING_KEY_ALIAS")
                 keyPassword = project.property("SIGNING_KEY_PASSWORD")
             }
+        }
+    }
+
+    if (productionRelease && !unsignedProduction) {
+        def upload = signingConfigs.release
+        if (!upload.storeFile || !upload.storePassword || !upload.keyAlias || !upload.keyPassword) {
+            throw new GradleException('Production signing requires all four SIGNING_KEY_* values; use unsignedProduction only for a preview')
+        }
+        // Проверяем публичный сертификат upload key, не записывая пароли в отчёт.
+        def keyStore = java.security.KeyStore.getInstance(upload.storeType ?: 'JKS')
+        upload.storeFile.withInputStream { stream -> keyStore.load(stream, upload.storePassword.toCharArray()) }
+        def certificate = keyStore.getCertificate(upload.keyAlias)
+        if (!certificate || !keyStore.isKeyEntry(upload.keyAlias)) {
+            throw new GradleException('Production upload alias must contain a private key and certificate')
+        }
+        def digest = java.security.MessageDigest.getInstance('SHA-256').digest(certificate.encoded).encodeHex().toString()
+        if (digest != '97b60110a8e894791b4770826a8d214dc5e3a551cd24bd41d646c29f64a1dd26') {
+            throw new GradleException('Production upload certificate differs from the confirmed Play upload certificate')
         }
     }
 
