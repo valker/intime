@@ -37,7 +37,7 @@ def gitLastCommitHash = providers.exec {
 }.standardOutput.asText.get().toString().trim()
 
 android {
-    compileSdk 35
+    compileSdk 36
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
@@ -53,7 +53,7 @@ android {
     defaultConfig {
         applicationId ((upgradeSmoke || productionRelease) ? 'com.vpe_soft.intime.intime' : 'com.vpe_soft.intime.intime.dev')
         minSdkVersion 24
-        targetSdkVersion 35
+        targetSdkVersion 36
         versionCode (productionRelease ? productionCode.toInteger() : (upgradeSmoke ? 25 : 21))
         versionName (productionRelease ? productionName : (upgradeSmoke ? '1.1.8-upgrade-smoke' : '1.1.8'))
         buildConfigField "String", "GIT_LAST_COMMIT_HASH", "\"${gitLastCommitHash}\""

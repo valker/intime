@@ -1,7 +1,8 @@
 # Running tests
 
 The Windows runner works with Windows PowerShell 5.1 and JDK 17. Android Studio
-does not need to be open. Use the repository's Gradle Wrapper (8.10.2).
+does not need to be open. Use the repository's Gradle Wrapper (8.11.1), AGP 8.9.1
+and installed compile SDK 36. Device API 33/35 is independent of compile/target SDK.
 
 ## Commands
 
@@ -46,7 +47,7 @@ Robolectric does not replace testing Android platform behavior on a device.
 
 - JDK 17 with java.exe and javac.exe; discovered through JAVA_HOME or PATH.
   Override discovery with -JdkPath.
-- Android SDK platform 35. SDK path is read from local.properties, then
+- Android SDK platform 36. SDK path is read from local.properties, then
   ANDROID_HOME; -SdkPath overrides runner discovery. Ensure local.properties
   points to the same SDK because Gradle also reads it.
 - For device mode: platform-tools, modern emulator/emulator.exe, hardware
@@ -54,13 +55,15 @@ Robolectric does not replace testing Android platform behavior on a device.
   system-images/android-35/google_apis_playstore_ps16k/x86_64.
   -TestApi 33 uses system-images/android-33/google_apis/x86_64 (revision 17
   installed here). -SystemImage can choose another installed x86_64 image for
-  the selected API, relative to SDK; compilation still requires platform 35.
+  the selected API, relative to SDK; compilation requires platform 36.
 - Initial builds require network access to Google Maven/Maven Central and the
   wrapper distribution. Robolectric also resolves Android runtime JARs. An online
   local run copies available instrumented runtime JARs from the user's Maven cache
   to .test-tools/robolectric. Offline mode disables both Gradle and Robolectric
   downloads and uses that prepared runtime directory.
 - Instrumentation has its own dependencies: bootstrap device mode online too.
+- After changing Gradle/AGP versions, repeat both online bootstraps: cached JARs
+  do not guarantee that the new Gradle has usable dependency metadata offline.
 - The Codex sandbox may need an approved escalation to access the user Gradle
   cache. This is independent of whether the emulator is running.
 
@@ -186,7 +189,7 @@ only the runner's process tree, not unrelated Java processes.
 
 ## CI
 
-GitLab jobs use SDK 35 and publish JUnit/HTML reports even on failure. The manual
+GitLab jobs use compile SDK 36 and publish JUnit/HTML reports even on failure. The manual
 instrumentedTests job requires a runner tagged android-emulator with /dev/kvm
 available in its container. Without such a runner, device verification runs
 locally; the manual CI job must not be claimed as verified.

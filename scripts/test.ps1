@@ -9,7 +9,7 @@ param(
     # Режим запуска и необязательный фильтр класса/метода теста.
     [ValidateSet('local', 'device')][string]$Mode = 'local',
     [string]$Filter,
-    # API тестового устройства; компиляция приложения по-прежнему использует SDK 35.
+    # API тестового устройства; компиляция приложения использует SDK 36.
     [ValidateSet(33, 35)][int]$TestApi = 35,
     # Пути можно задать явно; иначе скрипт найдёт SDK и JDK в окружении.
     [string]$SdkPath,
@@ -132,7 +132,7 @@ try {
         $SdkPath = $configuredSdk
         if (-not $SdkPath) { $SdkPath = $env:ANDROID_HOME }
     }
-    if (-not $SdkPath -or -not (Test-Path (Join-Path $SdkPath 'platforms\android-35\android.jar'))) { throw "Android SDK 35 not found: $SdkPath" }
+    if (-not $SdkPath -or -not (Test-Path (Join-Path $SdkPath 'platforms\android-36\android.jar'))) { throw "Android SDK 36 not found: $SdkPath" }
     if ($configuredSdk -and [IO.Path]::GetFullPath($SdkPath).TrimEnd('\') -ne [IO.Path]::GetFullPath($configuredSdk).TrimEnd('\')) { throw 'SdkPath must match sdk.dir in local.properties.' }
     $env:ANDROID_HOME = $SdkPath
     $wrapper = Join-Path $root 'gradle\wrapper\gradle-wrapper.jar'

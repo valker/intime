@@ -40,7 +40,7 @@ and [UPGRADE.md](UPGRADE.md) for the checked status.
 ### Technical
 
 - **Minimum SDK:** 24 (Android 7.0)
-- **Target SDK:** 35 (Android 15)
+- **Target SDK:** 36 (Android 16)
 - **Architecture:** MVVM with LiveData and ViewModels
 - **Database:** Room 2.8.4, schema 6 with migrations from historical SQLite 4/5
 - **Scheduling:** AlarmManager + WorkManager coordination

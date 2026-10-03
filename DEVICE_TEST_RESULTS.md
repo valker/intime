@@ -1,5 +1,44 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Переход сборки на SDK 36 — 3 октября 2026
+
+CompileSdk/targetSdk обновлены до 36, AGP до 8.9.1, Gradle Wrapper до 8.11.1.
+SDK platform 36 уже установлен; требования совместимости инструментов сверены
+по официальной документации (ссылка в RELEASE.md). CI compile SDK и test.ps1
+также обновлены. Java/Kotlin, Room-схема и runtime-исходники не менялись.
+
+- Полный local online bootstrap: 97 выполненных, failures/errors/skipped = 0,
+  `.test-tools/runs/20261003-164439-1e13c171/summary.json`.
+- Первая попытка device offline: INFRASTRUCTURE_ERROR, 0 тестов,
+  `.test-tools/runs/20261003-164815-6d1e25b3/summary.json`.
+  Gradle сообщил ошибку сериализации configuration cache при разрешении AndroidX;
+  вложенная причина — отсутствующие кешированные метаданные junit/runner/room-testing.
+  Runner остановил принадлежащий ему AVD. Это не падение тестов приложения.
+- Повтор device online на Intime_Test_API35: 23 записи JUnit, 18 выполненных,
+  failures/errors = 0, 5 отдельных reboot/upgrade-фаз пропущены,
+  `.test-tools/runs/20261003-165057-6490a58a/summary.json`.
+  Configuration cache успешно сохранён. Проектный AVD остановлен runner,
+  marker emulator.json отсутствует. Это Android 15 с приложением target 36.
+- Подписанный production APK/AAB: BUILD SUCCESSFUL, 55 выполненных задач,
+  R8 и lintVitalRelease прошли. Каталог:
+  `.test-tools/runs/production-api36-20261003-165559`.
+  APK: исходный пакет, versionCode 25/versionName 2.0.0-rc1, compile/target SDK 36,
+  minSdk 24. apksigner verify и jarsigner verify завершились с кодом 0;
+  SHA-256 обоих подписантов совпал с подтверждённым Upload key
+  `97b60110a8e894791b4770826a8d214dc5e3a551cd24bd41d646c29f64a1dd26`.
+  Сохранены артефакты, hashes.json, release-manifest.xml, mapping.txt и отчёты подписи.
+
+PowerShell Parser и git diff --check прошли, UTF-8 BOM test.ps1 сохранён.
+Новых @Test нет: выполнена существующая регрессия. API 33 и отдельные reboot/upgrade
+smoke на этом шаге не повторялись. CI изменён, pipeline не запускался.
+Android 16/API 36 как ОС ещё не проверен: соответствующего system image нет,
+следующий шаг — добавить отдельный проектный AVD и проверить платформенные сценарии,
+навигацию и отступы UI (edge-to-edge/predictive back). Нельзя считать проверку
+target 36 на API 35 проверкой поведения Android 16.
+Release/R8 на устройстве, bundletool-валидация, финальная версия/Play-коды,
+APK с app signing key и копия реальных данных остаются открытыми. В Play ничего
+не загружено, личные устройства и пользовательские main*.db не использовались.
+
 ## Подписанный production-кандидат — 3 октября 2026
 
 Пользователь настроил четыре SIGNING_KEY_* поля в пользовательском Gradle-файле.
