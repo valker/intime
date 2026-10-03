@@ -204,7 +204,9 @@ release/R8 и оставшаяся Android-матрица проверяются
   Полный release smoke, API 24/31, жест predictive back и расширенная UI-матрица ещё открыты.
   Чистая установка production release APK с R8 на API 36 прошла пять UI-фаз дважды:
   CRUD, ACK из деталей, настройки/Back, сохранение после перезапуска и inexact alarm.
-  JSON и доставка/reboot в release, остальные API ещё требуют проверки.
+  JSON export/import через SAF также прошли на этом APK: метаданные/строка экспорта,
+  восстановление описания и прежнего alarm после удаления и перезапуска.
+  Доставка/reboot в release, остальные API ещё требуют проверки.
   Для этого компьютера проверен AOSP API 36 на Emulator 37.2.12:
   8 ядер, 2 ГБ RAM, 720×1280/density 280, аппаратная графика.
   UI холодного старта, notification/reboot и полный набор после reboot прошли без
@@ -232,9 +234,10 @@ release/R8 и оставшаяся Android-матрица проверяются
   Пользователь настроил credentials: подписанные APK/AAB собраны, apksigner/jarsigner
   и сертификат Upload key проверены. Свежий non-debuggable APK с R8 прошёл два
   прогона по пять UI-фаз на AOSP API 36 (чистая установка, upload key).
-  JSON и реальные уведомления/reboot в release, APK с подписью Google и обновление
-  Play v1 ещё не проверены. Следующий шаг — расширить release smoke на JSON,
-  затем на доставку уведомлений и reboot. R5.3 целиком остаётся открытым.
+  Release smoke расширен до семи фаз с JSON export/import через SAF и сохранением
+  восстановленной задачи/alarm после перезапуска. Реальные уведомления/reboot
+  в release, APK с подписью Google и обновление Play v1 ещё не проверены.
+  Следующий шаг — доставка уведомлений и reboot в release. R5.3 целиком остаётся открытым.
   Артефакты/логи — DEVICE_TEST_RESULTS.md, команды — RELEASE.md.
 - [ ] R5.4: согласовать README, PLAN, TECH_NOTES, RELEASE, privacy и Play-декларации
   с проверенным поведением; убрать неподтверждённые утверждения о готовности.

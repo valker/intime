@@ -20,6 +20,7 @@ $serial = 'emulator-5584'
 $package = 'com.vpe_soft.intime.intime'
 $installedHere = $false
 $probePushed = $false
+$backupDevicePath = $null
 $oldJavaHome = $env:JAVA_HOME
 $lock = $null
 $commandNumber = 0
@@ -225,6 +226,30 @@ try {
     Assert-ReleaseText $edited
     Complete-ReleasePhase 'settings-and-system-back'
 
+    # Проверка экспорта: после ACK существует одна отредактированная задача.
+    # Сохраняем JSON через настоящий системный SAF picker в Downloads, читаем
+    # только созданный нами файл и проверяем версию, порядок восьми колонок,
+    # описание и совпадение next_alarm с действующим AlarmManager. Это проверяет
+    # release-сериализацию и запись ContentResolver; чужие файлы не читаются.
+    $backupName = 'intime-r8-' + [guid]::NewGuid().ToString('N') + '.json'
+    $backupDevicePath = '/sdcard/Download/' + $backupName
+    Click-ReleaseId 'btn_open_settings'
+    Click-ReleaseId 'export_to_json_btn'
+    Click-ReleaseNode "//node[@class='android.widget.EditText']"
+    Invoke-ReleaseAdb @('shell', 'input', 'keycombination', '113', '29') | Out-Null
+    Invoke-ReleaseAdb @('shell', 'input', 'text', $backupName) | Out-Null
+    Click-ReleaseNode "//node[@resource-id='android:id/button1']"
+    Wait-ReleaseNode "//node[@resource-id='${package}:id/export_to_json_btn']" | Out-Null
+    $backupLocalPath = Join-Path $run $backupName
+    Invoke-ReleaseAdb @('pull', $backupDevicePath, $backupLocalPath) | Out-Null
+    $backup = Get-Content $backupLocalPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($backup.meta.version -ne 1 -or ($backup.tables.tasks.columns -join ',') -ne 'id,description,interval,amount,next_alarm,next_caution,last_ack,quant') { throw 'Invalid exported JSON contract' }
+    $rows = @($backup.tables.tasks.rows)
+    if ($rows.Count -ne 1 -or $rows[0].Count -ne 8 -or $rows[0][1] -ne $edited -or [long]$rows[0][4] -ne $afterAck) { throw 'Exported task does not match UI/alarm' }
+    $summary.exportSha256 = (Get-FileHash $backupLocalPath -Algorithm SHA256).Hash
+    Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '4') | Out-Null
+    Complete-ReleasePhase 'json-export'
+
     # Проверка удаления: нажимаем Delete и подтверждаем диалог. Должно появиться
     # пустое состояние, которое сохраняется после нового запуска процесса;
     # будильник единственной удалённой задачи должен быть отменён.
@@ -237,6 +262,26 @@ try {
     Wait-ReleaseNode "//node[@resource-id='${package}:id/emptyStateAddTaskBtn']" | Out-Null
     if ((Read-ReleaseAlarm) -ne 0) { throw 'Deleted task still has an active alarm' }
     Complete-ReleasePhase 'delete-and-empty-restart'
+
+    # Проверка импорта: список пуст после удаления и перезапуска процесса.
+    # Выбираем собственный экспорт через SAF, затем проверяем восстановленное
+    # описание и точно прежний срок alarm, включая повторный запуск приложения.
+    # Таким образом данные проходят настоящий release parser/Room/ContentResolver;
+    # ошибочные файлы и откат транзакции эта фаза пока не моделирует.
+    Click-ReleaseId 'btn_open_settings'
+    Click-ReleaseId 'import_from_json_btn'
+    Click-ReleaseNode "//node[@text='$backupName']"
+    Wait-ReleaseNode "//node[@resource-id='${package}:id/import_from_json_btn']" | Out-Null
+    Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '4') | Out-Null
+    Assert-ReleaseText $edited
+    $restoredAlarm = Wait-ReleaseAlarm
+    if ($restoredAlarm -ne $afterAck) { throw 'Imported alarm deadline changed' }
+    Invoke-ReleaseAdb @('shell', 'am', 'force-stop', $package) | Out-Null
+    Launch-Release
+    Assert-ReleaseText $edited
+    if ((Wait-ReleaseAlarm) -ne $afterAck) { throw 'Imported alarm not restored after process restart' }
+    $summary.importedAlarm = $restoredAlarm
+    Complete-ReleasePhase 'json-import-and-restart'
     $summary.status = 'PASSED'
 } catch {
     $summary.status = if ($installedHere) { 'FAILED' } else { 'INFRASTRUCTURE_ERROR' }
@@ -260,6 +305,11 @@ try {
     if ($probePushed) {
         try { Invoke-ReleaseAdb @('shell', 'rm', '-f', '/data/local/tmp/intime-release-probe.jar', '/data/local/tmp/intime-release-ui.xml', '/data/local/tmp/local/tmp/intime-release-probe-output.xml') | Out-Null }
         catch { $summary.probeCleanupError = $_.Exception.Message; $summary.status = 'FAILED' }
+    }
+    if ($installedHere -and $backupDevicePath) {
+        # Только уникальный файл этого запуска; сохранённая локальная копия остаётся в отчёте.
+        try { Invoke-ReleaseAdb @('shell', 'rm', '-f', $backupDevicePath) | Out-Null }
+        catch { $summary.backupCleanupError = $_.Exception.Message; $summary.status = 'FAILED' }
     }
     $env:JAVA_HOME = $oldJavaHome
     if ($lock) { $lock.Dispose() }

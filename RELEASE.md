@@ -73,7 +73,10 @@ CRUD, ACK из деталей и перенос срока, настройки/B
 подписан upload key; это не проверка обновления Play v1. AAB в этом шаге
 не пересобирался. Команда `scripts/test-release-smoke.ps1 -ApkPath <APK>`
 и требования — TESTING.md, хеши/логи/границы — DEVICE_TEST_RESULTS.md.
-JSON, доставка уведомлений и reboot в release остаются следующими проверками;
+Тот же APK затем прошёл расширенный smoke из семи фаз с JSON export/import
+через системный SAF picker, удалением и восстановлением задачи/alarm после
+перезапуска процесса. Подробные границы JSON-проверки — DEVICE_TEST_RESULTS.md.
+Доставка уведомлений и reboot в release остаются следующими проверками;
 этот результат не закрывает полную smoke-матрицу или готовность к публикации.
 
 ### Create a Keystore (first time only)
