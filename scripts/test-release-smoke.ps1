@@ -120,6 +120,88 @@ function Complete-ReleasePhase([string]$Name) {
     Write-Output "PASSED: $Name"
 }
 
+# Начинаем новый минутный отсчёт только через существующую кнопку ACK в UI.
+# После возврата Home приложение не подавляет доставку своей видимостью.
+function Prepare-ReleaseMinuteAlarm([string]$Description) {
+    Launch-Release
+    Assert-ReleaseText $Description
+    Click-ReleaseNode "//node[@resource-id='${package}:id/textDescription' and @text='$Description']"
+    Click-ReleaseId 'btnAckTask'
+    Assert-ReleaseText $Description
+    $alarm = Wait-ReleaseAlarm
+    Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '3') | Out-Null
+    return $alarm
+}
+
+# Проверяем отсутствие уведомления непрерывно до пяти секунд после срока alarm.
+# Дополнительно требуем исчезновения сработавшего alarm и запись receiver в logcat,
+# чтобы отсутствие уведомления не стало ложным успехом при несработавшем будильнике.
+# wasNotified в приватной Room этим black-box наблюдением не проверяется.
+function Assert-ReleaseBlockedNotification([long]$Alarm, [string]$Description, [string]$Name) {
+    $since = (Invoke-ReleaseAdb @('shell', "date '+%m-%d %H:%M:%S.000'")).Trim()
+    Invoke-ReleaseAdb @('shell', 'cmd', 'statusbar', 'expand-notifications') | Out-Null
+    $limit = (Get-Date).AddSeconds(150)
+    $finished = $false
+    do {
+        $ui = Read-ReleaseUi
+        if ($ui.SelectSingleNode("//node[@text='$Description']")) { throw "Blocked notification visible: $Name" }
+        $now = [long](Invoke-ReleaseAdb @('shell', 'date', '+%s')).Trim() * 1000
+        if ($now -ge $Alarm + 5000 -and (Read-ReleaseAlarm) -eq 0) { $finished = $true; break }
+        Start-Sleep -Seconds 2
+    } while ((Get-Date) -lt $limit)
+    if (-not $finished) { throw "Blocked alarm did not finish: $Name" }
+    $phaseLog = Invoke-ReleaseAdb @('logcat', '-d', '-T', $since)
+    Set-Content (Join-Path $run "$Name-logcat.log") $phaseLog -Encoding UTF8
+    if ($phaseLog -notmatch 'AlarmReceiver.*handleAlarm: trying to post notification') { throw "Receiver delivery not confirmed: $Name" }
+    Set-Content (Join-Path $run "$Name-notifications.log") (Invoke-ReleaseAdb @('shell', 'dumpsys', 'notification', '--noredact')) -Encoding UTF8
+    Invoke-ReleaseAdb @('shell', 'cmd', 'statusbar', 'collapse') | Out-Null
+    Launch-Release
+    Assert-ReleaseText $Description
+}
+
+# Восстановление доставки проверяем новым UI ACK существующей задачи: её описание
+# остаётся в списке, но срок начинается заново. ID отдельно не сверяется. Это не доказательство сохранения
+# wasNotified у уже просроченной задачи после снятия блокировки.
+function Assert-ReleaseRecoveredNotification([string]$Description, [string]$Name) {
+    $alarm = Prepare-ReleaseMinuteAlarm $Description
+    Invoke-ReleaseAdb @('shell', 'cmd', 'statusbar', 'expand-notifications') | Out-Null
+    $limit = (Get-Date).AddSeconds(150)
+    $visible = $false
+    do {
+        $ui = Read-ReleaseUi
+        $visible = $null -ne $ui.SelectSingleNode("//node[@text='$Description']")
+        if (-not $visible) { Start-Sleep -Seconds 2 }
+    } while (-not $visible -and (Get-Date) -lt $limit)
+    if (-not $visible) { throw "Notification did not recover: $Name" }
+    Set-Content (Join-Path $run "$Name-notifications.log") (Invoke-ReleaseAdb @('shell', 'dumpsys', 'notification', '--noredact')) -Encoding UTF8
+    Click-ReleaseNode "//node[@text='Acknowledge' or @text='ACKNOWLEDGE']"
+    $next = Wait-ReleaseAlarm $alarm
+    $summary[$Name] = @{ deliveredAlarm = $alarm; acknowledgedAlarm = $next }
+    Invoke-ReleaseAdb @('shell', 'cmd', 'statusbar', 'collapse') | Out-Null
+    Launch-Release
+    Assert-ReleaseText $Description
+}
+
+# Меняем только канал собственного production-пакета через системный экран.
+# Должен измениться именно переключатель Show notifications; системные каналы
+# и общий доступ приложения к уведомлениям этим действием не меняются.
+function Set-ReleaseChannelEnabled([bool]$Enabled) {
+    Invoke-ReleaseAdb @('shell', 'am', 'start', '-W', '-a', 'android.settings.CHANNEL_NOTIFICATION_SETTINGS', '--es', 'android.provider.extra.APP_PACKAGE', $package, '--es', 'android.provider.extra.CHANNEL_ID', 'DefaultChannelId') | Out-Null
+    $xpath = "//node[@resource-id='android:id/switch_widget' and @checkable='true']"
+    $switch = Wait-ReleaseNode $xpath
+    $expected = if ($Enabled) { 'true' } else { 'false' }
+    if ($switch.GetAttribute('checked') -ne $expected) { Click-ReleaseNode $xpath }
+    Wait-ReleaseNode ($xpath.TrimEnd(']') + " and @checked='$expected']") | Out-Null
+    $dump = Invoke-ReleaseAdb @('shell', 'dumpsys', 'notification', '--noredact')
+    $app = [regex]::Match($dump, '(?ms)^\s*AppSettings: com\.vpe_soft\.intime\.intime \(\d+\)[^\r\n]*\r?\n(?<body>.*?)(?=^\s*AppSettings:|^Restored without uid:|\z)')
+    $channel = [regex]::Match($app.Groups['body'].Value, "NotificationChannel\{mId='DefaultChannelId'[^\r\n]*?mImportance=(\d+),")
+    if (-not $app.Success -or -not $channel.Success) { throw 'Own channel state not found in dumpsys' }
+    $importance = [int]$channel.Groups[1].Value
+    if (($Enabled -and $importance -eq 0) -or (-not $Enabled -and $importance -ne 0)) { throw 'Own channel importance does not match switch' }
+    Set-Content (Join-Path $run ("channel-$expected-settings.log")) $dump -Encoding UTF8
+    Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '3') | Out-Null
+}
+
 try {
     $lock = [IO.File]::Open((Join-Path $work 'run.lock'), 'OpenOrCreate', 'ReadWrite', 'None')
     $state = Get-Content (Join-Path $work 'emulator.json') -Raw | ConvertFrom-Json
@@ -371,6 +453,48 @@ try {
     Assert-ReleaseText $edited
     if ((Wait-ReleaseAlarm) -ne $notificationAckAlarm) { throw 'Notification ACK alarm lost after restart' }
     Complete-ReleasePhase 'release-notification-ack'
+
+    # Проверка отказа POST_NOTIFICATIONS: отзыв разрешения может убить процесс,
+    # поэтому выполняем его до нового запуска. Флаги user-set/user-fixed исключают
+    # всплывающий permission dialog. UI ACK ставит новый минутный alarm, Home;
+    # receiver должен сработать, но описание не должно появиться в шторке даже
+    # через пять секунд после срока. Задача остаётся в списке; базу не читаем.
+    Invoke-ReleaseAdb @('shell', 'pm', 'revoke', $package, 'android.permission.POST_NOTIFICATIONS') | Out-Null
+    Invoke-ReleaseAdb @('shell', 'pm', 'set-permission-flags', $package, 'android.permission.POST_NOTIFICATIONS', 'user-set', 'user-fixed') | Out-Null
+    $deniedPackage = Invoke-ReleaseAdb @('shell', 'dumpsys', 'package', $package)
+    if ($deniedPackage -notmatch 'android.permission.POST_NOTIFICATIONS: granted=false') { throw 'Runtime permission denial not confirmed' }
+    Set-Content (Join-Path $run 'permission-denied-package.log') $deniedPackage -Encoding UTF8
+    $deniedAlarm = Prepare-ReleaseMinuteAlarm $edited
+    Assert-ReleaseBlockedNotification $deniedAlarm $edited 'permission-denied'
+    $summary.permissionDeniedAlarm = $deniedAlarm
+    Complete-ReleasePhase 'release-permission-denied'
+
+    # Проверка снятия отказа: очищаем только выставленные нами флаги, возвращаем
+    # POST_NOTIFICATIONS и через UI ACK создаём новый срок той же задачи. Настоящее
+    # уведомление и его action ACK должны снова работать. Снятие отказа без нового
+    # ACK у старой просрочки в этой фазе не проверяется.
+    Invoke-ReleaseAdb @('shell', 'pm', 'clear-permission-flags', $package, 'android.permission.POST_NOTIFICATIONS', 'user-set', 'user-fixed') | Out-Null
+    Invoke-ReleaseAdb @('shell', 'pm', 'grant', $package, 'android.permission.POST_NOTIFICATIONS') | Out-Null
+    Assert-ReleaseRecoveredNotification $edited 'permission-restored'
+    Complete-ReleasePhase 'release-permission-restored'
+
+    # Проверка отключённого канала: runtime permission остаётся выданным, канал
+    # DefaultChannelId выключается через экран Android. Новый минутный alarm
+    # должен дойти до receiver, но не создать видимое уведомление. Это отдельная
+    # проверка канала; общий системный запрет всех уведомлений здесь не включается.
+    Set-ReleaseChannelEnabled $false
+    $channelAlarm = Prepare-ReleaseMinuteAlarm $edited
+    Assert-ReleaseBlockedNotification $channelAlarm $edited 'channel-disabled'
+    $summary.channelDisabledAlarm = $channelAlarm
+    Complete-ReleasePhase 'release-channel-disabled'
+
+    # Проверка включения канала: через тот же системный экран возвращаем разрешение
+    # канала и начинаем новый срок UI ACK. Ожидаем реальное уведомление и успешный
+    # ACK из шторки. Тест не читает wasNotified и не моделирует восстановление
+    # старой просрочки автоматически, без пользовательского действия.
+    Set-ReleaseChannelEnabled $true
+    Assert-ReleaseRecoveredNotification $edited 'channel-restored'
+    Complete-ReleasePhase 'release-channel-restored'
     $summary.status = 'PASSED'
 } catch {
     $summary.status = if ($installedHere) { 'FAILED' } else { 'INFRASTRUCTURE_ERROR' }

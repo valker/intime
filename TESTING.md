@@ -39,7 +39,9 @@ Pipeline 2909444152 остановился на lint (9 errors/43 warnings); ass
 ACK из деталей/перенос срока, настройки/Back, JSON export через SAF,
 удаление/повторное открытие и JSON import с перезапуском. Далее настоящий
 reboot/восстановление alarm до запуска Activity, доставка уведомления и ACK
-из шторки — всего десять фаз. Прогон занимает несколько минут.
+из шторки, отказ POST_NOTIFICATIONS/восстановление и отключение/включение
+канала — всего четырнадцать фаз. Прогон занимает несколько минут:
+минутные будильники ожидаются в реальном времени, часы ОС не изменяются.
 Он пока рассчитан только на проектный API 36, serial `emulator-5584`.
 Нужны JDK `C:\Program Files\Java\jdk-17`, SDK в `%LOCALAPPDATA%\Android\Sdk`,
 platform android-36 с `android.jar`/`uiautomator.jar`, build-tools 35.0.0
@@ -58,7 +60,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode devic
 Mapping должен лежать рядом с переданным APK. Пример для проверенного артефакта:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -ApkPath '.test-tools/runs/release-r8-20261003-184243/intime-25-2.0.0-rc1-r8.apk'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -ApkPath '.test-tools/runs/release-permissions-20261003-225632/intime-25-2.0.0-rc1-r8.apk'
 ```
 
 Runner проверяет PID/start/имя/API AVD, upload-сертификат, production пакет,
@@ -89,7 +91,19 @@ Acknowledge и проверяет исчезновение уведомлени�
 300 секундами и ростом boot_count, затем до 180 секунд на восстановление того же
 alarm до открытия Activity. Полные журналы до/после reboot проверяются на ANR/crash.
 Разрешение exact исчезает с удалением собственного APK после проверки.
-Отказ в разрешениях, отключённый канал, Doze, точность доставки в миллисекундах,
+После доставки/ACK runner отзывает POST_NOTIFICATIONS своей установке и задаёт
+user-set/user-fixed, чтобы permission dialog не перехватывал UI. Dumpsys подтверждает
+granted=false. Новый UI ACK назначает минутный срок; описание не должно появиться
+в шторке до пяти секунд после срока, alarm должен исчезнуть, logcat — подтвердить
+AlarmReceiver. После возврата разрешения новый ACK той же задачи проверяет доставку.
+Канал DefaultChannelId выключается/включается через системный экран Android;
+проверяются состояние переключателя и importance собственного канала в dumpsys.
+Отсутствие уведомления, работа receiver и восстановление доставки проверяются
+аналогично. Флаги разрешений и состояние канала удаляются с собственным APK.
+Сценарий рассчитан на английский Settings/notification action проектного AOSP API 36.
+Black-box проверки не читают wasNotified, не доказывают сохранение этой отметки
+или автоматическую доставку старой просрочки без нового пользовательского ACK.
+Doze, точность доставки в миллисекундах,
 тихий worker, boot-уведомление о просрочках, обновление Play v1 и реальные данные
 не покрыты. Результаты и точные границы прогонов — DEVICE_TEST_RESULTS.md.
 

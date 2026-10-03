@@ -1,5 +1,61 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Release R8: разрешение уведомлений и канал — 3 октября 2026
+
+После исправлений lint и слияния master `7fbae39` собран свежий production APK
+25/2.0.0-rc1 командой `:app:assembleRelease -PproductionRelease=true
+-PreleaseVersionCode=25 -PreleaseVersionName=2.0.0-rc1 --offline --no-daemon
+--no-watch-fs --no-configuration-cache`. R8 и lintVitalRelease прошли.
+Каталог сборки: `.test-tools/runs/release-permissions-20261003-225632`;
+`build.log`, `intime-25-2.0.0-rc1-r8.apk` и `mapping.txt` сохранены вместе.
+
+- APK SHA-256: `00F8198794F6DC307B52D0FEE5C533DC60B69CC6AAC9A9EB7E827FF88772165D`.
+- Mapping SHA-256: `7B5DEBF5DCCE8160A40A2F0B0442B722CA9DA511984806B7981587E4DC2E2E23`.
+- Smoke проверил production-пакет, версию, non-debuggable и upload-сертификат.
+  Это чистая синтетическая установка, а не обновление Google Play v1.
+- Bootstrap ScreenPlatformTest на проектном API 36: **2/2**,
+  `.test-tools/runs/20261003-230001-5195661d/summary.json`.
+- Итоговый release smoke: **PASSED, 14/14 фаз**,
+  `.test-tools/runs/20261003-231028-release-smoke/summary.json`.
+
+К прежним десяти фазам (CRUD/ACK, настройки/Back, process restart, JSON через SAF,
+reboot, реальная доставка и ACK из шторки) добавлены четыре сценария с русскими
+комментариями об условиях, действиях, проверках и ограничениях:
+
+| Сценарий | Наблюдаемый результат |
+|---|---|
+| POST_NOTIFICATIONS отозван, диалог заблокирован тестовыми permission flags | `granted=false` подтверждён dumpsys; минутный alarm сработал, receiver записал попытку доставки, уведомление отсутствовало до пяти секунд после срока |
+| Разрешение возвращено | Новый UI ACK существующей задачи запустил минутный отсчёт; уведомление доставилось, ACK из шторки перенёс срок |
+| DefaultChannelId отключён через Settings | Проверены переключатель и `mImportance=0` только собственного канала; alarm сработал, receiver записал попытку доставки, уведомление отсутствовало |
+| Канал включён через Settings | Проверены переключатель и положительная importance; после нового UI ACK уведомление доставилось, ACK из шторки перенёс срок |
+
+Сроки в итоговом summary (epoch millis): запрещённое разрешение — `1791058481505`,
+его восстановление — `1791058555265` → ACK `1791058619161`;
+отключённый канал — `1791058629140`, его восстановление — `1791058705123`
+→ ACK `1791058768401`. Reboot увеличил boot count `18` → `19`; прежний alarm
+`1791061857942` восстановился до открытия UI.
+Доказательства сохранены в `permission-denied-package.log`,
+`permission-denied-logcat.log`, `channel-disabled-logcat.log`,
+`channel-false-settings.log`, `channel-true-settings.log` и соответствующих
+`*-notifications.log`. В журналах до/после reboot нет ANR/FATAL EXCEPTION.
+
+Предыдущий прогон `.test-tools/runs/20261003-230318-release-smoke/summary.json`
+завершился **FAILED после 12 успешных фаз**: сценарий канала ожидал неправильный
+resource-id переключателя. По свежему XML исправлен XPath на
+`android:id/switch_widget`; затем весь сценарий повторён успешно. Это ошибка
+тестового сценария до переключения канала, а не установленный дефект приложения.
+
+Очистка проверена отдельно: собственный production-пакет, probe и уникальный
+экспортный JSON на AVD удалены. Проектный Intime_Test_API36 остановлен после
+сверки PID/start time/имени. Личный телефон и main*.db не использовались.
+
+Границы: wasNotified/ID в приватной Room отдельно не проверяются; восстановление
+доставки проверено с новым ACK, а не для старой просроченной задачи без действия
+пользователя. Не покрыты Doze, отдельный общий запрет приложения, полный worker/reboot
+overdue сценарий и остальные API. AAB после последних изменений не пересобран;
+прежний AAB и прежние smoke-результаты относятся к историческим сборкам.
+R4.2, полная R4.3 и R5.3 остаются открытыми. Следующий шаг — release smoke на API 35.
+
 ## Слияние локальной master — 3 октября 2026
 
 Выбранная пользователем локальная master `a09fa7e` объединена с chatgpt.
