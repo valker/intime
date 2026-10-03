@@ -78,6 +78,12 @@ lintDebug:
   stage: build
   script:
     - ./gradlew -Pci --console=plain --no-watch-fs :app:lintDebug
+  # Полный отчёт нужен и при ошибках lint: консоль показывает только первую.
+  artifacts:
+    when: always
+    paths:
+      - app/build/reports/lint-results-debug.*
+      - app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
 
 # Make Project
 assembleDebug:

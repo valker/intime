@@ -13,6 +13,19 @@ CI на Ubuntu устанавливает пакеты с `DEBIAN_FRONTEND=nonin
 После изменения нужен новый pipeline на коммите с исправлением;
 повтор старого job использует прежнюю конфигурацию.
 
+`lintDebug` сохраняет HTML/XML и текстовый lint report как artifacts `when: always`,
+чтобы при отказе видеть все ошибки, а не только первую в консоли. Для повторения
+проверок build-стадии локально (JDK 17, SDK 36):
+
+```powershell
+./gradlew.bat -Pci --console=plain --no-watch-fs :app:lintDebug :app:assembleDebug --offline --no-daemon
+```
+
+Pipeline 2909444152 остановился на lint (9 errors/43 warnings); assembleDebug был
+успешен, тесты не выполнялись. После исправления локально 0 errors/24 warnings:
+неиспользуемые ресурсы, плотности raster icons, notifyDataSetChanged. Lint не
+отключён, baseline не добавлен. Результаты — DEVICE_TEST_RESULTS.md.
+
 ### Production release smoke с R8 на API 36
 
 `scripts/test-release-smoke.ps1` проверяет чистую установку кандидата

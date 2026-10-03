@@ -14,7 +14,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.core.content.ContextCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.databinding.DataBindingUtil;
 
 import com.vpe_soft.intime.intime.BuildConfig;
@@ -78,8 +78,7 @@ public class SettingsActivity extends V2Activity {
 
     private void updateNotificationPermissionStatus() {
         TextView statusText = findViewById(R.id.notification_permission_status);
-        boolean hasPermission = ContextCompat.checkSelfPermission(this,
-                android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+        boolean hasPermission = NotificationManagerCompat.from(this).areNotificationsEnabled();
 
         if (hasPermission) {
             statusText.setText(R.string.notification_permission_granted);
@@ -130,8 +129,14 @@ public class SettingsActivity extends V2Activity {
     }
 
     private void openNotificationSettings() {
-        Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
-        intent.putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+        Intent intent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+            intent.putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+        } else {
+            intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.fromParts("package", getPackageName(), null));
+        }
         try {
             startActivity(intent);
         } catch (Exception e) {

@@ -31,6 +31,12 @@
     <string name="add_task">Add Task</string>
     <string name="task_details_title">Task Details</string>
     <string name="task_description">Task Description</string>
+    <string name="task_id_label">Task ID</string>
+    <string name="task_id_format">Task ID: %1$d</string>
+    <string name="repetition_settings">Repetition settings</string>
+    <string name="interval_unit_label">Time unit:</string>
+    <string name="interval_amount_label">How many units?</string>
+    <string name="interval_quant_label">Divide into parts:</string>
     <string name="edit_task">Edit Task</string>
     <string name="confirm_task">Confirm Task</string>
     <string name="save">Save</string>

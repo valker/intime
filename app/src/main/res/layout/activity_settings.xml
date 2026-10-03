@@ -22,7 +22,7 @@
             android:contentDescription="@string/content_description_back_to_main"
             android:padding="12dp"
             android:src="@drawable/ic_arrow_back_24"
-            android:tint="@color/black"
+            app:tint="@color/black"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 

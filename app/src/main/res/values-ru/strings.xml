@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Вовремя!</string>
+    <string name="content_description_back_to_main">Вернуться к списку задач</string>
+    <string name="add_task">Добавить задачу</string>
+    <string name="task_details_title">Подробности задачи</string>
+    <string name="task_description">Описание задачи</string>
+    <string name="save">Сохранить</string>
+    <string name="title_activity_add_task_v2">Добавить задачу</string>
+    <string name="task_id_label">ID задачи</string>
+    <string name="task_id_format">ID задачи: %1$d</string>
+    <string name="repetition_settings">Настройка повторения</string>
+    <string name="interval_unit_label">Единица времени:</string>
+    <string name="interval_amount_label">Сколько таких единиц?</string>
+    <string name="interval_quant_label">Разделить на части:</string>
     <string name="action_settings">Настройки</string>
     <string name="new_task_activity_title">Добавить новую задачу</string>
     <string name="label_amount_text">Количество:</string>

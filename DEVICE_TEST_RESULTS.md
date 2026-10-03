@@ -1,5 +1,40 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Исправление GitLab lint — 3 октября 2026
+
+Проверен публичный pipeline
+[2909444152](https://gitlab.com/valker/intime/-/pipelines/2909444152):
+assembleDebug (16914113930) success, lintDebug (16914113929) failed;
+debugTests и instrumentedTests skipped. Лог упавшего job сохранён в
+`.test-tools/gitlab-job-16914113929.log`, список jobs —
+`.test-tools/pipeline-2909444152-jobs.json`. Это отказ lint до тестовой стадии,
+не падение юнит-тестов. Исправление неинтерактивной установки tzdata уже применено.
+
+Локально `-Pci :app:lintDebug` воспроизвёл ровно 9 errors/43 warnings:
+три UseAppTint и шесть MissingTranslation. Исправлены app:tint на трёх экранах,
+добавлены русские переводы, вынесены тексты формы/деталей и формат Task ID в ресурсы;
+макетные заглушки списка перенесены в tools:text. Поле описания получило inputType
+и отключение autofill; декоративный разделитель исключён из accessibility.
+API 26 notification settings защищены проверкой версии с fallback в настройки
+приложения на API 24–25. Статус уведомлений теперь использует
+NotificationManagerCompat.areNotificationsEnabled вместо проверки отсутствующего
+до API 33 runtime permission и учитывает общий системный запрет.
+
+`lintDebug + assembleDebug` прошли: **0 errors/24 warnings**.
+Остались 21 UnusedResources, два NotifyDataSetChanged и один IconMissingDensityFolder;
+они не блокируют job. Проверки lint не отключались, baseline/suppressions не добавлены.
+Логи до/после и HTML/XML отчёты — `.test-tools/runs/ci-lint-20261003-195140`.
+Полный local: 97 тестов, failures/errors = 0,
+`.test-tools/runs/20261003-195822-e966db2c/summary.json`.
+После изменений ScreenPlatformTest на проектном API 36: 2/2 без ошибок,
+`.test-tools/runs/20261003-200013-1f445ef2/summary.json` (границы элементов
+четырёх экранов и возврат из настроек). Проектный AVD остановлен после сверки
+PID/start/имени; `git diff --check` прошёл.
+CI теперь сохраняет полные lint artifacts при failed job (`when: always`).
+Нужен новый удалённый pipeline на исправленном коммите; R4.4 остаётся открытым.
+API 24–25 на устройстве в этом шаге не проверялись. Прежний production R8 APK
+собран до этих UI/API изменений; его исторический smoke не проверяет новый код.
+
 ## Release R8: уведомление, ACK и reboot — 3 октября 2026
 
 `scripts/test-release-smoke.ps1` расширен до десяти фаз; первый полный успешный

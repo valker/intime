@@ -38,7 +38,7 @@ public class TaskDetailsActivity extends V2Activity {
                 TextView textView = findViewById(R.id.task_description);
                 textView.setText(task.getDescription());
                 textView = findViewById(R.id.task_id);
-                textView.setText("Task ID: " + taskId);
+                textView.setText(getString(R.string.task_id_format, taskId));
 
 //                textViewTitle.setText(task.getTitle());
 //                textViewDescription.setText(task.getDescription());

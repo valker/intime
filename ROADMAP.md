@@ -217,6 +217,12 @@ release/R8 и оставшаяся Android-матрица проверяются
   сбоев прежних конфигураций и устойчивость на других хостах не установлены.
   Повторы и ограничения — DEVICE_TEST_RESULTS.md.
 - [ ] R4.4: запустить GitLab pipeline; device job требует runner с ускорением.
+  Pipeline 2909444152: assembleDebug прошёл, lintDebug упал (9 ошибок/43 warnings),
+  debugTests и instrumentedTests были skipped. Локально воспроизведён тот же lint;
+  исправлены app:tint/ru-переводы, тексты UI, API guards уведомлений и accessibility.
+  lintDebug + assembleDebug прошли: 0 ошибок/24 warnings. CI сохраняет полный lint
+  report даже при падении. Нужен новый pipeline на исправленном коммите;
+  успешность удалённых тестов ещё не подтверждена.
 
 ### Шаг 5. Релиз
 

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp"
@@ -20,7 +21,7 @@
             android:contentDescription="@string/content_description_back_to_main"
             android:padding="12dp"
             android:src="@drawable/ic_arrow_back_24"
-            android:tint="@color/black" />
+            app:tint="@color/black" />
 
         <TextView
             android:layout_width="0dp"
@@ -35,14 +36,14 @@
         android:id="@+id/task_description"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Task Details"
+        android:text="@string/task_details_title"
         android:textSize="20sp"
         android:textStyle="bold"/>
     <TextView
         android:id="@+id/task_id"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Task ID"
+        android:text="@string/task_id_label"
         android:textSize="14sp"
         android:textStyle="bold"/>
     <Button
@@ -65,7 +66,7 @@
         android:id="@+id/btnDeleteTask"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Удалить задачу"
+        android:text="@string/delete_task_confirm"
         android:backgroundTint="@color/red"
         android:textColor="@android:color/white"
         android:layout_marginTop="16dp"/>

@@ -10,6 +10,8 @@
         android:id="@+id/dividerIcon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
         android:src="@drawable/baseline_keyboard_arrow_down_24" /> <!-- Указываем свою иконку -->
 
 </LinearLayout>
