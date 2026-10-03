@@ -192,12 +192,13 @@ Important DAO queries:
 
 Room schema version is currently 6. Migration from v5 → v6 adds the `wasNotified`
 column (INTEGER NOT NULL DEFAULT 0) to track whether a task notification has been
-sent.
+sent. Migration 4 → 5 first adds quant (INTEGER NOT NULL DEFAULT 1).
 
 Production identity and the upgrade audit are documented in [UPGRADE.md](UPGRADE.md).
 The old package is `com.vpe_soft.intime.intime`; both current build types use `.dev`
 and cannot replace it. Historical v1 databases include SQLiteOpenHelper versions
-4 and 5. Only the 5 → 6 migration is registered; 4 → 6 is currently unsupported.
+4 and 5. Both 4 → 5 and 5 → 6 are registered through AppDatabase.createBuilder,
+which is shared with the singleton. Versions 1–3 remain unsupported.
 
 ### Migration Testing
 
@@ -210,13 +211,23 @@ not a real production SQLiteOpenHelper database or installation upgrade:
 
 Run tests with: `./gradlew connectedAndroidTest`
 
+HistoricalMigrationTest (local) and HistoricalMigrationPlatformTest (Android)
+also seed raw file-backed SQLite databases using the historical version-4/5 DDL,
+without room_master_table. They check every stored field, default values for new
+columns, Room identity, reopening and DAO writes, including the retained
+AUTOINCREMENT sequence after deleting a higher ID. An incompatible schema must
+roll back the migration without deleting rows. The fixtures are synthetic and
+do not establish installation/signing compatibility with a production APK.
+
 ### Real Data Testing
 
 Before release, follow R4.2 in UPGRADE.md: open historical SQLite 4/5 fixtures
-through Room, define missing migration paths, compare all fields, then test a
+through Room, compare all fields and match the actual old schema, then test a
 separate authorized copy of real data and installation upgrade. A JSON import
 does not prove in-place migration. The installed v1 comes from Google Play;
-its exact version and signing certificate have not yet been verified.
+its extracted APKs now confirm version 1.1.11 / code 24 and a common signer
+certificate (see UPGRADE.md). Access to a compatible signing path for the new
+build and installation upgrade have not yet been verified.
 
 Future database work should consider a separate history table for reminder and
 acknowledgement timestamps. This is not required for the first v2 release, but it

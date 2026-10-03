@@ -26,7 +26,7 @@ and [UPGRADE.md](UPGRADE.md) for the checked status.
 - **Code Architecture** — Clean separation between UI, domain logic, and data access layers
 - **Multi-Language Support** — Full support for English and Russian with proper text encoding
 - **Offline-First** — Complete offline functionality, no server dependency
-- **Data Safety** — Room 5 → 6 migration is implemented; older production database paths need verification
+- **Data Safety** — Migrations 4 → 5 → 6 and 5 → 6 are implemented; actual production data still needs verification
 
 ### Fixed
 
@@ -43,7 +43,7 @@ and [UPGRADE.md](UPGRADE.md) for the checked status.
 - **Architecture:** MVVM with LiveData and ViewModels
 - **Database:** Room 2.6.1 with schema versioning
 - **Scheduling:** AlarmManager + WorkManager coordination
-- **Upgrade Compatibility** — Not yet confirmed for installed production v1; historical schema 4 has no migration path yet
+- **Upgrade Compatibility** — Not yet confirmed for installed production v1; historical schemas 4/5 now have migration paths
 
 ### Migration from v1
 
@@ -51,7 +51,8 @@ The intended path is an update of `com.vpe_soft.intime.intime` with a compatible
 signing certificate and a higher versionCode, retaining its `main` database.
 Current `.dev` APKs install separately and do not read production data.
 Migration of the actual v1 database and the installation upgrade still require
-R4.2 checks. A schema-4 database currently has no route to schema 6.
+R4.2 checks. Historical schema-4/5 fixtures are covered by new migration tests;
+schema versions 1–3 still have no registered migration paths.
 See UPGRADE.md before preparing an update; JSON import is a separate replacement
 operation and does not prove automatic migration.
 
