@@ -6,6 +6,52 @@ and installed compile SDK 36. Device API 33/35/36 is independent of compile/targ
 
 ## Commands
 
+### Production release smoke с R8 на API 36
+
+`scripts/test-release-smoke.ps1` проверяет чистую установку кандидата
+25/2.0.0-rc1 через настоящий UI: создание/alarm, edit и перезапуск процесса,
+ACK из деталей/перенос срока, настройки/Back, удаление/повторное открытие.
+Он пока рассчитан только на проектный API 36, serial `emulator-5584`.
+Нужны JDK `C:\Program Files\Java\jdk-17`, SDK в `%LOCALAPPDATA%\Android\Sdk`,
+platform android-36 с `android.jar`/`uiautomator.jar`, build-tools 35.0.0
+и JUnit 4.13.2 в Gradle cache после bootstrap. Signing credentials вводятся
+локально по RELEASE.md; пароли не передаются аргументами smoke.
+
+```powershell
+# Запустить и оставить принадлежащий runner проектный AVD; это debug bootstrap.
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 36 -Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline -KeepEmulator
+# Отдельная последовательная сборка подписанного production APK с R8.
+./gradlew.bat ':app:assembleRelease' '-PproductionRelease=true' '-PreleaseVersionCode=25' '-PreleaseVersionName=2.0.0-rc1' --offline --no-daemon --no-watch-fs --no-configuration-cache
+```
+
+Сохранить APK из `app/build/outputs/apk/release` и `mapping.txt` из
+`app/build/outputs/mapping/release` **одной сборки** в отдельную папку отчёта.
+Mapping должен лежать рядом с переданным APK. Пример для проверенного артефакта:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -ApkPath '.test-tools/runs/release-r8-20261003-184243/intime-25-2.0.0-rc1-r8.apk'
+```
+
+Runner проверяет PID/start/имя/API AVD, upload-сертификат, production пакет,
+код 25, non-debuggable и переименование репозитория в mapping; снимает SHA-256.
+При существующем production-пакете отказывается продолжать. Использует только
+синтетическую задачу и после проверки удаляет собственную установку/probe;
+ошибка сбора диагностики не отменяет попытку очистки. Общий `run.lock` исключает
+параллельный запуск с другими runner. Отчёты — `.test-tools/runs/*-release-smoke`.
+Эмулятор остаётся запущенным: завершать только принадлежащий runner процесс,
+повторно сверив `.test-tools/emulator.json`, PID/start и имя AVD; личный телефон не использовать.
+
+Отдельный legacy SDK UIAutomator/JUnit3 probe получает свежий XML без ожидания idle
+(часы приложения обновляются каждую секунду). Он проверяет свежесть файла и собственный
+маркер успеха; зависимости и тестовые хуки в release APK не добавляются.
+Это вспомогательная диагностика, не дополнительный тест приложения.
+Прогон не покрывает JSON импорт/экспорт, доставку уведомлений, ACK из шторки,
+reboot, exact alarm timing, обновление Play v1 и реальные данные.
+На проверенном AVD scheduling шёл через inexact fallback; POST_NOTIFICATIONS выдано
+до запуска. Результаты двух успешных прогонов — DEVICE_TEST_RESULTS.md.
+
+### Local и instrumented tests
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode local
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode local -Offline

@@ -9,7 +9,7 @@ This document describes the process for building and releasing Intime.
 > и синтетическими данными на API 35. Сертификат JKS отличается от подписи Play APK;
 > пользователь предоставил оба сертификата Console: JKS соответствует Upload key,
 > а APK — App signing key. Нужен production AAB и APK, подписанный приложению через Play.
-> Production-подпись и копия реальных данных ещё не проверены; исторические
+> Подпись приложения через Play и копия реальных данных ещё не проверены; исторические
 > отметки сборки ниже не подтверждают готовность production-релиза.
 
 ## R6.1: Release Signing Configuration
@@ -52,7 +52,7 @@ AGP 8.9.1 и Gradle 8.11.1. Совместимость инструментов 
 подписанные APK/AAB тоже собраны 3 октября, подпись и upload-сертификат проверены:
 `.test-tools/runs/production-signed-20261003-163519`. Настройки приватного ключа работают.
 Этот исторический кандидат имел targetSdk 35; после обновления SDK нужны свежие артефакты.
-Проверка release на устройстве ещё не выполнена.
+Последующая проверка свежего release APK на API 36 описана ниже.
 
 После перехода на SDK 36 свежие подписанные APK/AAB собраны и проверены:
 `.test-tools/runs/production-api36-20261003-165559` (compile/target 36, minSdk 24,
@@ -64,6 +64,17 @@ upload-сертификат совпал). 97 local и 18 device-тестов п
 с аппаратной графикой; уведомления/reboot и полный набор после reboot прошли.
 Это проверка Android API без служб Google, а не release R8 или обновления через Play.
 Подробные результаты и границы — DEVICE_TEST_RESULTS.md.
+
+Свежий production APK 25/2.0.0-rc1 с R8 и lintVitalRelease собран отдельно:
+`.test-tools/runs/release-r8-20261003-184243` (APK и mapping одной сборки).
+Два чистых UI smoke-прогона на AOSP API 36 прошли все пять фаз:
+CRUD, ACK из деталей и перенос срока, настройки/Back, сохранение после
+перезапуска процесса, постановка/отмена inexact alarm. APK non-debuggable,
+подписан upload key; это не проверка обновления Play v1. AAB в этом шаге
+не пересобирался. Команда `scripts/test-release-smoke.ps1 -ApkPath <APK>`
+и требования — TESTING.md, хеши/логи/границы — DEVICE_TEST_RESULTS.md.
+JSON, доставка уведомлений и reboot в release остаются следующими проверками;
+этот результат не закрывает полную smoke-матрицу или готовность к публикации.
 
 ### Create a Keystore (first time only)
 
