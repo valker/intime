@@ -129,6 +129,37 @@ ACK и восстановление расписания. Прочтение у�
 реальном телефоне ими не подтверждаются. После успешного smoke исходные
 пользовательские `main*.db` в рабочем каталоге не используются и не изменяются.
 
+## Обновление APK с синтетическими данными
+
+После извлечения комплекта старых APK по UPGRADE.md запустить выделенный API 35,
+затем smoke (вторая команда использует сохранённый AVD):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 35 -Filter com.vpe_soft.intime.intime.database.HistoricalMigrationPlatformTest -Offline -KeepEmulator
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-upgrade-smoke.ps1 -ApkDirectory .test-tools/upgrade-apks/20261003-113647-3c8591ca -Offline
+```
+
+Путь заменить на папку своего извлечённого комплекта со source.json. Текущий сценарий
+рассчитан на production-пакет версии 24 и проектный Intime_Test_API35 на emulator-5580.
+Если зависимостей ещё нет в кеше, первый запуск выполнить без -Offline.
+Smoke проверяет PID/время старта, имя/API AVD, хеши APK и отсутствие установленного
+production-пакета; использует общий run.lock. Личные устройства не используются.
+
+Скрипт собирает специальный debug APK с кодом 25, переподписывает копии старых APK
+тем же debug-ключом, запускает старый launcher и создаёт синтетическую фикстуру.
+Между prepare и verify выполняется install -r без uninstall/pm clear. Фазы проверяют
+сохранение данных, Room-миграцию, CRUD/ACK, повторный запуск и активный alarm.
+Подробные границы покрытия — в UPGRADE.md. Результат не подтверждает production-подпись
+или реальные пользовательские данные. Исходные APK и main*.db не изменяются.
+
+По завершении удаляются установленные этим smoke пакеты, останавливается принадлежащий
+runner проектный AVD; -KeepEmulator оставляет его для следующей проверки.
+Логи и summary.json сохраняются в `.test-tools/runs/*-upgrade-smoke-*`.
+Три фазовых @Test имеют русские комментарии; обычная suite пропускает их,
+как и две отдельные reboot-фазы. Запускать upgrade-тесты следует этим host-скриптом.
+Не передавать -PupgradeSmoke=true обычным connected/release-задачам:
+Gradle разрешает с этим флагом только три явные debug-задачи, перечисленные в UPGRADE.md.
+
 ## Results and diagnosis
 
 Every invocation creates .test-tools/runs/<timestamp>-<id>/ with stdout/stderr,

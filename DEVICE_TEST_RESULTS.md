@@ -1,5 +1,49 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Smoke обновления APK — 3 октября 2026
+
+На проектном Intime_Test_API35/emulator-5580 выполнена установка копий фактических
+base/splits Google Play 1.1.11/24, переподписанных стандартным debug-ключом, затем
+обновление install -r до текущего debug APK с тем же production-пакетом и кодом 25.
+Старый launcher создал SQLite main версии 5; фикстура содержала только синтетические
+задачи/preferences. Между подготовкой и обновлением данные не очищались.
+
+- Bootstrap HistoricalMigrationPlatformTest: 3 теста прошли,
+  `.test-tools/runs/20261003-115027-0b352cb6/summary.json`.
+- Итоговый smoke: prepare/verify/restart/alarm — PASSED,
+  `.test-tools/runs/20261003-120309-upgrade-smoke-0a344884/summary.json`.
+  Проверены UID/firstInstallTime, preferences, восемь старых полей/ID, Room 6,
+  wasNotified, ACK репозитория, edit/insert/delete, AUTOINCREMENT и повторный запуск.
+  Активный RTC_WAKEUP AlarmReceiver найден с ожидаемым сроком 1791021826194.
+- Полный обычный local: 97 выполнены без ошибок/пропусков,
+  `.test-tools/runs/20261003-120419-87a70594/summary.json`.
+- Полный обычный API 35: 23 записи JUnit, 18 выполнены без ошибок, 5 фаз пропущены
+  (две reboot, три upgrade),
+  `.test-tools/runs/20261003-120737-3dfddf9c/summary.json`.
+
+Промежуточные smoke-прогоны не являются успешными: 115424-ed854674 остановился
+на проверке отсутствующего пакета (pm path возвращает код 1); 115449-35196512 —
+на NoClassDefFoundError kotlin.jvm.internal.Intrinsics нового AndroidJUnitRunner
+при работе со старым обфусцированным APK; для подготовки введена framework instrumentation.
+115945-670a5eea прошёл три JUnit-фазы, но host-проверка alarm отвергла сокращённое
+имя компонента .receiver.AlarmReceiver. В dumpsys будильник присутствовал;
+распознавание исправлено и подтверждено итоговым полным smoke.
+Полные папки этих прогонов имеют суффикс `-upgrade-smoke-<id>`.
+
+Исходные четыре APK повторно сверены с source.json после smoke: хеши не изменились.
+Тестовые production/test APK удалены; после регрессии остановлен только AVD этого
+прогона с проверкой PID/времени старта/имени, marker emulator.json удалён.
+PowerShell Parser и git diff --check прошли; test-upgrade-smoke.ps1 имеет UTF-8 BOM.
+Личный телефон и main*.db не использовались. Доставка alarm, reboot, API 33,
+production release/R8 и копия реальных данных этим шагом не проверяются.
+
+Пользователь предоставил путь vpe_soft.jks. Без пароля прочитан публичный сертификат
+alias intime: SHA-256 `97b60110a8e894791b4770826a8d214dc5e3a551cd24bd41d646c29f64a1dd26`.
+Он отличается от сертификата APK из Play `4a37905063f6896ec53f3aee47757c0541ce8c5094d12f9bfb21a7348f2ef17c`.
+Целостность JKS и доступ к приватному ключу без пароля не проверялись.
+Роль ключа/настройки Play требуется уточнить; production-совместимость не подтверждена.
+R4.2 остаётся открытым; команды и дальнейшие условия — TESTING.md и UPGRADE.md.
+
 Проверялась debug-сборка `com.vpe_soft.intime.intime.dev`, target SDK 35,
 на отдельных проектных AVD. Личные устройства и пользовательские `main*.db`
 из рабочего каталога не использовались. Runtime-код в этом шаге не менялся.

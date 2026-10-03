@@ -1,5 +1,13 @@
 apply plugin: 'com.android.application'
 
+// Только для smoke-обновления на проектном AVD; обычные сборки сохраняют пакет .dev.
+def upgradeSmoke = providers.gradleProperty('upgradeSmoke').getOrElse('false') == 'true'
+if (upgradeSmoke && gradle.startParameter.taskNames.any {
+    !(it in [':app:assembleDebug', ':app:assembleDebugAndroidTest', ':app:testDebugUnitTest'])
+}) {
+    throw new GradleException('upgradeSmoke permits only explicit debug build/test tasks')
+}
+
 def gitLastCommitHash = providers.exec {
     commandLine('git', 'rev-parse', '--short', 'HEAD')
 }.standardOutput.asText.get().toString().trim()
@@ -19,11 +27,11 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.vpe_soft.intime.intime.dev"
+        applicationId (upgradeSmoke ? 'com.vpe_soft.intime.intime' : 'com.vpe_soft.intime.intime.dev')
         minSdkVersion 24
         targetSdkVersion 35
-        versionCode 21
-        versionName "1.1.8"
+        versionCode (upgradeSmoke ? 25 : 21)
+        versionName (upgradeSmoke ? '1.1.8-upgrade-smoke' : '1.1.8')
         buildConfigField "String", "GIT_LAST_COMMIT_HASH", "\"${gitLastCommitHash}\""
 
         javaCompileOptions {
@@ -32,7 +40,7 @@ android {
             }
         }
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner (upgradeSmoke ? 'com.vpe_soft.intime.intime.database.UpgradeSmokeInstrumentation' : 'androidx.test.runner.AndroidJUnitRunner')
     }
     signingConfigs {
         release {
