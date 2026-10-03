@@ -6,7 +6,8 @@ This document describes the process for building and releasing Intime.
 > Текущая release-сборка имеет пакет `.dev` и не обновляет production v1.
 > Старый APK из Google Play проверен; обновление 24 → 25 прошло с debug-подписью
 > и синтетическими данными на API 35. Сертификат JKS отличается от подписи Play APK;
-> требуется сверка App signing/Upload certificate в Console.
+> пользователь предоставил оба сертификата Console: JKS соответствует Upload key,
+> а APK — App signing key. Нужен production AAB и APK, подписанный приложению через Play.
 > Production-подпись и копия реальных данных ещё не проверены; исторические
 > отметки сборки ниже не подтверждают готовность production-релиза.
 
