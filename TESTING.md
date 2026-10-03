@@ -6,6 +6,13 @@ and installed compile SDK 36. Device API 33/35/36 is independent of compile/targ
 
 ## Commands
 
+CI на Ubuntu устанавливает пакеты с `DEBIAN_FRONTEND=noninteractive` и
+`TZ=Etc/UTC`, затем применяет UTC к системному tzdata. Один `apt-get --yes`
+не отключает вопросы debconf: job 16913813414 остановился на выборе региона
+при установке tzdata до запуска Gradle. Настройки закреплены в `.gitlab-ci.yml`.
+После изменения нужен новый pipeline на коммите с исправлением;
+повтор старого job использует прежнюю конфигурацию.
+
 ### Production release smoke с R8 на API 36
 
 `scripts/test-release-smoke.ps1` проверяет чистую установку кандидата
