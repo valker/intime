@@ -1,5 +1,27 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Слияние локальной master — 3 октября 2026
+
+Выбранная пользователем локальная master `a09fa7e` объединена с chatgpt.
+Конфликты разрешены с сохранением Room v2/JSON-контракта, защиты production,
+исправлений lint и действующего GitLab CI. Старый DatabaseUtil не восстановлен.
+Gradle Wrapper 8.11.1/AGP 8.9.1/JDK 17 и зависимости v2 сохранены вместо
+непроверенного перехода на Gradle 9/JDK 25 из master.
+Добавлены GitHub workflow и composite SDK setup, задача unit tests исправлена
+на `:app:testDebugUnitTest`, JDK/build-tools согласованы с текущей сборкой.
+README адаптирован к схеме 6, миллисекундам и текущему формату JSON.
+Приняты стабильная настройка configuration-cache, build cache и отключение
+welcome banner. Runtime-код и layout после разрешения равны исходной chatgpt.
+
+Проверены `lintDebug + assembleDebug` (успех, 0 lint errors/24 warnings),
+97 локальных тестов без failures/errors:
+`.test-tools/runs/20261003-224355-e0665dd6/summary.json`.
+Логи сборки — в каталоге, указанном `.test-tools/merge-master-run.txt`.
+Все три YAML CI-файла разобраны SafeConstructor SnakeYAML 2.4 с запретом
+дублирующихся ключей; это синтаксическая проверка, не удалённый запуск workflow.
+`git diff --check` и проверка отсутствия конфликтных маркеров прошли.
+Device/release smoke не повторялся: runtime/layout слиянием не изменены.
+
 ## Исправление GitLab lint — 3 октября 2026
 
 Проверен публичный pipeline

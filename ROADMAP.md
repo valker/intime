@@ -223,6 +223,9 @@ release/R8 и оставшаяся Android-матрица проверяются
   lintDebug + assembleDebug прошли: 0 ошибок/24 warnings. CI сохраняет полный lint
   report даже при падении. Нужен новый pipeline на исправленном коммите;
   успешность удалённых тестов ещё не подтверждена.
+  При слиянии локальной master добавлен GitHub Actions для lint/build/unit tests,
+  адаптированный к текущим JDK 17/Gradle 8.11.1/AGP 8.9.1. GitLab CI сохранён.
+  Успешный удалённый запуск GitHub Actions тоже пока не подтверждён.
 
 ### Шаг 5. Релиз
 

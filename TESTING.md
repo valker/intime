@@ -6,6 +6,12 @@ and installed compile SDK 36. Device API 33/35/36 is independent of compile/targ
 
 ## Commands
 
+GitHub Actions (`.github/workflows/android-ci.yml`) добавлен при слиянии локальной
+master. Он использует JDK 17, SDK 36/build-tools 35.0.0, текущий Gradle Wrapper
+и задачи `:app:lintDebug`, `assembleDebug`, `:app:testDebugUnitTest`.
+Общая установка SDK и кэширование — `.github/actions/android-setup/action.yml`.
+GitLab CI сохранён; успешность удалённых GitHub/GitLab jobs проверяется отдельно.
+
 CI на Ubuntu устанавливает пакеты с `DEBIAN_FRONTEND=noninteractive` и
 `TZ=Etc/UTC`, затем применяет UTC к системному tzdata. Один `apt-get --yes`
 не отключает вопросы debconf: job 16913813414 остановился на выборе региона
