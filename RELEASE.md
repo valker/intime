@@ -60,6 +60,9 @@ upload-сертификат совпал). 97 local и 18 device-тестов п
 на API 35, пять отдельных фаз пропущены. На отдельном AVD Android 16 также прошли
 19 debug-тестов и четыре notification/reboot-фазы; ограничения окружения и UI
 указаны в отчёте. Эти артефакты ещё не загружались в Play.
+Для локальной debug-регрессии закреплён проектный AOSP API 36 на Emulator 37.2.12
+с аппаратной графикой; уведомления/reboot и полный набор после reboot прошли.
+Это проверка Android API без служб Google, а не release R8 или обновления через Play.
 Подробные результаты и границы — DEVICE_TEST_RESULTS.md.
 
 ### Create a Keystore (first time only)

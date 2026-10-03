@@ -56,7 +56,7 @@ Robolectric does not replace testing Android platform behavior on a device.
   virtualization and a system image. On this machine the installed image is
   system-images/android-35/google_apis_playstore_ps16k/x86_64.
   -TestApi 33 uses system-images/android-33/google_apis/x86_64 (revision 17
-  installed here). -TestApi 36 uses system-images/android-36/google_apis/x86_64
+  installed here). -TestApi 36 uses system-images/android-36/default/x86_64 (AOSP)
   in its own Intime_Test_API36 AVD. -SystemImage can choose another installed x86_64 image for
   the selected API, relative to SDK; compilation requires platform 36.
 - Initial builds require network access to Google Maven/Maven Central and the
@@ -72,12 +72,42 @@ Robolectric does not replace testing Android platform behavior on a device.
 
 ## Emulator ownership
 
+Для диагностики графики нового экземпляра можно указать `-EmulatorGpu host`
+(GPU компьютера), `auto` (выбор эмулятора) или `software`.
+По умолчанию API 36 использует host, API 33/35 — software.
+Параметр меняет только запуск процесса, не сохранённый config.ini. Режим записывается
+в `.test-tools/emulator.json` и summary.json. Явный режим при повторном использовании
+должен совпадать с записью; иначе сначала остановите принадлежащий runner AVD.
+Это не гарантирует совместимость драйвера GPU на другом компьютере.
+Описание режимов — [документация Android](https://developer.android.com/studio/run/emulator-acceleration).
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 36 -EmulatorGpu host -Offline -KeepEmulator
+```
+
 Если UI-тест сообщает `focused=false`, проверьте `dumpsys window` и logcat
 именно проектного AVD. На API 36 профиль 2 ядра/2 ГБ давал ANR System UI при
 загрузке: системный диалог перехватывал ввод. Такой сбой окружения нужно
 диагностировать отдельно; нельзя убирать проверку фокуса или считать повторный
 успех доказательством устранения ANR. Проба 4 ядер/4 ГБ также дала ANR;
 увеличение ресурсов не закреплено как исправление. Результаты — DEVICE_TEST_RESULTS.md.
+Для API 36 runner выбирает отдельный профиль AOSP без служб Google.
+На этом компьютере проверен Emulator 37.2.12, 8 виртуальных ядер, 2048 МБ RAM,
+720×1280/density 280, host GPU и отключённая загрузочная анимация ОС.
+Новый профиль получает не больше 8 ядер и не больше числа логических CPU хоста;
+стабильность на другом хосте/драйвере или с меньшим числом ядер отдельно не проверена.
+API 33/35 сохраняют шаблон 2 ядра, 2048 МБ, 1080×1920/density 420.
+Отключение boot animation не меняет анимации приложения; параметр описан в
+[документации Android](https://developer.android.com/studio/run/emulator-commandline).
+Он проверяет Android API, но не интеграцию Google Play/Google services.
+Если существующий API 36 AVD создан с Google APIs, runner откажется менять его образ
+на месте: сначала остановите именно принадлежащий ему процесс и сохраните старый
+профиль отдельно. Не переносите пользовательские данные между разными образами.
+После boot runner сохраняет `boot-window.log`; уже видимый ANR System UI останавливает
+запуск до Gradle как ошибку окружения. Эта проверка не исключает ANR позднее.
+Runner также сверяет `ro.build.version.sdk` с выбранным API; summary.json содержит
+версию эмулятора и фактические CPU/RAM из config.ini. Шаблон не перезаписывает
+существующий профиль; изменение defaults не меняет ресурсы уже созданного AVD.
 
 The runner creates a small dedicated AVD inside .test-tools/avd, launches it
 without a window, waits for boot completion and sets ANDROID_SERIAL explicitly.

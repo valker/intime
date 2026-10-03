@@ -21,6 +21,9 @@ param(
     [ValidateRange(1, 1200)][int]$BootTimeoutSeconds = 300,
     # Чётный порт определяет адрес устройства adb, например emulator-5580.
     [ValidateRange(5554, 5682)][int]$EmulatorPort = 5580,
+    # Режим графики нового экземпляра: host использует GPU компьютера,
+    # software — программный рендеринг. Уже работающий AVD нужно сначала остановить.
+    [ValidateSet('software', 'host', 'auto')][string]$EmulatorGpu = 'software',
     # Offline запрещает загрузки зависимостей; KeepEmulator оставляет загруженный эмулятор.
     [switch]$Offline,
     [switch]$KeepEmulator
@@ -144,12 +147,17 @@ try {
         # Для каждого API — собственные AVD, данные и порт. Не смешиваем образы.
         if (-not $PSBoundParameters.ContainsKey('EmulatorPort') -and $TestApi -eq 33) { $EmulatorPort = 5582 }
         if (-not $PSBoundParameters.ContainsKey('EmulatorPort') -and $TestApi -eq 36) { $EmulatorPort = 5584 }
+        # API 36 на этом компьютере проверен с аппаратной графикой. Явный
+        # EmulatorGpu позволяет выбрать другой режим на другом драйвере/хосте.
+        if (-not $PSBoundParameters.ContainsKey('EmulatorGpu') -and $TestApi -eq 36) { $EmulatorGpu = 'host' }
         $serial = "emulator-$EmulatorPort"
         if (-not $PSBoundParameters.ContainsKey('SystemImage') -and $TestApi -eq 33) {
             $SystemImage = 'system-images\android-33\google_apis\x86_64'
         }
         if (-not $PSBoundParameters.ContainsKey('SystemImage') -and $TestApi -eq 36) {
-            $SystemImage = 'system-images\android-36\google_apis\x86_64'
+            # Для платформенных тестов используем AOSP: на этом компьютере
+            # образ Google APIs повторно давал ANR системных служб при загрузке.
+            $SystemImage = 'system-images\android-36\default\x86_64'
         }
         if ($SystemImage -notmatch "^system-images[\\/]android-$TestApi[\\/]") { throw 'SystemImage must match TestApi.' }
         if ($EmulatorPort % 2 -ne 0) { throw 'Emulator port must be even.' }
@@ -158,33 +166,52 @@ try {
         if (-not (Test-Path $script:adb) -or -not (Test-Path $emulator)) { throw 'Install SDK platform-tools and emulator.' }
         $imagePath = Join-Path $SdkPath $SystemImage
         if (-not (Test-Path (Join-Path $imagePath 'system.img'))) { throw "System image missing: $imagePath" }
+        # Фиксируем окружение даже при отказе подготовки: нулевой прогон должен
+        # содержать выбранные API/образ и версию эмулятора для диагностики.
+        $summary.serial = $serial
+        $summary.testApi = $TestApi
+        $summary.systemImage = $SystemImage
+        $emulatorVersionLine = Get-Content (Join-Path $SdkPath 'emulator\source.properties') | Where-Object { $_ -match '^Pkg.Revision=' } | Select-Object -First 1
+        if ($emulatorVersionLine) { $summary.emulatorVersion = ($emulatorVersionLine -split '=', 2)[1].Trim() }
+        # Тег берём из метаданных установленного образа, а не из номера API
+        # или имени каталога (у 16-KB образов они могут различаться).
+        $imageTagLine = Get-Content (Join-Path $imagePath 'source.properties') | Where-Object { $_ -match '^SystemImage.TagId=' } | Select-Object -First 1
+        if (-not $imageTagLine) { throw 'System image tag metadata missing.' }
+        $imageTag = (($imageTagLine -split '=', 2)[1] -split ',')[0].Trim()
         # AVD — профиль виртуального устройства. Создаём его внутри проекта,
         # отдельно от личных эмуляторов, настроенных в Android Studio.
         $avdHome = Join-Path $work 'avd'
         $avdName = "Intime_Test_API$TestApi"
         $avdPath = Join-Path $avdHome "$avdName.avd"
         New-Item -ItemType Directory -Path $avdPath -Force | Out-Null
-        # Начальная конфигурация: выбранный API, 2 ядра, 2 ГБ RAM, программная графика.
+        # Проверенный здесь API 36: 8 ядер, 2 ГБ RAM, 720×1280/density 280.
+        # Ядер выделяем не больше числа логических CPU хоста. API 33/35 сохраняют
+        # шаблон 2 ядра и 1080×1920/density 420. Размер в dp у обоих экранов одинаков.
+        # Эти значения применяются только к новым профилям: данные существующего AVD сохраняем.
+        $testCpuCount = if ($TestApi -eq 36) { [Math]::Min(8, [Environment]::ProcessorCount) } else { 2 }
+        $testWidth = if ($TestApi -eq 36) { 720 } else { 1080 }
+        $testHeight = if ($TestApi -eq 36) { 1280 } else { 1920 }
+        $testDensity = if ($TestApi -eq 36) { 280 } else { 420 }
         $config = @"
 AvdId=$avdName
 avd.ini.displayname=Intime Test API $TestApi
 avd.ini.encoding=UTF-8
 abi.type=x86_64
 hw.cpu.arch=x86_64
-hw.cpu.ncore=2
+hw.cpu.ncore=$testCpuCount
 hw.ramSize=2048
-hw.lcd.width=1080
-hw.lcd.height=1920
-hw.lcd.density=420
+hw.lcd.width=$testWidth
+hw.lcd.height=$testHeight
+hw.lcd.density=$testDensity
 hw.gpu.enabled=yes
-hw.gpu.mode=software
+hw.gpu.mode=$EmulatorGpu
 hw.keyboard=yes
 hw.audioInput=no
 hw.camera.back=none
 hw.camera.front=none
 disk.dataPartition.size=2G
 image.sysdir.1=$imagePath\
-tag.id=$(if ($TestApi -in @(33, 36)) { 'google_apis' } else { 'google_apis_playstore' })
+tag.id=$imageTag
 target=android-$TestApi
 showDeviceFrame=no
 fastboot.forceColdBoot=yes
@@ -201,6 +228,13 @@ fastboot.forceColdBoot=yes
             if ([IO.Path]::GetFullPath($storedImagePath).TrimEnd('\') -ne [IO.Path]::GetFullPath($imagePath).TrimEnd('\')) { throw 'Existing test AVD uses a different system image; select its original image.' }
         }
         Set-Content (Join-Path $avdHome "$avdName.ini") "avd.ini.encoding=UTF-8`npath=$avdPath`ntarget=android-$TestApi" -Encoding ASCII
+        # Существующий профиль может иметь другие ресурсы, чем шаблон выше.
+        # В отчёт записываем фактические значения INI, а не предполагаемые defaults.
+        $actualConfig = Get-Content $configPath -Raw
+        $cpuMatch = [regex]::Match($actualConfig, '(?m)^hw\.cpu\.ncore\s*=\s*(\d+)')
+        $ramMatch = [regex]::Match($actualConfig, '(?m)^hw\.ramSize\s*=\s*(\d+)')
+        if ($cpuMatch.Success) { $summary.emulatorCpuCount = [int]$cpuMatch.Groups[1].Value }
+        if ($ramMatch.Success) { $summary.emulatorRamMb = [int]$ramMatch.Groups[1].Value }
         $env:ANDROID_AVD_HOME = $avdHome
         $devices = Invoke-Adb @('devices')
         # Если порт занят, проверяем имя AVD, сохранённый PID и время старта процесса.
@@ -212,6 +246,13 @@ fastboot.forceColdBoot=yes
             $state = Get-Content $emulatorState -Raw | ConvertFrom-Json
             $existing = Get-Process -Id $state.processId -ErrorAction SilentlyContinue
             if (-not $existing -or $state.serial -ne $serial -or $existing.StartTime.ToUniversalTime().ToString('o') -ne $state.started) { throw 'Emulator ownership record is stale; refusing to reuse it.' }
+            # CLI-параметр не меняет графику уже работающего процесса. Не выдаём
+            # такой повтор за проверку нового режима; старые записи могут не иметь gpu.
+            $recordedGpu = if ($state.PSObject.Properties['gpu']) { $state.gpu } else { 'unknown' }
+            if ($PSBoundParameters.ContainsKey('EmulatorGpu') -and $recordedGpu -ne $EmulatorGpu) {
+                throw 'Stop the retained project emulator before changing or confirming EmulatorGpu.'
+            }
+            $summary.emulatorGpu = $recordedGpu
             $deviceOwned = $true
         } else {
             # Новый экземпляр запускаем в фоне после проверки аппаратного ускорения.
@@ -225,10 +266,15 @@ fastboot.forceColdBoot=yes
             }
             $check = Join-Path $SdkPath 'emulator\emulator-check.exe'
             if ((Invoke-LoggedProcess $check @('accel') 'acceleration' 30) -ne 0) { throw 'Hardware acceleration unavailable. See acceleration logs.' }
-            $argsLine = (@('-avd', $avdName, '-port', "$EmulatorPort", '-no-window', '-no-audio', '-no-snapshot', '-gpu', 'software') | ForEach-Object { Quote-Argument $_ }) -join ' '
+            $emulatorArgs = @('-avd', $avdName, '-port', "$EmulatorPort", '-no-window', '-no-audio', '-no-snapshot', '-gpu', $EmulatorGpu)
+            # В headless-прогоне API 36 загрузочная анимация ОС не нужна;
+            # отключаем её, сохраняя анимации экранов самого приложения.
+            if ($TestApi -eq 36) { $emulatorArgs += '-no-boot-anim' }
+            $argsLine = ($emulatorArgs | ForEach-Object { Quote-Argument $_ }) -join ' '
             $ownedEmulator = Start-Process $emulator -ArgumentList $argsLine -WorkingDirectory $root -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $run 'emulator.stdout.log') -RedirectStandardError (Join-Path $run 'emulator.stderr.log')
             # Запись позволяет безопасно переиспользовать экземпляр после KeepEmulator.
-            @{ processId = $ownedEmulator.Id; started = $ownedEmulator.StartTime.ToUniversalTime().ToString('o'); serial = $serial } | ConvertTo-Json | Set-Content $emulatorState -Encoding UTF8
+            @{ processId = $ownedEmulator.Id; started = $ownedEmulator.StartTime.ToUniversalTime().ToString('o'); serial = $serial; gpu = $EmulatorGpu } | ConvertTo-Json | Set-Content $emulatorState -Encoding UTF8
+            $summary.emulatorGpu = $EmulatorGpu
             $deviceOwned = $true
         }
         Write-Output "Waiting for $serial (maximum $BootTimeoutSeconds seconds)..."
@@ -242,10 +288,19 @@ fastboot.forceColdBoot=yes
             Start-Sleep -Seconds 2
         }
         if (-not $booted) { throw 'TIMEOUT: emulator did not boot.' }
+        # Проверяем API самой загруженной ОС, а не только путь установленного образа.
+        $deviceApi = (Invoke-Adb @('-s', $serial, 'shell', 'getprop', 'ro.build.version.sdk')).Trim()
+        if ($deviceApi -ne "$TestApi") { throw 'Emulator API does not match TestApi.' }
+        $summary.deviceApi = [int]$deviceApi
+        # Флаг загрузки не исключает зависание System UI. Если системный ANR-диалог
+        # уже перекрывает экран, тесты ещё не запускаем: это ошибка окружения.
+        $windowState = Invoke-Adb @('-s', $serial, 'shell', 'dumpsys', 'window')
+        Set-Content (Join-Path $run 'boot-window.log') $windowState -Encoding UTF8
+        if ($windowState -match 'Application Not Responding: com.android.systemui') {
+            throw 'System UI ANR dialog is present after boot. Diagnose the project AVD before running tests.'
+        }
         # Явно направляем инструментальные тесты только на выбранное тестовое устройство.
         $env:ANDROID_SERIAL = $serial
-        $summary.serial = $serial
-        $summary.testApi = $TestApi
     }
 
     $task = if ($Mode -eq 'local') { ':app:testDebugUnitTest' } else { ':app:connectedDebugAndroidTest' }
