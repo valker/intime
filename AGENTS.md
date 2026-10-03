@@ -27,7 +27,8 @@ See TESTING.md for commands and environment requirements.
 - In a restricted execution environment Gradle may require an approved escalation
   for the user cache and downloads. These instructions do not override sandbox
   access controls. Report infrastructure failures separately from failing tests.
-- The runner creates .test-tools/avd/Intime_Test_API35.avd or Intime_Test_API33.avd
+- The runner creates .test-tools/avd/Intime_Test_API35.avd, Intime_Test_API33.avd
+  or Intime_Test_API36.avd
   selected by -TestApi. Use only these dedicated project emulators for autonomous
   instrumented tests. Never install, reset, clear data,
   reboot or run tests on a personal phone or the user's Pixel_8 AVD implicitly.

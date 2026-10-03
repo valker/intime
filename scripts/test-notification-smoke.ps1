@@ -1,15 +1,15 @@
 ﻿<#
-Дополнительная проверка API 33/35 на уже запущенном проектном AVD.
+Дополнительная проверка API 33/35/36 на уже запущенном проектном AVD.
 Сначала выполнить scripts/test.ps1 -Mode device -TestApi 33 -Offline -KeepEmulator.
-Для API 35 укажите -TestApi 35.
+Для API 35/36 укажите соответствующий -TestApi.
 Затем вызвать этот скрипт с тем же -TestApi; по умолчанию оба используют API 35.
 Скрипт устанавливает собранные .dev APK, проверяет отказ в разрешении и доставку,
-создаёт синтетическую reboot-фикстуру, перезагружает только выбранный Intime_Test_API33/35
+создаёт синтетическую reboot-фикстуру, перезагружает только выбранный Intime_Test_API33/35/36
 и проверяет восстановление. Личные AVD и пользовательские main*.db не используются.
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet(33, 35)][int]$TestApi = 35,
+    [ValidateSet(33, 35, 36)][int]$TestApi = 35,
     [ValidateRange(1, 1200)][int]$BootTimeoutSeconds = 300
 )
 
@@ -20,7 +20,7 @@ $work = Join-Path $root '.test-tools'
 $run = Join-Path $work ('runs\' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-notification-smoke')
 New-Item -ItemType Directory -Path $run -Force | Out-Null
 $adb = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
-$serial = if ($TestApi -eq 33) { 'emulator-5582' } else { 'emulator-5580' }
+$serial = switch ($TestApi) { 33 { 'emulator-5582' } 36 { 'emulator-5584' } default { 'emulator-5580' } }
 $package = 'com.vpe_soft.intime.intime.dev'
 $runner = "$package.test/androidx.test.runner.AndroidJUnitRunner"
 $lock = $null

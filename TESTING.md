@@ -2,7 +2,7 @@
 
 The Windows runner works with Windows PowerShell 5.1 and JDK 17. Android Studio
 does not need to be open. Use the repository's Gradle Wrapper (8.11.1), AGP 8.9.1
-and installed compile SDK 36. Device API 33/35 is independent of compile/target SDK.
+and installed compile SDK 36. Device API 33/35/36 is independent of compile/target SDK.
 
 ## Commands
 
@@ -13,13 +13,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode local
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -Offline
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 33 -Offline
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 36 -Offline
 ```
 
 Local mode runs JUnit and Robolectric, including Room/import/scheduling integration
-checks. Device mode runs four Room migration checks, an ACK PendingIntent check,
-and four platform notification checks (real AlarmManager delivery/ACK, denied
-POST_NOTIFICATIONS, silent worker output and a disabled channel). Two reboot-phase
-tests are skipped in a normal suite and run separately by the smoke script.
+checks. Device mode checks native Room/migrations, Calendar/JSON/import, ACK
+PendingIntent, platform notifications (delivery/ACK, denied POST_NOTIFICATIONS,
+silent worker output, disabled channel) and screen insets/navigation on API 33+.
+Two reboot and three upgrade phases are skipped in a normal suite and run separately
+by their host scripts.
 The denied-permission test skips when permission is already granted; the smoke
 script always revokes it before a separate run. A skipped test is not verification.
 Robolectric does not replace testing Android platform behavior on a device.
@@ -54,7 +56,8 @@ Robolectric does not replace testing Android platform behavior on a device.
   virtualization and a system image. On this machine the installed image is
   system-images/android-35/google_apis_playstore_ps16k/x86_64.
   -TestApi 33 uses system-images/android-33/google_apis/x86_64 (revision 17
-  installed here). -SystemImage can choose another installed x86_64 image for
+  installed here). -TestApi 36 uses system-images/android-36/google_apis/x86_64
+  in its own Intime_Test_API36 AVD. -SystemImage can choose another installed x86_64 image for
   the selected API, relative to SDK; compilation requires platform 36.
 - Initial builds require network access to Google Maven/Maven Central and the
   wrapper distribution. Robolectric also resolves Android runtime JARs. An online
@@ -69,9 +72,16 @@ Robolectric does not replace testing Android platform behavior on a device.
 
 ## Emulator ownership
 
+Если UI-тест сообщает `focused=false`, проверьте `dumpsys window` и logcat
+именно проектного AVD. На API 36 профиль 2 ядра/2 ГБ давал ANR System UI при
+загрузке: системный диалог перехватывал ввод. Такой сбой окружения нужно
+диагностировать отдельно; нельзя убирать проверку фокуса или считать повторный
+успех доказательством устранения ANR. Проба 4 ядер/4 ГБ также дала ANR;
+увеличение ресурсов не закреплено как исправление. Результаты — DEVICE_TEST_RESULTS.md.
+
 The runner creates a small dedicated AVD inside .test-tools/avd, launches it
 without a window, waits for boot completion and sets ANDROID_SERIAL explicitly.
-Default port is 5580 for API 35 and 5582 for API 33; use -EmulatorPort with another
+Default port is 5580 for API 35, 5582 for API 33 and 5584 for API 36; use -EmulatorPort with another
 even port if occupied. Each API has its own Intime_Test_API<API> AVD.
 It refuses to use an emulator of another name on that port. No existing personal
 AVD is copied or reset. AVD disk data persists, but Gradle removes test APKs after
@@ -98,13 +108,15 @@ prevents two runner invocations from sharing reports or the AVD.
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 35 -Offline -KeepEmulator
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-notification-smoke.ps1 -TestApi 35
 # После остановки AVD API 35 повторить оба запуска с -TestApi 33.
+# Для Android 16 повторить оба запуска с -TestApi 36 (порт 5584).
 ```
 
 Smoke использует стандартные порты 5580/5582. Перед сменой API остановите прежний
 проектный AVD: запись владения рассчитана на один живой экземпляр. Скрипт проверяет
 имя AVD, API, PID и время старта, блокирует параллельные прогоны и сохраняет логи
 в `.test-tools/runs/*-notification-smoke`. Он оставляет AVD запущенным; остановка
-показана выше (для API 33 используйте `emulator-5582` и ожидайте `Intime_Test_API33`).
+показана выше (для API 33 используйте `emulator-5582`/`Intime_Test_API33`,
+для API 36 — `emulator-5584`/`Intime_Test_API36`).
 
 APK устанавливаются из последней сборки через `adb install -r`. Разрешения изменяются
 только у `.dev`-приложения на проектном AVD. Запуск launcher и уход домой перед

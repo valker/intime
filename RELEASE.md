@@ -39,8 +39,8 @@ Production-сборка без полного набора параметров 
 Текущая конфигурация имеет compileSdk/targetSdk 36 (обновлена 3 октября),
 AGP 8.9.1 и Gradle 8.11.1. Совместимость инструментов проверена по
 [документации Android](https://developer.android.com/build/releases/about-agp).
-Проверка поведения на самом Android 16 остаётся отдельным шагом: установленного
-образа API 36 пока нет. SDK-компиляция не заменяет такую проверку.
+Образ API 36 установлен; debug-проверки на Android 16 описаны в DEVICE_TEST_RESULTS.md.
+Они не заменяют проверку release с R8 и полного пользовательского smoke-сценария.
 Для загрузки обновления в Play требуется API 36.
 Источник: [требования Google Play](https://developer.android.com/google/play/requirements/target-sdk),
 проверены 3 октября 2026. Подпись upload key не делает локальный APK совместимым
@@ -57,8 +57,9 @@ AGP 8.9.1 и Gradle 8.11.1. Совместимость инструментов 
 После перехода на SDK 36 свежие подписанные APK/AAB собраны и проверены:
 `.test-tools/runs/production-api36-20261003-165559` (compile/target 36, minSdk 24,
 upload-сертификат совпал). 97 local и 18 device-тестов прошли; device выполнялся
-на API 35, пять отдельных фаз пропущены. Следующий шаг — отдельный AVD Android 16
-и проверка платформенных сценариев/UI. Эти артефакты ещё не загружались в Play.
+на API 35, пять отдельных фаз пропущены. На отдельном AVD Android 16 также прошли
+19 debug-тестов и четыре notification/reboot-фазы; ограничения окружения и UI
+указаны в отчёте. Эти артефакты ещё не загружались в Play.
 Подробные результаты и границы — DEVICE_TEST_RESULTS.md.
 
 ### Create a Keystore (first time only)
@@ -330,6 +331,7 @@ Test on these Android versions before release:
 - [ ] API 31 (Android 12) — Exact alarm threshold; full smoke pending
 - [ ] API 33 (Android 13) — Debug notification/reboot checks passed; full release smoke pending
 - [ ] API 35 (Android 15) — Debug tests and synthetic upgrade passed; full release smoke pending
+- [ ] API 36 (Android 16) — Debug platform/UI and notification/reboot checks passed; full release smoke pending
 
 ### Test Checklist
 

@@ -10,7 +10,7 @@ param(
     [ValidateSet('local', 'device')][string]$Mode = 'local',
     [string]$Filter,
     # API тестового устройства; компиляция приложения использует SDK 36.
-    [ValidateSet(33, 35)][int]$TestApi = 35,
+    [ValidateSet(33, 35, 36)][int]$TestApi = 35,
     # Пути можно задать явно; иначе скрипт найдёт SDK и JDK в окружении.
     [string]$SdkPath,
     [string]$JdkPath,
@@ -143,9 +143,13 @@ try {
     if ($Mode -eq 'device') {
         # Для каждого API — собственные AVD, данные и порт. Не смешиваем образы.
         if (-not $PSBoundParameters.ContainsKey('EmulatorPort') -and $TestApi -eq 33) { $EmulatorPort = 5582 }
+        if (-not $PSBoundParameters.ContainsKey('EmulatorPort') -and $TestApi -eq 36) { $EmulatorPort = 5584 }
         $serial = "emulator-$EmulatorPort"
         if (-not $PSBoundParameters.ContainsKey('SystemImage') -and $TestApi -eq 33) {
             $SystemImage = 'system-images\android-33\google_apis\x86_64'
+        }
+        if (-not $PSBoundParameters.ContainsKey('SystemImage') -and $TestApi -eq 36) {
+            $SystemImage = 'system-images\android-36\google_apis\x86_64'
         }
         if ($SystemImage -notmatch "^system-images[\\/]android-$TestApi[\\/]") { throw 'SystemImage must match TestApi.' }
         if ($EmulatorPort % 2 -ne 0) { throw 'Emulator port must be even.' }
@@ -180,7 +184,7 @@ hw.camera.back=none
 hw.camera.front=none
 disk.dataPartition.size=2G
 image.sysdir.1=$imagePath\
-tag.id=$(if ($TestApi -eq 33) { 'google_apis' } else { 'google_apis_playstore' })
+tag.id=$(if ($TestApi -in @(33, 36)) { 'google_apis' } else { 'google_apis_playstore' })
 target=android-$TestApi
 showDeviceFrame=no
 fastboot.forceColdBoot=yes
