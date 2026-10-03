@@ -4,7 +4,10 @@ This document describes the process for building and releasing Intime.
 
 > Актуальный статус — в ROADMAP.md, путь обновления v1 — в [UPGRADE.md](UPGRADE.md).
 > Текущая release-сборка имеет пакет `.dev` и не обновляет production v1.
-> Подпись старого APK и реальное обновление ещё не проверены; исторические
+> Старый APK из Google Play проверен; обновление 24 → 25 прошло с debug-подписью
+> и синтетическими данными на API 35. Сертификат JKS отличается от подписи Play APK;
+> требуется сверка App signing/Upload certificate в Console.
+> Production-подпись и копия реальных данных ещё не проверены; исторические
 > отметки сборки ниже не подтверждают готовность production-релиза.
 
 ## R6.1: Release Signing Configuration
@@ -44,7 +47,9 @@ export SIGNING_KEY_PASSWORD="your_key_password"
 
 #### Option 2: gradle.properties (Local Development)
 
-Edit `gradle.properties` and uncomment/fill:
+Use user-level `~/.gradle/gradle.properties` outside the repository (on Windows,
+`C:\Users\<user>\.gradle\gradle.properties`). Do not put passwords in the tracked
+project `gradle.properties`:
 
 ```properties
 SIGNING_KEY_STORE_PATH=path/to/intime-release.jks
@@ -75,7 +80,7 @@ Output: `app/build/outputs/bundle/release/app-release.aab`
 
 ## R6.2: Test Release Build
 
-### Build Status
+### Historical Build Status (not current release verification)
 
 **Build Date:** 2026-05-26  
 **APK Size:** 3.0 MB (unsigned)  
@@ -83,13 +88,17 @@ Output: `app/build/outputs/bundle/release/app-release.aab`
 **ProGuard:** ✅ Enabled  
 **R8:** ✅ Enabled  
 
-### Test on Real Device
+### Test on a Dedicated Device
 
-For signed release, you need the production keystore. Once configured:
+For signed release, use a verified compatible signing key. An APK signed locally
+with an upload key is not the APK signed by Google for distribution. Check UPGRADE.md
+before updating. Personal devices require explicit authorization.
+These commands are templates; the current release still uses `.dev`:
 
 ```bash
 # Install release APK
-adb install -r app/build/outputs/apk/release/app-release.apk
+adb -s emulator-5580 emu avd name # must be Intime_Test_API35
+adb -s emulator-5580 install -r app/build/outputs/apk/release/app-release.apk
 
 # Or using bundletool for AAB:
 bundletool build-apks --bundle=app-release.aab \
@@ -99,7 +108,7 @@ bundletool build-apks --bundle=app-release.aab \
   --ks-key-alias=intime \
   --key-pass=pass:password
 
-adb install-multiple app.apks
+bundletool install-apks --apks=app.apks --device-id=emulator-5580
 ```
 
 ### Manual Test Checklist
@@ -268,10 +277,10 @@ Comprehensive changelog for v2.0.0 including:
 
 Test on these Android versions before release:
 
-- ✅ API 24 (Android 7.0) — Min SDK
-- ✅ API 31 (Android 12) — Exact alarm threshold
-- ✅ API 33 (Android 13) — POST_NOTIFICATIONS introduction
-- ✅ API 35 (Android 15) — Target SDK, latest
+- [ ] API 24 (Android 7.0) — Min SDK; full smoke pending
+- [ ] API 31 (Android 12) — Exact alarm threshold; full smoke pending
+- [ ] API 33 (Android 13) — Debug notification/reboot checks passed; full release smoke pending
+- [ ] API 35 (Android 15) — Debug tests and synthetic upgrade passed; full release smoke pending
 
 ### Test Checklist
 
