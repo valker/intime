@@ -80,6 +80,9 @@ function Wait-ReleaseNode([string]$XPath) {
     throw "UI element not found: $XPath"
 }
 function Click-ReleaseNode([string]$XPath) {
+    # Probe не ждёт idle из-за часов UI. Даём оконной анимации завершиться до
+    # получения координат, чтобы tap не потерялся в переходе между Activity.
+    Start-Sleep -Milliseconds 500
     $node = Wait-ReleaseNode $XPath
     if ($node.GetAttribute('enabled') -ne 'true') { throw "Disabled UI element: $XPath" }
     $bounds = [regex]::Match($node.GetAttribute('bounds'), '^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$')
@@ -282,6 +285,92 @@ try {
     if ((Wait-ReleaseAlarm) -ne $afterAck) { throw 'Imported alarm not restored after process restart' }
     $summary.importedAlarm = $restoredAlarm
     Complete-ReleasePhase 'json-import-and-restart'
+
+    # Проверка BootReceiver: импортированная часовая задача сохранена, приложение
+    # запускалось и не находится в stopped. Уходим Home, записываем точный срок
+    # alarm и boot_count, выполняем настоящий reboot только принадлежащего нам AVD.
+    # После нового boot_count ждём тот же alarm ДО запуска Activity: восстановить
+    # его должен release BootReceiver, а не побочный эффект открытия приложения.
+    # Просрочку во время выключения и boot-уведомление эта фаза не моделирует.
+    Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '3') | Out-Null
+    $bootBefore = [int](Invoke-ReleaseAdb @('shell', 'settings', 'get', 'global', 'boot_count')).Trim()
+    $expectedBootAlarm = Wait-ReleaseAlarm
+    Set-Content (Join-Path $run 'logcat-before-reboot.log') (Invoke-ReleaseAdb @('logcat', '-d')) -Encoding UTF8
+    Invoke-ReleaseAdb @('reboot') | Out-Null
+    Write-Output 'Waiting for owned AVD reboot...'
+    $bootLimit = (Get-Date).AddSeconds(300)
+    $bootReady = $false
+    do {
+        try {
+            $bootFlag = (Invoke-ReleaseAdb @('shell', 'getprop', 'sys.boot_completed')).Trim()
+            $bootAfter = [int](Invoke-ReleaseAdb @('shell', 'settings', 'get', 'global', 'boot_count')).Trim()
+            $bootReady = $bootFlag -eq '1' -and $bootAfter -gt $bootBefore
+        } catch { $bootReady = $false }
+        if (-not $bootReady) { Start-Sleep -Seconds 2 }
+    } while (-not $bootReady -and (Get-Date) -lt $bootLimit)
+    if (-not $bootReady) { throw 'Owned AVD reboot timed out' }
+    $bootAlarmLimit = (Get-Date).AddSeconds(180)
+    do {
+        $bootAlarm = Read-ReleaseAlarm
+        if ($bootAlarm -eq $expectedBootAlarm) { break }
+        Start-Sleep -Seconds 2
+    } while ((Get-Date) -lt $bootAlarmLimit)
+    if ($bootAlarm -ne $expectedBootAlarm) { throw 'Release BootReceiver did not restore the same alarm' }
+    if ((Invoke-ReleaseAdb @('shell', 'dumpsys', 'window')) -match 'Application Not Responding:') { throw 'ANR dialog after reboot' }
+    $summary.bootCountBefore = $bootBefore
+    $summary.bootCountAfter = $bootAfter
+    $summary.bootRestoredAlarm = $bootAlarm
+    Complete-ReleasePhase 'release-reboot-recovery'
+
+    # Проверка реальной доставки: только нашей новой установке разрешаем exact
+    # alarms через appops, меняем период задачи через UI на минуту, подтверждаем
+    # её в деталях для нового отсчёта от текущего ACK и уходим Home.
+    # Ждём наступления срока и появления её уникального описания в системной шторке.
+    # Receiver не вызывается вручную, время ОС не меняется, приватная база не читается.
+    # Этот сценарий проверяет разрешённые уведомления/exact alarm, не отказ или Doze.
+    Invoke-ReleaseAdb @('shell', 'appops', 'set', $package, 'SCHEDULE_EXACT_ALARM', 'allow') | Out-Null
+    Launch-Release
+    Assert-ReleaseText $edited
+    Click-ReleaseNode "//node[@resource-id='${package}:id/textDescription' and @text='$edited']"
+    Click-ReleaseId 'btnEditTask'
+    Click-ReleaseId 'spinner_interval'
+    Click-ReleaseNode "//node[@text='Минута']"
+    Click-ReleaseId 'btn_save_task'
+    Click-ReleaseId 'btnAckTask'
+    Assert-ReleaseText $edited
+    $notificationDeadline = Wait-ReleaseAlarm
+    $summary.notificationAlarm = $notificationDeadline
+    Write-Output "Waiting for real AlarmManager notification (deadline $notificationDeadline)..."
+    Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '3') | Out-Null
+    Invoke-ReleaseAdb @('shell', 'cmd', 'statusbar', 'expand-notifications') | Out-Null
+    $notificationLimit = (Get-Date).AddSeconds(150)
+    $notificationVisible = $false
+    do {
+        $notificationUi = Read-ReleaseUi
+        $notificationVisible = $null -ne $notificationUi.SelectSingleNode("//node[@text='$edited']")
+        if (-not $notificationVisible) { Start-Sleep -Seconds 2 }
+    } while (-not $notificationVisible -and (Get-Date) -lt $notificationLimit)
+    if (-not $notificationVisible) { throw 'Release task notification not delivered to shade' }
+    Set-Content (Join-Path $run 'notifications-delivered.log') (Invoke-ReleaseAdb @('shell', 'dumpsys', 'notification', '--noredact')) -Encoding UTF8
+    Complete-ReleasePhase 'release-notification-delivery'
+
+    # Проверка ACK из настоящего уведомления: нажимаем системную action Acknowledge,
+    # которая отправляет PendingIntent release AckReceiver. Новый alarm должен стать
+    # позднее сработавшего, описание остаётся в списке после нового запуска процесса.
+    # Перед reboot appops не изменяли; разрешение exact относится лишь к этой фазе
+    # и исчезает вместе с удалением установленного нами APK в finally.
+    Click-ReleaseNode "//node[@text='Acknowledge' or @text='ACKNOWLEDGE']"
+    $notificationAckAlarm = Wait-ReleaseAlarm $notificationDeadline
+    $afterNotificationAckUi = Read-ReleaseUi
+    if ($afterNotificationAckUi.SelectSingleNode("//node[@text='$edited']")) { throw 'Acknowledged notification still visible in shade' }
+    Set-Content (Join-Path $run 'notifications-after-ack.log') (Invoke-ReleaseAdb @('shell', 'dumpsys', 'notification', '--noredact')) -Encoding UTF8
+    $summary.notificationAckAlarm = $notificationAckAlarm
+    Invoke-ReleaseAdb @('shell', 'cmd', 'statusbar', 'collapse') | Out-Null
+    Invoke-ReleaseAdb @('shell', 'am', 'force-stop', $package) | Out-Null
+    Launch-Release
+    Assert-ReleaseText $edited
+    if ((Wait-ReleaseAlarm) -ne $notificationAckAlarm) { throw 'Notification ACK alarm lost after restart' }
+    Complete-ReleasePhase 'release-notification-ack'
     $summary.status = 'PASSED'
 } catch {
     $summary.status = if ($installedHere) { 'FAILED' } else { 'INFRASTRUCTURE_ERROR' }
@@ -294,7 +383,9 @@ try {
             $logcat = Invoke-ReleaseAdb @('logcat', '-d')
             Set-Content (Join-Path $run 'window.log') $window -Encoding UTF8
             Set-Content (Join-Path $run 'logcat.log') $logcat -Encoding UTF8
-            if ($window -match 'Application Not Responding:' -or $logcat -match 'ANR in|FATAL EXCEPTION') {
+            $beforeRebootLog = Join-Path $run 'logcat-before-reboot.log'
+            $priorHealth = if (Test-Path $beforeRebootLog) { Get-Content $beforeRebootLog -Raw -Encoding UTF8 } else { '' }
+            if ($window -match 'Application Not Responding:' -or $logcat -match 'ANR in|FATAL EXCEPTION' -or $priorHealth -match 'ANR in|FATAL EXCEPTION') {
                 $summary.status = 'FAILED'; $summary.healthError = 'ANR or fatal exception in smoke logs'
             }
         } catch { $summary.healthError = $_.Exception.Message; $summary.status = 'FAILED' }

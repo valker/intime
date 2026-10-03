@@ -1,5 +1,49 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Release R8: уведомление, ACK и reboot — 3 октября 2026
+
+`scripts/test-release-smoke.ps1` расширен до десяти фаз; первый полный успешный
+прогон — `.test-tools/runs/20261003-193908-release-smoke/summary.json`.
+Повтор окончательного сценария —
+`.test-tools/runs/20261003-194244-release-smoke/summary.json`, PASSED, 10/10 фаз:
+boot_count 14 → 15, восстановленный alarm 1791049387558, уведомление по сроку
+1791045933442, новый alarm после ACK 1791045997548. Полные журналы до/после reboot
+без ANR/FATAL EXCEPTION. После повтора отдельно проверено отсутствие production
+пакета и собственного JSON/probe; проектный AVD остановлен со сверкой PID/start/имени.
+PowerShell parser, UTF-8 BOM и `git diff --check` прошли.
+Использован прежний production APK 25/2.0.0-rc1 (non-debuggable, upload key,
+SHA-256 `4D0B7E8AD4B5F35FC493090B629CA7A15E5224CE13658FB8CA15EAEA488733ED`)
+и только проектный AOSP API 36 / `emulator-5584`. Runtime-код не менялся.
+Bootstrap debug UI: 2/2, `.test-tools/runs/20261003-193136-852adf8a/summary.json`.
+
+- `release-reboot-recovery`: после JSON round-trip задача имеет будущий часовой
+  срок; Home, настоящий adb reboot, boot_count 13 → 14. Release BootReceiver
+  восстановил тот же alarm 1791049174951 **до открытия Activity**. Это inexact
+  fallback без разрешения exact; просрочка во время выключения не моделируется.
+- `release-notification-delivery`: только свежей тестовой установке разрешён
+  SCHEDULE_EXACT_ALARM через appops. UI меняет период на минуту и выполняет ACK
+  для нового отсчёта; Home, ожидание настоящего AlarmManager без изменения времени
+  или ручного broadcast. Срок — 1791045712888; в системной шторке появилось
+  уникальное описание. `notifications-delivered.log` содержит production
+  NotificationRecord, это описание и action Acknowledge/PendingIntent broadcast.
+- `release-notification-ack`: нажата action в шторке; уведомление исчезло,
+  следующий alarm — 1791045776249, позднее сработавшего. Описание и этот срок
+  сохранены после force-stop/нового запуска. Прямой вызов AckReceiver не используется.
+
+Новые фазы имеют подробные русские комментарии. Сохраняются полный logcat до
+reboot и после, UI XML, dumpsys alarm и notifications. В первом успешном прогоне
+ANR/FATAL EXCEPTION не найдены. Отказ в разрешениях, отключённый канал, Doze,
+тихий повтор WorkManager, boot-уведомление о пропущенных задачах и другие API
+этим release smoke не покрыты; прежние debug-тесты не заменяют этих проверок.
+Обновление Play v1 и реальные данные также остаются открытыми.
+
+Неуспешные диагностические прогоны сохранены: `20261003-193407-release-smoke`
+прошёл восемь фаз, но после смены периода минутный срок от старого ACK был уже
+в прошлом; фикстура исправлена новым ACK через UI. `20261003-193639-release-smoke`
+остановился после двух фаз на открытии деталей; добавлено ожидание оконной
+анимации до получения координат tap (probe не ждёт idle из-за часов UI).
+Эти прогоны не считаются успешными; подтверждённого crash приложения в них нет.
+
 ## Release R8: JSON через системный picker — 3 октября 2026
 
 Расширенный `scripts/test-release-smoke.ps1` прошёл семь фаз на том же
