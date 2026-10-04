@@ -1,5 +1,36 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Подготовка API 24 — 4 октября 2026
+
+Runner принимает API 24: выделенные имя `Intime_Test_API24`, порт 5588,
+образ `system-images;android-24;default;x86_64`, 2 CPU/2048 МБ/software.
+Release runner допускает на API 24 только RebootOnly (CRUD/JSON/reboot);
+полный notification smoke отклоняется до установки APK, поскольку API 24
+не имеет каналов и требует адаптации старого экрана уведомлений.
+
+ScreenPlatformTest теперь допускает API 24+: AndroidX WindowInsetsCompat,
+WindowMetrics на API 30+, Display.getRealSize на API 24–29. Русский комментарий
+обновлён. Runtime приложения не менялся.
+
+Свежие проверки подготовки:
+- **97/97 local tests PASSED:** `.test-tools/runs/20261004-184704-fd33df83/summary.json`.
+- `:app:compileDebugAndroidTestJavaWithJavac` — BUILD SUCCESSFUL.
+- **2/2 UI tests PASSED на API 31:** `.test-tools/runs/20261004-184920-8bb87248/summary.json`.
+- PowerShell parser, UTF-8 BOM и `git diff --check` проверены.
+
+API 31 остановлен runner. API 24 image/AVD не установлен/не создан и тесты на нём
+не запускались: запрос разрешения на расширение списка проектных AVD AGENTS.md
+ещё ожидает ответа пользователя. Ветка границ окна API 24–29 и API 24 release
+сценарий пока не проверены на устройстве. Успех API 31 не заменяет эту проверку.
+
+Уточнение после ответа: разрешение ограничено дополнительным расходом ≤100 МБ.
+Локальный образ API 24 и проектный AVD отсутствуют. В официальном каталоге
+Google `https://dl.google.com/android/repository/sys-img/android/sys-img2-3.xml`
+для `system-images;android-24;default;x86_64` архив rev 8
+`x86_64-24_r08.zip` имеет размер 419261998 байт (около 400 МиБ).
+Прочитана только метаинформация в память; образ не скачивался, AVD не создавался.
+Лимит не позволяет выполнить запланированную установку; API 24 проверка отложена.
+
 ## Повторные reboot на API 31 — 4 октября 2026
 
 **PASSED, 3/3 reboot и 7/7 подготовительных фаз:**

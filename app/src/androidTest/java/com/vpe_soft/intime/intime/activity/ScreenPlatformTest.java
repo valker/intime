@@ -4,13 +4,15 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Insets;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.SystemClock;
 import android.view.KeyEvent;
 import android.view.View;
-import android.view.WindowInsets;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import androidx.room.Room;
 import androidx.test.core.app.ActivityScenario;
@@ -38,7 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.junit.Assert.*;
 
 @RunWith(AndroidJUnit4.class)
-@SdkSuppress(minSdkVersion = 31)
+@SdkSuppress(minSdkVersion = 24)
 public class ScreenPlatformTest {
     private Context context;
     private AppDatabase database;
@@ -47,7 +49,7 @@ public class ScreenPlatformTest {
     @Before
     public void setUp() {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        // Runtime-разрешение появилось на API 33; API 31 не принимает его выдачу.
+        // Runtime-разрешение появилось на API 33; более ранняя ОС не принимает его выдачу.
         if (Build.VERSION.SDK_INT >= 33) {
             InstrumentationRegistry.getInstrumentation().getUiAutomation()
                     .grantRuntimePermission(context.getPackageName(), Manifest.permission.POST_NOTIFICATIONS);
@@ -79,11 +81,14 @@ public class ScreenPlatformTest {
     /**
      * На тестовом устройстве создаётся in-memory Room с одной будущей задачей и выдаётся
      * разрешение уведомлений на API 33+, чтобы системный диалог не перекрывал экраны;
-     * на API 31 runtime-разрешение отсутствует. Последовательно
+     * на API 24–32 runtime-разрешение отсутствует. Последовательно
      * открываются список, добавление, настройки и детали этой задачи. После layout проверяются
      * полные экранные границы кнопок и описания: они должны находиться внутри области окна
-     * за вычетом system bars/display cutout. Проверка использует реальные WindowInsets ОС,
-     * поэтому выявляет перекрытие при обязательном edge-to-edge на Android 16/target 36.
+     * за вычетом system bars/display cutout. Проверка использует реальные WindowInsets ОС
+     * через AndroidX compat; на API 24 нет display cutout. Размер экрана читается через
+     * WindowMetrics на API 30+, а на API 24–29 через Display.getRealSize.
+     * Это позволяет выявить перекрытие при обязательном edge-to-edge на Android 16/target 36
+     * и проверить выбранные элементы в обычном окне Android 7.
      * Проверяются выбранные видимые элементы в портретной конфигурации AVD; клавиатура,
      * прокрутка, landscape, увеличенный шрифт и внешний вид остальных элементов не проверяются.
      */
@@ -140,10 +145,17 @@ public class ScreenPlatformTest {
             } while (SystemClock.uptimeMillis() < limit);
             assertTrue("Window was not laid out: " + type.getSimpleName(), laidOut.get());
             scenario.onActivity(activity -> {
-                WindowInsets windowInsets = activity.getWindow().getDecorView().getRootWindowInsets();
+                WindowInsetsCompat windowInsets = ViewCompat.getRootWindowInsets(activity.getWindow().getDecorView());
                 assertNotNull(windowInsets);
-                Insets insets = windowInsets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
-                Rect bounds = activity.getWindowManager().getCurrentWindowMetrics().getBounds();
+                Insets insets = windowInsets.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+                Rect bounds;
+                if (Build.VERSION.SDK_INT >= 30) {
+                    bounds = activity.getWindowManager().getCurrentWindowMetrics().getBounds();
+                } else {
+                    Point size = new Point();
+                    activity.getWindowManager().getDefaultDisplay().getRealSize(size);
+                    bounds = new Rect(0, 0, size.x, size.y);
+                }
                 Rect safe = new Rect(bounds.left + insets.left, bounds.top + insets.top,
                         bounds.right - insets.right, bounds.bottom - insets.bottom);
                 for (int id : ids) {

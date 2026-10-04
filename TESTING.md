@@ -2,7 +2,33 @@
 
 The Windows runner works with Windows PowerShell 5.1 and JDK 17. Android Studio
 does not need to be open. Use the repository's Gradle Wrapper (8.11.1), AGP 8.9.1
-and installed compile SDK 36. Device API 31/33/35/36 is independent of compile/target SDK.
+and installed compile SDK 36. Device API 24/31/33/35/36 is independent of compile/target SDK.
+
+### Подготовка API 24
+
+Runner поддерживает отдельный `Intime_Test_API24`, порт `5588`, образ
+`system-images;android-24;default;x86_64`, 2 CPU/2048 МБ/software GPU.
+Его автономное создание/использование требует включения этого AVD в разрешённый
+список AGENTS.md по разрешению пользователя. Пока образ не установлен и
+запуск на API 24 не выполнен; поддержка в скрипте не является проверкой на устройстве.
+Пользователь ограничил новый AVD дополнительными 100 МБ. Архив AOSP API 24 x86_64
+rev 8 уже занимает 419261998 байт до распаковки; текущая установка не разрешена
+этим условием. Не устанавливать образ/не создавать AVD без изменения ограничения
+или подходящего уже имеющегося окружения.
+
+После разрешения и установки образа:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 24 -Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline -KeepEmulator
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -TestApi 24 -ApkPath '.test-tools/runs/release-permissions-20261003-225632/intime-25-2.0.0-rc1-r8.apk' -RebootOnly
+```
+
+ScreenPlatformTest использует AndroidX WindowInsetsCompat и Display.getRealSize
+на API 24–29 вместо WindowMetrics (API 30+). На API 24 release runner пока
+принимает только RebootOnly: семь фаз CRUD/JSON и reboot. Полный smoke отклоняется
+до установки APK: notification channels появились на API 26, системный экран
+уведомлений и его dumpsys на API 24 ещё нужно адаптировать. Новый image/AVD
+займёт дополнительное место; личный Pixel_8 и телефон не используются.
 
 ## Commands
 
@@ -83,7 +109,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.p
 переопределяет INI через `-memory` без удаления данных. RAM записывается в summary
 и запись владения; смена/подтверждение другого значения у работающего AVD отклоняется.
 
-Для API 31 выполните отдельный bootstrap (ScreenPlatformTest поддерживает API 31+):
+Для API 31 выполните отдельный bootstrap (ScreenPlatformTest теперь допускает API 24+):
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 31 -Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline -KeepEmulator

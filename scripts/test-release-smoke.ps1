@@ -1,6 +1,7 @@
 ﻿<#
-Проверяет уже собранный production release APK через UI на проектном AVD API 31/33/35/36.
-Перед запуском: scripts/test.ps1 -Mode device -TestApi <31, 33, 35 или 36> -Offline -KeepEmulator.
+Проверяет уже собранный production release APK через UI на проектном AVD API 24/31/33/35/36.
+API 24 пока поддерживает только RebootOnly (CRUD/JSON/reboot), без notification phases.
+Перед запуском: scripts/test.ps1 -Mode device -TestApi <24, 31, 33, 35 или 36> -Offline -KeepEmulator.
 Одинаковый TestApi нужно передать обоим скриптам; по умолчанию здесь используется 36.
 APK должен быть подписан подтверждённым upload key; скрипт не публикует его в Play.
 Используются только новые синтетические задачи. Если production-пакет уже установлен,
@@ -11,7 +12,7 @@ APK должен быть подписан подтверждённым upload k
 param(
     [Parameter(Mandatory = $true)][string]$ApkPath,
     # Выбор ограничен проектными AVD; произвольный serial принимать небезопасно.
-    [ValidateSet(31, 33, 35, 36)][int]$TestApi = 36,
+    [ValidateSet(24, 31, 33, 35, 36)][int]$TestApi = 36,
     # Точечный режим проходит подготовку/JSON и повторяет reboot без минутных уведомлений.
     [switch]$RebootOnly,
     [ValidateRange(1, 10)][int]$RebootRepeats = 1,
@@ -27,7 +28,7 @@ New-Item -ItemType Directory -Path $run -Force | Out-Null
 $sdk = Join-Path $env:LOCALAPPDATA 'Android\Sdk'
 $adb = Join-Path $sdk 'platform-tools\adb.exe'
 # Каждому разрешённому API соответствует только закреплённый проектный порт.
-$serial = switch ($TestApi) { 31 { 'emulator-5586' }; 33 { 'emulator-5582' }; 35 { 'emulator-5580' }; 36 { 'emulator-5584' } }
+$serial = switch ($TestApi) { 24 { 'emulator-5588' }; 31 { 'emulator-5586' }; 33 { 'emulator-5582' }; 35 { 'emulator-5580' }; 36 { 'emulator-5584' } }
 $package = 'com.vpe_soft.intime.intime'
 $installedHere = $false
 $probePushed = $false
@@ -37,6 +38,9 @@ $lock = $null
 $commandNumber = 0
 $summary = @{ status = 'RUNNING'; passedPhases = @(); reports = $run; serial = $serial; testApi = $TestApi; rebootOnly = [bool]$RebootOnly; rebootResults = @(); rebootSettleSeconds = $RebootSettleSeconds }
 if (-not $RebootOnly -and $RebootRepeats -ne 1) { throw 'RebootRepeats requires RebootOnly' }
+# API 24 не имеет notification channels и новых Settings intents. Пока эти фазы
+# не адаптированы, отказываем до установки APK вместо ложного полного smoke.
+if ($TestApi -eq 24 -and -not $RebootOnly) { throw 'API 24 currently requires RebootOnly; notification phases are not supported yet.' }
 
 # SDK-компиляторы тоже могут писать предупреждения в stderr с exit 0.
 # Сохраняем оба потока и определяем результат по коду завершения.
