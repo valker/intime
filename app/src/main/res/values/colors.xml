@@ -32,4 +32,7 @@
     <color name="black">#000000</color>
     <color name="white">#FFFFFF</color>
     <color name="green">#4CAF50</color>
+    <!-- Палитра исходного календаря InTime, без цветной DEV-метки. -->
+    <color name="launcher_background">#FFF8FF</color>
+    <color name="launcher_foreground">#595959</color>
 </resources>

@@ -210,7 +210,7 @@ Complete the v2 experience on current AppCompat/XML before a Compose pilot.
 |----|------|-----------|
 | R6.1 | Configure release signing | Upload key/AAB verified; Play-signed installation upgrade open |
 | R6.2 | Test release build with R8/ProGuard | APK smoke API 31/33/35/36 and AAB validate passed within documented limits; full R5.3 open |
-| R6.3 | Final app icon and adaptive icon | Open: DEV icons still referenced; design guide is not final artwork |
+| R6.3 | Final app icon and adaptive icon | Vector launcher/adaptive/monochrome implemented; fresh release and visual check on API 36 passed. Other platform appearance remains bounded by the matrix |
 | R6.4 | Privacy policy | Local draft updated for Android backup/SAF; public page review/publication open |
 | R6.5 | Play Console declarations aligned with permissions | Draft reviewed against merged AAB; Console submission/acceptance not verified |
 | R6.6 | Changelog for existing users | Draft; final version/date and release notes open |
@@ -284,7 +284,7 @@ WS0 is complete. WS2 migration tests can proceed in parallel with WS3.
 1. **R6.1–R6.7** — Release preparation checklist
    - R6.1: Upload signing verified; Play-signed update remains open
    - R6.2: Bounded release smoke and AAB validation passed; complete matrix open
-   - R6.3: App icons (requires graphic design)
+   - R6.3: Calendar vector icons implemented; API 36 checked, other launcher modes not yet verified
    - R6.4: Local privacy draft updated; public policy not verified
    - R6.5: Console declaration draft reviewed; submission not verified
    - R6.6: Changelog draft; final release version/date not approved

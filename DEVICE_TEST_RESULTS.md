@@ -1,5 +1,48 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Launcher/adaptive icons и свежий release — 4 октября 2026
+
+R5.2: манифест переведён на `@mipmap/ic_launcher`/`ic_launcher_round`, без DEV-метки.
+Сохранён знак календаря и серо-светлая палитра. Добавлены VectorDrawable fallback
+для API 24–25, adaptive background/foreground для API 26+ и monochrome для API 33+.
+Новые XML занимают 4264 байта; исходники/описание — ICON_DESIGN_GUIDE.md.
+Notification icon и runtime Java/Room/scheduling не менялись.
+
+**Свежая подписанная APK/AAB сборка прошла** с R8/lintVitalRelease.
+Архив: `.test-tools/runs/release-icons-20261004-221247/summary.json`.
+Основа `a75cf97a3d200d07b756786d44e96ba0c5eedf0f` + незакоммиченные ресурсы;
+снимок изменений сохранён в tracked-source.patch и icon-sources/.
+APK SHA-256 `4F5911443EF3D9A18645C2285E1D1BD2F7B26566F51E7448D2A6D39C40B9D056`.
+AAB SHA-256 `57C3AB5BB0ADA419F68EE146ECFA2A3C641C83C8DB5AB102E98980B78E7C35BA`.
+Подписи проверены apksigner/jarsigner, сертификат обоих — подтверждённый Upload key.
+Bundletool validate/dump manifest прошли; package/25/2.0.0-rc1, minSdk 24,
+target/compileSdk 36, debuggable отсутствует; launcher ссылки и все варианты
+packaged resources проверены. Embedded mapping совпал с отдельным mapping.txt,
+SHA-256 `7B5DEBF5DCCE8160A40A2F0B0442B722CA9DA511984806B7981587E4DC2E2E23`.
+
+**UI-класс PASSED, 3/3**, без failures/errors/skipped:
+`.test-tools/runs/20261004-221441-ea6531d2/summary.json`.
+**Свежий release smoke PASSED, 14/14**:
+`.test-tools/runs/20261004-221833-release-smoke/summary.json`.
+CRUD/ACK, JSON через SAF, перезапуск, boot 26 → 27, реальные минутные уведомления
+и ACK из шторки, отказ/восстановление POST_NOTIFICATIONS и канала прошли на
+существующем AOSP Intime_Test_API36. Это не новый Doze или release worker тест.
+
+После smoke тот же APK отдельно установлен при отсутствии production-пакета,
+снят/осмотрен launcher-api36.png: InTime! с календарём без DEV-метки.
+Тематический режим launcher и другие маски/OEM не проверены визуально;
+monochrome проверен только как упакованный ресурс. Fallback API 24–25 на устройстве
+ещё не проверен, API 24 остаётся отложенным из-за ограничения диска.
+Первый диагностический launcher-before-install.png не содержит InTime,
+поскольку test APK уже был удалён; он не используется как подтверждение иконки.
+Отдельная собственная установка удалена, host PID/StartTime/AVD проверены,
+эмулятор остановлен, маркер отсутствует. В сохранённом финальном logcat
+нет ANR/FATAL EXCEPTION/Fatal signal. Новых образов/AVD/зависимостей не скачивали.
+Архив ресурсов/APK/AAB/mapping около 15.6 МиБ, smoke-отчёт около 38.5 МиБ
+логических файлов. Unit suite не запускалась: изменены только launcher-ресурсы.
+Релиз не опубликован; Play upgrade/полная матрица остаются открытыми.
+Следующий локальный шаг — проверка тихого periodic worker в release/R8 (R5.3).
+
 ## Сверка релизной документации R5.4 — 4 октября 2026
 
 README, PLAN, TECH_NOTES, RELEASE, CHANGELOG, PRIVACY_POLICY и черновик

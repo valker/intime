@@ -16,6 +16,12 @@ This document describes the process for building and releasing Intime.
 
 ### Актуальный AAB — 4 октября 2026
 
+После этого кандидата заменены launcher icons и собраны отдельные свежие APK/AAB:
+`.test-tools/runs/release-icons-20261004-221247/`. Подписи/Upload key,
+bundletool/манифест/mapping прошли, UI 3/3 и release smoke 14/14 на API 36,
+иконка осмотрена в launcher. Хеши и границы — DEVICE_TEST_RESULTS.md.
+Кандидат ниже сохраняется как исторический артефакт до замены иконок.
+
 Подписанный кандидат **25/2.0.0-rc1** из коммита `a0c055f` собран с R8 и
 lintVitalRelease. `jarsigner` подтвердил подпись, сертификат совпал с Upload key,
 кэшированный bundletool 1.17.2 успешно выполнил validate/dump manifest без загрузок.
@@ -271,13 +277,13 @@ prove all runtime paths work.
 
 ## R6.3: App Icons
 
-**Open:** the manifest still references `app_icon_dev` and `app_icon_round_dev`,
-including production mode. [ICON_DESIGN_GUIDE.md](ICON_DESIGN_GUIDE.md) is a design
-brief, not evidence that final artwork exists. Replace DEV artwork and provide
-launcher/adaptive resources, including a legacy fallback for supported older
-Android versions. Verify the resulting manifest, launcher and packaged resources
-in a fresh release candidate. This change invalidates the previous artifact's
-identity; retain its historical reports separately.
+**Implemented October 4:** vector calendar artwork retains the existing palette,
+without the DEV marker. Manifest uses mipmap icons: legacy fallback API 24–25,
+adaptive API 26+ and monochrome API 33+. The fresh signed APK/AAB, packaged
+resources, UI 3/3 and release smoke 14/14 passed on API 36; its launcher icon
+was visually checked. See [ICON_DESIGN_GUIDE.md](ICON_DESIGN_GUIDE.md).
+Themed launcher mode, other masks/OEM and legacy API 24–25 appearance remain
+unverified on device. Play listing artwork is separate from these launcher XMLs.
 
 ## R6.4: Privacy Policy
 
@@ -314,7 +320,7 @@ background delivery. The real-data/Play update remains R4.2.
 - [x] Candidate AAB structure, manifest and mapping checked.
 - [x] Bounded upload-signed APK smoke on API 31/33/35/36 documented.
 - [x] Local privacy/declaration/changelog drafts reviewed against current behavior.
-- [ ] Final launcher/adaptive icons replace DEV artwork (R5.2).
+- [x] Launcher/adaptive icons replace DEV artwork (R5.2), API 36 visual check recorded.
 - [ ] Remaining device coverage and release worker verified (R4.3/R5.3).
 - [ ] Real-data upgrade through Play-compatible signature verified (R4.2).
 - [ ] Public privacy page and actual Console declarations verified (R5.4).

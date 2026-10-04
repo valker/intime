@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp" android:height="48dp" android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Векторный fallback для API 24–25; масштабируется без набора PNG. -->
+    <path android:fillColor="@color/launcher_background" android:pathData="M20,6 H88 Q102,6 102,20 V88 Q102,102 88,102 H20 Q6,102 6,88 V20 Q6,6 20,6 Z" />
+    <group android:pivotX="54" android:pivotY="54" android:scaleX="1.5" android:scaleY="1.5">
+        <path android:fillColor="@android:color/transparent" android:strokeColor="@color/launcher_foreground"
+            android:strokeWidth="4" android:strokeLineJoin="round"
+            android:pathData="M40,36 H68 Q74,36 74,42 V72 Q74,78 68,78 H40 Q34,78 34,72 V42 Q34,36 40,36 Z M34,50 H74" />
+        <path android:fillColor="@android:color/transparent" android:strokeColor="@color/launcher_foreground"
+            android:strokeWidth="4" android:strokeLineCap="round" android:pathData="M42,30 V42 M66,30 V42" />
+    </group>
+</vector>
