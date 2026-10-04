@@ -154,6 +154,12 @@ UUID/данных задачи и дальнейшим периодически�
 job run вручную не вызывался. Это не default-batching и не release/R8 worker;
 срок обычной доставки на устройстве/OEM, Doze и регистрация MainActivity открыты.
 
+Регистрация работы MainActivityV2 отдельно проверена в debug integration на API 36:
+одна активная work, 15 минут/BatteryNotLow/без сети; recreate и новое открытие
+Activity сохраняют UUID и срок (KEEP). Новый тест прошёл отдельно
+(`20261004-213659-9ec40a96`), UI-класс 3/3 (`20261004-213941-eb0b8a0e`).
+Это не release/R8 доставка, смерть процесса или проверка остальных API.
+
 ### Create a Keystore (first time only)
 
 For a new application only, if you don't have a keystore yet, create one.

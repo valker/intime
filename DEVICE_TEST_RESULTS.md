@@ -1,5 +1,38 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Регистрация расписания MainActivity — 4 октября 2026
+
+Новый `ScreenPlatformTest#mainStartup_keepsOnePeriodicReminderAcrossRecreationAndReopening`
+**PASSED, 1/1**: `.test-tools/runs/20261004-213659-9ec40a96/summary.json`.
+Полный UI-класс **PASSED, 3/3**, 0 failures/errors/skipped:
+`.test-tools/runs/20261004-213941-eb0b8a0e/summary.json`.
+Использован прежний AOSP Intime_Test_API36 / emulator-5584, 2 ГБ/host GPU/8 CPU.
+Новые SDK-образы/AVD не создавались, runtime приложения не менялся.
+Unit suite и production APK/AAB на этом шаге не пересобирались/не запускались.
+
+Начальная фикстура — in-memory Room с будущей задачей, POST_NOTIFICATIONS
+выдано на API 33+. Прежняя unique work тестового приложения отменяется для изоляции.
+Тест открывает настоящий MainActivityV2: запрос ставит его onCreate, а не тест.
+Через реальный WorkManager проверены одна активная work ENQUEUED с будущим сроком,
+PeriodicityInfo.repeatIntervalMillis=15 минут, BatteryNotLow=true,
+NetworkType.NOT_REQUIRED. После ActivityScenario.recreate и закрытия/нового запуска
+ActivityScenario UUID и nextScheduleTimeMillis не изменились, активная работа
+осталась единственной. Завершённые CANCELLED исторические записи отфильтрованы.
+В finally созданный UUID отменён. Подробный русский Javadoc описывает условия,
+действия, assertions и границы теста.
+
+Ранее существующие insets/Back тесты также прошли в этом UI-классе. В сохранённом
+device-logcat нет ANR/FATAL EXCEPTION/Fatal signal. Эмулятор остановлен после
+проверки PID/StartTime/AVD name, маркер владельца удалён. Два каталога отчётов
+занимают около 4 МиБ логических файлов; временная копия WorkManager classes.jar,
+использованная для сверки API библиотеки, удалена.
+
+Проверена регистрация и KEEP в пределах одного процесса. Доставка notification,
+15-минутное ожидание, смерть процесса, Doze, release/R8 и новый тест на остальных
+API не покрыты. Предыдущие проверки сохраняют свои отдельные границы.
+Следующий шаг — актуальный подписанный production AAB и проверка его метаданных,
+без новых образов/AVD; R4.3/R5.3 целиком остаются открытыми.
+
 ## Второй период после завершения процесса — 4 октября 2026
 
 **PASSED при описанном ниже условии, 2/2 host-фазы:**

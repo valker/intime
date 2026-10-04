@@ -32,6 +32,22 @@ ScreenPlatformTest использует AndroidX WindowInsetsCompat и Display.g
 
 ## Commands
 
+### Регистрация расписания самим MainActivity
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 36 -Filter 'com.vpe_soft.intime.intime.activity.ScreenPlatformTest#mainStartup_keepsOnePeriodicReminderAcrossRecreationAndReopening' -Offline
+```
+
+Новый тест ScreenPlatformTest открывает настоящий MainActivityV2 и читает
+созданную им уникальную work через WorkManager: одна активная работа ENQUEUED,
+период 15 минут, BatteryNotLow, NetworkType.NOT_REQUIRED. После recreate и нового
+ActivityScenario UUID/nextScheduleTimeMillis должны сохраниться, активная работа
+должна остаться единственной. Исторические CANCELLED записи не считаются активными.
+До теста прежняя unique work отменяется, после — созданный UUID; Room синтетическая
+in-memory. Notification/ACK, смерть процесса, Doze и release/R8 не проверяются.
+На API 36 новый тест прошёл отдельно и в составе UI-класса: теперь в нём три теста.
+Допуск API 24+ не означает фактическую проверку нового сценария на всех API.
+
 ### Второй естественный период после завершения процесса (API 36)
 
 ```powershell

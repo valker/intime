@@ -27,6 +27,11 @@ import com.vpe_soft.intime.intime.concurrent.AppExecutors;
 import com.vpe_soft.intime.intime.database.AppDatabase;
 import com.vpe_soft.intime.intime.database.entities.TaskEntity;
 import com.vpe_soft.intime.intime.scheduling.SchedulingCoordinator;
+import com.vpe_soft.intime.intime.workers.TaskNotificationWorker;
+
+import androidx.work.NetworkType;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
 
 import org.junit.After;
 import org.junit.Before;
@@ -36,6 +41,9 @@ import org.junit.runner.RunWith;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 import static org.junit.Assert.*;
 
@@ -130,6 +138,71 @@ public class ScreenPlatformTest {
             });
             awaitResumed(MainActivityV2.class, original[0]);
         }
+    }
+
+    /**
+     * В in-memory Room есть одна будущая задача, уведомления разрешены на API 33+.
+     * Для изоляции отменяется прежняя уникальная periodic work тестового приложения.
+     * Открывается настоящий MainActivityV2: именно его onCreate, а не тестовая
+     * постановка PeriodicWorkRequest, должен зарегистрировать TaskNotificationWorker.
+     * Через настоящий WorkManager ожидается одна незавершённая работа ENQUEUED
+     * с периодом 15 минут, BatteryNotLow и без требования сети, с будущим сроком
+     * после первого исполнения. Её UUID/срок запоминаются. Затем Activity пересоздаётся
+     * через recreate и открывается новым ActivityScenario после закрытия прежнего:
+     * в обоих случаях должна остаться ровно одна активная работа с тем же UUID и
+     * прежним сроком (ExistingPeriodicWorkPolicy.KEEP не сбрасывает расписание).
+     * Отменённые исторические записи не считаются активными. В finally отменяется
+     * созданный UUID. Тест не ждёт 15-минутной доставки, не убивает процесс, не
+     * проверяет notification/ACK, Doze, release/R8 или поведение после force-stop.
+     */
+    @Test
+    public void mainStartup_keepsOnePeriodicReminderAcrossRecreationAndReopening() throws Exception {
+        WorkManager workManager = WorkManager.getInstance(context);
+        workManager.cancelUniqueWork(TaskNotificationWorker.class.getName()).getResult().get(10, TimeUnit.SECONDS);
+        UUID createdId = null;
+        try {
+            long originalDeadline;
+            try (ActivityScenario<MainActivityV2> scenario = ActivityScenario.launch(MainActivityV2.class)) {
+                WorkInfo initial = awaitSinglePeriodicReminder(workManager);
+                createdId = initial.getId();
+                originalDeadline = initial.getNextScheduleTimeMillis();
+                assertNotNull(initial.getPeriodicityInfo());
+                assertEquals(TimeUnit.MINUTES.toMillis(15), initial.getPeriodicityInfo().getRepeatIntervalMillis());
+                assertTrue(initial.getConstraints().requiresBatteryNotLow());
+                assertEquals(NetworkType.NOT_REQUIRED, initial.getConstraints().getRequiredNetworkType());
+                scenario.recreate();
+                WorkInfo recreated = awaitSinglePeriodicReminder(workManager);
+                assertEquals(createdId, recreated.getId());
+                assertEquals(originalDeadline, recreated.getNextScheduleTimeMillis());
+            }
+            try (ActivityScenario<MainActivityV2> reopened = ActivityScenario.launch(MainActivityV2.class)) {
+                WorkInfo retained = awaitSinglePeriodicReminder(workManager);
+                assertEquals(createdId, retained.getId());
+                assertEquals(originalDeadline, retained.getNextScheduleTimeMillis());
+            }
+        } finally {
+            if (createdId != null) {
+                workManager.cancelWorkById(createdId).getResult().get(10, TimeUnit.SECONDS);
+            }
+        }
+    }
+
+    private WorkInfo awaitSinglePeriodicReminder(WorkManager workManager) throws Exception {
+        long limit = SystemClock.elapsedRealtime() + 15000;
+        List<WorkInfo> active = new ArrayList<>();
+        do {
+            active.clear();
+            for (WorkInfo info : workManager.getWorkInfosForUniqueWork(TaskNotificationWorker.class.getName())
+                    .get(5, TimeUnit.SECONDS)) {
+                if (!info.getState().isFinished()) active.add(info);
+            }
+            assertTrue("Duplicate active periodic reminders", active.size() <= 1);
+            if (active.size() == 1 && active.get(0).getState() == WorkInfo.State.ENQUEUED
+                    && active.get(0).getNextScheduleTimeMillis() > System.currentTimeMillis()) return active.get(0);
+            SystemClock.sleep(100);
+        } while (SystemClock.elapsedRealtime() < limit);
+        fail("MainActivity did not register an enqueued periodic reminder: " + active);
+        return null;
     }
 
     private void checkScreen(Class<? extends Activity> type, int... ids) {
