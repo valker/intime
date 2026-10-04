@@ -108,6 +108,14 @@ Runner принимает `-TestApi 35/36` и сверяет выбранные 
 и native падения system_server; успешность на 16 КБ этим AOSP-прогоном не подтверждена.
 Оставшиеся API 24/31/33, Doze, обновление Play и новый AAB ещё требуют проверки.
 
+Затем 4 октября тот же APK прошёл **14/14 фаз на Google APIs API 33**:
+`.test-tools/runs/20261004-110211-release-smoke/summary.json`.
+Bootstrap UI-тестов также прошёл 2/2. Runner теперь принимает `-TestApi 33/35/36`;
+на API 33 исправлены действия harness: ожидание фокуса/текста и открытия Edit,
+Back для скрытия IME выполняется только при её показе. Runtime APK не менялся.
+API 35/36 новой редакцией runner в этом шаге не повторялись.
+Следующие платформы — API 31/24; Doze, 16 КБ, Play upgrade и новый AAB открыты.
+
 ### Create a Keystore (first time only)
 
 For a new application only, if you don't have a keystore yet, create one.

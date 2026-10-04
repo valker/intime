@@ -42,8 +42,9 @@ reboot/восстановление alarm до запуска Activity, дост
 из шторки, отказ POST_NOTIFICATIONS/восстановление и отключение/включение
 канала — всего четырнадцать фаз. Прогон занимает несколько минут:
 минутные будильники ожидаются в реальном времени, часы ОС не изменяются.
-Runner принимает `-TestApi 35` или `-TestApi 36` (по умолчанию 36),
-строго для проектных Intime_Test_API35/36 с serial `emulator-5580`/`emulator-5584`.
+Runner принимает `-TestApi 33`, `35` или `36` (по умолчанию 36),
+строго для проектных Intime_Test_API33/35/36 с serial
+`emulator-5582`/`emulator-5580`/`emulator-5584` соответственно.
 Выбор API должен совпадать с bootstrap; произвольный serial не поддерживается.
 Нужны JDK `C:\Program Files\Java\jdk-17`, SDK в `%LOCALAPPDATA%\Android\Sdk`,
 platform android-36 с `android.jar`/`uiautomator.jar`, build-tools 35.0.0
@@ -82,12 +83,21 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.p
 переопределяет INI через `-memory` без удаления данных. RAM записывается в summary
 и запись владения; смена/подтверждение другого значения у работающего AVD отклоняется.
 
+Для API 33 используйте отдельный проектный Google APIs AVD (после остановки
+предыдущего принадлежащего runner эмулятора):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 33 -Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline -KeepEmulator
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -TestApi 33 -ApkPath '.test-tools/runs/release-permissions-20261003-225632/intime-25-2.0.0-rc1-r8.apk'
+```
+
 Runner проверяет PID/start/имя/API AVD, upload-сертификат, production пакет,
 код 25, non-debuggable и переименование репозитория в mapping; снимает SHA-256.
 При существующем production-пакете отказывается продолжать. Использует только
 синтетическую задачу и после проверки удаляет собственную установку/probe.
 Уникальный экспорт сохраняется в Downloads и также удаляется после smoke;
-его локальная копия остаётся в отчёте. Проверенный picker — DocumentsUI AOSP API 35/36,
+его локальная копия остаётся в отчёте. Проверенный picker — DocumentsUI
+на Google APIs API 33 и AOSP API 35/36,
 с открытой папкой Downloads; другие providers/каталоги не проверялись.
 Ошибка сбора диагностики не отменяет попытку очистки. Общий `run.lock` исключает
 параллельный запуск с другими runner. Отчёты — `.test-tools/runs/*-release-smoke`.
@@ -119,7 +129,11 @@ AlarmReceiver. После возврата разрешения новый ACK �
 проверяются состояние переключателя и importance собственного канала в dumpsys.
 Отсутствие уведомления, работа receiver и восстановление доставки проверяются
 аналогично. Флаги разрешений и состояние канала удаляются с собственным APK.
-Сценарий проверен на английском Settings/notification action проектных AOSP API 35/36.
+Сценарий проверен на английском Settings/notification action проектных Google APIs
+API 33 и AOSP API 35/36. Перед вводом описание должно получить фокус, введённый
+текст сверяется со свежим XML. Back для скрытия IME выполняется только при
+показанной клавиатуре по dumpsys input_method. Переход в Edit подтверждается
+появлением поля, потерянный tap повторяется лишь пока видна кнопка деталей.
 Black-box проверки не читают wasNotified, не доказывают сохранение этой отметки
 или автоматическую доставку старой просрочки без нового пользовательского ACK.
 Doze, точность доставки в миллисекундах,

@@ -1,6 +1,6 @@
 ﻿<#
-Проверяет уже собранный production release APK через UI на проектном AVD API 35/36.
-Перед запуском: scripts/test.ps1 -Mode device -TestApi <35 или 36> -Offline -KeepEmulator.
+Проверяет уже собранный production release APK через UI на проектном AVD API 33/35/36.
+Перед запуском: scripts/test.ps1 -Mode device -TestApi <33, 35 или 36> -Offline -KeepEmulator.
 Одинаковый TestApi нужно передать обоим скриптам; по умолчанию здесь используется 36.
 APK должен быть подписан подтверждённым upload key; скрипт не публикует его в Play.
 Используются только новые синтетические задачи. Если production-пакет уже установлен,
@@ -11,7 +11,7 @@ APK должен быть подписан подтверждённым upload k
 param(
     [Parameter(Mandatory = $true)][string]$ApkPath,
     # Выбор ограничен проектными AVD; произвольный serial принимать небезопасно.
-    [ValidateSet(35, 36)][int]$TestApi = 36
+    [ValidateSet(33, 35, 36)][int]$TestApi = 36
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -21,7 +21,8 @@ $run = Join-Path $work ('runs\' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-relea
 New-Item -ItemType Directory -Path $run -Force | Out-Null
 $sdk = Join-Path $env:LOCALAPPDATA 'Android\Sdk'
 $adb = Join-Path $sdk 'platform-tools\adb.exe'
-$serial = if ($TestApi -eq 35) { 'emulator-5580' } else { 'emulator-5584' }
+# Каждому разрешённому API соответствует только закреплённый проектный порт.
+$serial = switch ($TestApi) { 33 { 'emulator-5582' }; 35 { 'emulator-5580' }; 36 { 'emulator-5584' } }
 $package = 'com.vpe_soft.intime.intime'
 $installedHere = $false
 $probePushed = $false
@@ -97,6 +98,41 @@ function Click-ReleaseNode([string]$XPath) {
     Invoke-ReleaseAdb @('shell', 'input', 'tap', "$x", "$y") | Out-Null
 }
 function Click-ReleaseId([string]$Id) { Click-ReleaseNode "//node[@resource-id='${package}:id/$Id']" }
+# Переход из деталей в Edit завершается только появлением поля формы.
+# Если tap потерялся в оконной анимации, повторяем лишь пока видна кнопка деталей;
+# не нажимаем по старым координатам и не принимаем ожидание за успешный переход.
+function Open-ReleaseEdit {
+    $limit = (Get-Date).AddSeconds(30)
+    do {
+        $ui = Read-ReleaseUi
+        if ($ui.SelectSingleNode("//node[@resource-id='${package}:id/edit_task_description']")) { return }
+        if ($ui.SelectSingleNode("//node[@resource-id='${package}:id/btnEditTask']")) { Click-ReleaseId 'btnEditTask' }
+        Start-Sleep -Milliseconds 500
+    } while ((Get-Date) -lt $limit)
+    throw 'Edit form did not open'
+}
+# Во время анимации Activity tap может потеряться. Перед вводом подтверждаем
+# фокус именно поля описания по свежему XML; ограниченные повторные taps безопасны.
+function Focus-ReleaseDescription {
+    $limit = (Get-Date).AddSeconds(20)
+    do {
+        Click-ReleaseId 'edit_task_description'
+        $ui = Read-ReleaseUi
+        if ($ui.SelectSingleNode("//node[@resource-id='${package}:id/edit_task_description' and @focused='true']")) { return }
+        Start-Sleep -Milliseconds 250
+    } while ((Get-Date) -lt $limit)
+    throw 'Description input did not receive focus'
+}
+# На API 33 аппаратная клавиатура AVD может оставлять IME скрытой после ввода.
+# Back в этом состоянии закроет форму. Сначала сверяем показ IME, затем ещё раз
+# проверяем поле формы; системный Back для навигации в других фазах не заменяем.
+function Close-ReleaseKeyboard {
+    $ime = Invoke-ReleaseAdb @('shell', 'dumpsys', 'input_method')
+    if ($ime -match '\bmInputShown=true\b|\bmIsInputViewShown=true\b') {
+        Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '4') | Out-Null
+    }
+    Wait-ReleaseNode "//node[@resource-id='${package}:id/edit_task_description']" | Out-Null
+}
 function Assert-ReleaseText([string]$Text) { Wait-ReleaseNode "//node[@text='$Text']" | Out-Null }
 function Launch-Release {
     Invoke-ReleaseAdb @('shell', 'am', 'start', '-W', '-n', "$package/com.vpe_soft.intime.intime.activity.MainActivityV2") | Out-Null
@@ -266,9 +302,10 @@ try {
     # после R8, без in-memory базы и без вызова внутренних методов приложения.
     $description = 'R8-Smoke-' + (Get-Date -Format 'HHmmss')
     Click-ReleaseId 'fab_add_task'
-    Click-ReleaseId 'edit_task_description'
+    Focus-ReleaseDescription
     Invoke-ReleaseAdb @('shell', 'input', 'text', $description) | Out-Null
-    Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '4') | Out-Null # Закрываем клавиатуру.
+    Wait-ReleaseNode "//node[@resource-id='${package}:id/edit_task_description' and @text='$description']" | Out-Null
+    Close-ReleaseKeyboard
     Click-ReleaseId 'spinner_interval'
     Click-ReleaseNode "//node[@text='Час']"
     Click-ReleaseId 'btn_save_task'
@@ -280,11 +317,12 @@ try {
     # суффикс. После сохранения старое описание заменяется новым; повторный запуск
     # после force-stop должен прочитать это же значение из файловой Room.
     Click-ReleaseNode "//node[@resource-id='${package}:id/textDescription' and @text='$description']"
-    Click-ReleaseId 'btnEditTask'
-    Click-ReleaseId 'edit_task_description'
+    Open-ReleaseEdit
+    Focus-ReleaseDescription
     Invoke-ReleaseAdb @('shell', 'input', 'keyevent', 'KEYCODE_MOVE_END') | Out-Null
     Invoke-ReleaseAdb @('shell', 'input', 'text', '-Edited') | Out-Null
-    Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '4') | Out-Null
+    Wait-ReleaseNode "//node[@resource-id='${package}:id/edit_task_description' and @text='$description-Edited']" | Out-Null
+    Close-ReleaseKeyboard
     Click-ReleaseId 'btn_save_task'
     $edited = "$description-Edited"
     Assert-ReleaseText $edited
@@ -420,7 +458,7 @@ try {
     Launch-Release
     Assert-ReleaseText $edited
     Click-ReleaseNode "//node[@resource-id='${package}:id/textDescription' and @text='$edited']"
-    Click-ReleaseId 'btnEditTask'
+    Open-ReleaseEdit
     Click-ReleaseId 'spinner_interval'
     Click-ReleaseNode "//node[@text='Минута']"
     Click-ReleaseId 'btn_save_task'
