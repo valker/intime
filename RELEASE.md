@@ -230,254 +230,97 @@ SIGNING_KEY_PASSWORD=your_key_password
 
 **⚠️ WARNING:** Do NOT commit gradle.properties with passwords to version control!
 
-### Build Signed Release APK
+### Build Signed Production APK/AAB
 
-```bash
-./gradlew assembleRelease
+Default release builds use `.dev`. For the production candidate, use explicit
+parameters in PowerShell (JDK 17, SDK and user signing properties configured):
+
+```powershell
+./gradlew.bat ':app:assembleRelease' ':app:bundleRelease' '-PproductionRelease=true' '-PreleaseVersionCode=25' '-PreleaseVersionName=2.0.0-rc1' --offline --no-daemon --no-watch-fs --no-configuration-cache
 ```
 
-Output: `app/build/outputs/apk/release/app-release.apk`
+Outputs: `app/build/outputs/apk/release/app-release.apk` and
+`app/build/outputs/bundle/release/app-release.aab`. Archive the exact artifacts,
+SHA-256, source commit, logs and mapping.txt together before another build.
+Code 25/name 2.0.0-rc1 are provisional. Local APKs carry the Upload key;
+they cannot update the differently signed Play installation.
 
-### Build Signed Release AAB (for Google Play)
+## R6.2 / R6.7: Release Verification
 
-```bash
-./gradlew bundleRelease
-```
+The uploaded candidate must be tied to its own verification records. See
+[DEVICE_TEST_RESULTS.md](DEVICE_TEST_RESULTS.md) for exact artifact hashes,
+run identifiers, initial conditions and coverage limits.
 
-Output: `app/build/outputs/bundle/release/app-release.aab`
+| Check | Verified locally | Remaining |
+| --- | --- | --- |
+| Signed AAB | October 4: R8/lint, Upload key, bundletool validate and actual manifest; embedded mapping matches | Play-generated APKs/installation update; final version |
+| API 24 | Runner/test support prepared | No device run: new image exceeds authorized 100 MB disk budget |
+| API 31 | Upload-signed APK smoke 14/14, plus three reboot repeats | Earlier isolated reboot failure unexplained; full matrix not closed |
+| API 33 | Upload-signed APK smoke 14/14 | Remaining shared coverage and Play upgrade |
+| API 35 | Upload-signed APK smoke 14/14; synthetic debug upgrade separately | Real production upgrade/data |
+| API 36 | Upload-signed APK smoke 14/14 and a separate forced deep Doze scenario | Natural Doze/quotas, inexact fallback coverage, release worker |
+| WorkManager | Debug real first execution, KEEP registration, second execution after process exit with temporary batching adjustment | Default batching timing, release/R8 worker and other API coverage |
+| 16 KB pages | Fresh AAB contains no native `.so` files | Separate device/platform verification not performed |
+| CI | Configuration and local checks recorded | Successful new remote pipelines not confirmed |
 
----
-
-## R6.2: Test Release Build
-
-### Historical Build Status (not current release verification)
-
-**Build Date:** 2026-05-26  
-**APK Size:** 3.0 MB (unsigned)  
-**Build Status:** ✅ SUCCESS  
-**ProGuard:** ✅ Enabled  
-**R8:** ✅ Enabled  
-
-### Test on a Dedicated Device
-
-For signed release, use a verified compatible signing key. An APK signed locally
-with an upload key is not the APK signed by Google for distribution. Check UPGRADE.md
-before updating. Personal devices require explicit authorization.
-These commands are templates; the current release still uses `.dev`:
-
-```bash
-# Install release APK
-adb -s emulator-5580 emu avd name # must be Intime_Test_API35
-adb -s emulator-5580 install -r app/build/outputs/apk/release/app-release.apk
-
-# Or using bundletool for AAB:
-bundletool build-apks --bundle=app-release.aab \
-  --output=app.apks \
-  --ks=intime-release.jks \
-  --ks-pass=pass:password \
-  --ks-key-alias=intime \
-  --key-pass=pass:password
-
-bundletool install-apks --apks=app.apks --device-id=emulator-5580
-```
-
-### Manual Test Checklist
-
-After installation, verify:
-
-- [ ] **Cold start** - App launches without crash
-- [ ] **Main screen** - Task list visible and responsive
-- [ ] **Create task** - Can add new task successfully
-- [ ] **Edit task** - Can modify task description/interval
-- [ ] **Acknowledge task** - Clicking acknowledge updates next_alarm
-- [ ] **Delete task** - Confirmation dialog appears, task is deleted
-- [ ] **Empty state** - Shown when no tasks exist
-- [ ] **Permissions banner** - Shows if notifications disabled
-- [ ] **Settings screen** - Opens and displays all sections
-- [ ] **Import/Export** - Can backup and restore tasks
-- [ ] **Notifications** - Test with alarm set to near future
-
-### Check for Crashes
-
-```bash
-adb logcat | grep -i "crash\|exception\|fatal"
-```
-
-### ProGuard Verification
-
-ProGuard output (line counts):
-- Input: Check `build/outputs/mapping/release/mapping.txt`
-- Verify obfuscated names are present
-- Check that our code was not over-obfuscated
-
----
+Use the release-smoke runner and commands in [TESTING.md](TESTING.md), only on
+the dedicated project AVDs. Do not install or clear a personal device implicitly.
+Do not infer a current pass from older logs or treat a packaging check as a device
+check. Preserve R8 mapping for crash decoding; a renamed class alone does not
+prove all runtime paths work.
 
 ## R6.3: App Icons
 
-### Status: READY FOR DESIGNER
-
-**Design Guide:** `ICON_DESIGN_GUIDE.md` — Complete specifications for designers
-
-### Current Icon Status
-
-- Dev icons in use: `app_icon_dev.xml` with green DEV badge
-- Base icon: `app/src/main/res/drawable-xhdpi/app_icon.png`
-- Round icon: `app/src/main/res/drawable-xhdpi/app_icon_round.png`
-
-### What's Needed
-
-**Launcher Icon:**
-- All sizes (ldpi through xxxhdpi)
-- Remove DEV badge
-- Professional, clean design
-- Suitable for productivity/reminder app
-
-**Adaptive Icon (Android 8+):**
-- Foreground: 108x108 dp with transparency
-- Background: Solid color
-- Safe zone: 72x72 dp
-
-**Round Icon (Optional):**
-- Same as launcher but with rounded corners
-- For devices supporting icon shapes
-
-### File Locations After Design
-
-```
-app/src/main/res/
-├── drawable-ldpi/app_icon.png (36x36)
-├── drawable-mdpi/app_icon.png (48x48)
-├── drawable-hdpi/app_icon.png (72x72)
-├── drawable-xhdpi/app_icon.png (96x96)
-├── drawable-xxhdpi/app_icon.png (144x144)
-├── drawable-xxxhdpi/app_icon.png (192x192)
-├── drawable-*/app_icon_round.png
-└── mipmap-anydpi-v33/
-    └── ic_launcher.xml (adaptive icon)
-```
-
-### Manifest Updates Required
-
-Change in `AndroidManifest.xml`:
-```xml
-<!-- FROM: -->
-android:icon="@drawable/app_icon_dev"
-android:roundIcon="@drawable/app_icon_round_dev"
-
-<!-- TO: -->
-android:icon="@drawable/app_icon"
-android:roundIcon="@drawable/app_icon_round"
-```
-
-### Next Steps
-
-1. Share `ICON_DESIGN_GUIDE.md` with designer
-2. Designer creates icons per specifications
-3. Place PNG files in correct directories
-4. Update manifest references
-5. Test on different devices (phone, tablet, wear)
-6. Include in release build
-
-### Using Android Studio Image Asset
-
-Alternative: Use Android Studio's built-in tool:
-1. Right-click `res/` → New → Image Asset
-2. Paste base icon image
-3. Studio generates all sizes
-4. Perfect for consistent scaling
-
----
+**Open:** the manifest still references `app_icon_dev` and `app_icon_round_dev`,
+including production mode. [ICON_DESIGN_GUIDE.md](ICON_DESIGN_GUIDE.md) is a design
+brief, not evidence that final artwork exists. Replace DEV artwork and provide
+launcher/adaptive resources, including a legacy fallback for supported older
+Android versions. Verify the resulting manifest, launcher and packaged resources
+in a fresh release candidate. This change invalidates the previous artifact's
+identity; retain its historical reports separately.
 
 ## R6.4: Privacy Policy
 
-✅ **Status:** DONE
+The local [PRIVACY_POLICY.md](PRIVACY_POLICY.md) draft was updated October 4.
+The app performs no own network uploads or cloud sync. It permits Android system
+backup, and user-selected SAF providers may be cloud services. The policy states
+these limits and explains that JSON exports are unencrypted.
 
-**Location:** `PRIVACY_POLICY.md`
-
-The privacy policy clearly states:
-- ✅ No data leaves the device (fully offline)
-- ✅ No accounts required
-- ✅ No analytics or telemetry
-- ✅ No ads
-- ✅ Data is stored locally only
-- ✅ Permissions usage explained
-- ✅ Export/backup process documented
-
-**For Play Store:** Copy the content from PRIVACY_POLICY.md to the Play Store listing
-
----
+Before release, publish matching text at a public policy URL and verify app/store
+links. The currently referenced `https://valker.github.io/intime_privacy_policy.html`
+was not readable through the web tool in this review; availability and consistency
+remain unverified. Repository edits do not update that site or Console.
+Google requires a publicly accessible privacy policy URL; see the
+[User Data policy](https://support.google.com/googleplay/android-developer/answer/10144311).
 
 ## R6.5: Play Console Declarations
 
-✅ **Status:** DONE
+The [declaration draft](google_play/PLAY_CONSOLE_DECLARATIONS.md) was reviewed
+against the merged signed AAB, source flows and official documentation October 4.
+It includes WorkManager permissions and the system-backup/SAF caveats.
+Final Data safety answers, content forms and Play acceptance are unverified;
+a file in the repository is not a submitted Console declaration.
 
-**Location:** `google_play/PLAY_CONSOLE_DECLARATIONS.md`
+## R6.6: Changelog and Release Notes
 
-The Play Console declarations are aligned with the current manifest:
-
-- ✅ `POST_NOTIFICATIONS` — reminders only, requested at runtime on Android 13+
-- ✅ `SCHEDULE_EXACT_ALARM` — reminder app use case, with fallback when unavailable
-- ✅ `RECEIVE_BOOT_COMPLETED` — reschedules user-created reminders after restart
-- ✅ No ads, analytics, tracking, accounts, cloud sync, or third-party data sharing
-- ✅ Data safety can state that no user data is collected or shared
-- ✅ App access does not require reviewer credentials
-
----
-
-## R6.6: Changelog
-
-✅ **Status:** DONE
-
-**Location:** `CHANGELOG.md`
-
-Comprehensive changelog for v2.0.0 including:
-- ✅ New features (Material Design, permission UI, import/export)
-- ✅ Improvements (scheduling accuracy, database modernization)
-- ✅ Bug fixes (overdue tasks, boot recovery, permission handling)
-- ✅ Migration guide for v1 users
-- ✅ Technical notes
-- ✅ Known limitations
-- ✅ Support and privacy information
-
-**For Release Notes:** Use content from CHANGELOG.md when publishing to Google Play Store
-
----
-
-## R6.7: Smoke Tests Matrix
-
-Test on these Android versions before release:
-
-- [ ] API 24 (Android 7.0) — Min SDK; full smoke pending
-- [ ] API 31 (Android 12) — Exact alarm threshold; full smoke pending
-- [ ] API 33 (Android 13) — Debug notification/reboot checks passed; full release smoke pending
-- [ ] API 35 (Android 15) — Debug tests and synthetic upgrade passed; full release smoke pending
-- [ ] API 36 (Android 16) — Debug platform/UI and notification/reboot checks passed; full release smoke pending
-
-### Test Checklist
-
-- [ ] App launches successfully
-- [ ] Can create new task
-- [ ] Can edit task
-- [ ] Can delete task (with confirmation)
-- [ ] Can acknowledge task
-- [ ] Task list shows correct order (next_alarm)
-- [ ] Empty state shown when no tasks
-- [ ] Permission warning shown if notifications disabled
-- [ ] Import/export works
-- [ ] Settings screen accessible
-- [ ] No crashes in logcat
-
----
+[CHANGELOG.md](CHANGELOG.md) describes an unreleased target version. Final date,
+version and user-facing release notes require approval after the remaining checks.
+Do not state automatic migration of all v1 installations or exact 15-minute
+background delivery. The real-data/Play update remains R4.2.
 
 ## Release Checklist
 
-- [ ] R6.1: Release signing configured
-- [ ] R6.2: Release build tested on real device
-- [ ] R6.3: App icons finalized
-- [ ] R6.4: Privacy policy ready
-- [x] R6.5: Play Console declarations reviewed
-- [ ] R6.6: Changelog prepared
-- [ ] R6.7: Smoke tests passed on all API levels
-- [ ] Version code bumped in build.gradle
-- [ ] Git tag created: `v2.0.0`
-- [ ] Release notes prepared for users
+- [x] Local Upload key configured and candidate signature verified.
+- [x] Candidate AAB structure, manifest and mapping checked.
+- [x] Bounded upload-signed APK smoke on API 31/33/35/36 documented.
+- [x] Local privacy/declaration/changelog drafts reviewed against current behavior.
+- [ ] Final launcher/adaptive icons replace DEV artwork (R5.2).
+- [ ] Remaining device coverage and release worker verified (R4.3/R5.3).
+- [ ] Real-data upgrade through Play-compatible signature verified (R4.2).
+- [ ] Public privacy page and actual Console declarations verified (R5.4).
+- [ ] Final production version and unused Play versionCode confirmed (R5.1).
+- [ ] Fresh final artifacts, mapping and hashes archived after all changes.
+- [ ] Final release notes, tag and staged rollout prepared (R5.5).
+
+No publication, tag, Console submission or remote pipeline run is implied by
+these checked local items.

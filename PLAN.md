@@ -1,7 +1,7 @@
 # Intime v2 Implementation Plan
 
 > Текущий порядок и проверенный статус находятся в [ROADMAP.md](ROADMAP.md),
-> обновлённом 2 октября 2026 года. Ниже сохранён исторический перечень работ.
+> обновлённом 4 октября 2026 года. Ниже сохранён исторический перечень работ.
 > Его отметки Done не подтверждают production-миграцию, signing или device smoke;
 > эти проверки остаются открытыми в актуальном roadmap.
 
@@ -98,7 +98,9 @@ from current runtime code paths.
 **Problem (resolved):** scheduling used raw SQLite while UI used Room. Replaced by
 `SchedulingCoordinator` + `TaskDao`.
 
-**Remaining:** manual smoke on device; optional unit test for `getNearestFutureTask`.
+**Checked:** bounded local/device scheduling regressions and upload-signed release
+smoke on API 31/33/35/36. **Remaining:** API 24, full release worker/Doze coverage
+and Play upgrade; see DEVICE_TEST_RESULTS.md for per-run limits.
 
 **Target model** (from `TECH_NOTES.md`):
 
@@ -206,13 +208,13 @@ Complete the v2 experience on current AppCompat/XML before a Compose pilot.
 
 | ID | Task | Done when |
 |----|------|-----------|
-| R6.1 | Configure release signing | ✓ Done (signing config in build.gradle + docs) |
-| R6.2 | Test release build with R8/ProGuard | ✓ Done (build successful, 3.0 MB APK, test plan created) |
-| R6.3 | Final app icon and adaptive icon | ✓ Ready (design guide created, awaiting designer) |
-| R6.4 | Privacy policy (offline, local-only data) | ✓ Done (PRIVACY_POLICY.md) |
-| R6.5 | Play Console declarations aligned with permissions | ✓ Done (`google_play/PLAY_CONSOLE_DECLARATIONS.md`) |
-| R6.6 | Changelog for existing users | ✓ Done (CHANGELOG.md) |
-| R6.7 | Smoke matrix: API 24, 31, 33, 35 | Documented results |
+| R6.1 | Configure release signing | Upload key/AAB verified; Play-signed installation upgrade open |
+| R6.2 | Test release build with R8/ProGuard | APK smoke API 31/33/35/36 and AAB validate passed within documented limits; full R5.3 open |
+| R6.3 | Final app icon and adaptive icon | Open: DEV icons still referenced; design guide is not final artwork |
+| R6.4 | Privacy policy | Local draft updated for Android backup/SAF; public page review/publication open |
+| R6.5 | Play Console declarations aligned with permissions | Draft reviewed against merged AAB; Console submission/acceptance not verified |
+| R6.6 | Changelog for existing users | Draft; final version/date and release notes open |
+| R6.7 | Smoke matrix: API 24, 31, 33, 35, 36 | Partial results documented; API 24 deferred by disk limit, remaining coverage open |
 
 **Documentation:** See `RELEASE.md` for detailed instructions for all tasks.
 
@@ -269,7 +271,7 @@ WS0 is complete. WS2 migration tests can proceed in parallel with WS3.
 3. **ACK fix** — `AckReceiver` / `TaskRepository` off main thread.
 4. **Manual smoke** — still recommended on emulator/device.
 
-## Sprint 2 Proposal (current)
+## Sprint 2 Proposal (historical)
 
 1. **L0.1–L0.6** — Remove legacy coupling and unused v1 code; manifest/import audit. ✓ DONE
 2. **B3.1–B3.2** — Backup format doc + export.
@@ -277,16 +279,16 @@ WS0 is complete. WS2 migration tests can proceed in parallel with WS3.
 4. **U4.1–U4.4** — Settings permission UX. ✓ DONE
 5. **V5.1–V5.3** — List sort, states, relative time.
 
-## Sprint 4 (current) — Release Readiness
+## Sprint 4 — Release Readiness (status reviewed October 4, 2026)
 
 1. **R6.1–R6.7** — Release preparation checklist
-   - R6.1: ✓ Done (release signing configured)
-   - R6.2: ✓ Done (release build successful, 3.0 MB)
+   - R6.1: Upload signing verified; Play-signed update remains open
+   - R6.2: Bounded release smoke and AAB validation passed; complete matrix open
    - R6.3: App icons (requires graphic design)
-   - R6.4: ✓ Done (PRIVACY_POLICY.md)
-   - R6.5: ✓ Done (Play Console declarations documented)
-   - R6.6: ✓ Done (CHANGELOG.md)
-   - R6.7: Smoke tests (final testing)
+   - R6.4: Local privacy draft updated; public policy not verified
+   - R6.5: Console declaration draft reviewed; submission not verified
+   - R6.6: Changelog draft; final release version/date not approved
+   - R6.7: Remaining smoke checks tracked in ROADMAP R4.3/R5.3
 
 ## Sprint 3 — COMPLETED ✅
 

@@ -2,17 +2,18 @@
 
 All notable changes to InTime are documented in this file.
 
-## [2.0.0] - 2026-05-26
+## [2.0.0] - Unreleased
 
 Draft target release. Default builds remain 1.1.8 with a `.dev` package;
-an explicit productionRelease candidate requires version parameters. Production
-signing and a real-data upgrade remain unverified. See ROADMAP.md
+an explicit productionRelease candidate requires version parameters.
+Upload-key signing and AAB structure were verified October 4, 2026; the Play-signed
+installation update and a real-data upgrade remain unverified. See ROADMAP.md
 and [UPGRADE.md](UPGRADE.md) for the checked status.
 
 ### New Features
 
-- **Modern Material Design UI** — Complete redesign with Material Design 3 components
-- **Exact Reminder Scheduling** — Precise reminders using AlarmManager with fallback to inexact alarms on older Android versions
+- **Java/XML UI** — AppCompat screens with Material components; no Compose rewrite
+- **Reminder Scheduling** — AlarmManager uses exact alarms when permitted and falls back to less precise alarms when unavailable
 - **Permission Management UI** — Notification and exact-alarm permission status in Settings with quick access buttons
 - **Task Import/Export** — Backup and restore your tasks to JSON format
 - **Empty State** — Clear message with call-to-action when no tasks exist
@@ -22,7 +23,7 @@ and [UPGRADE.md](UPGRADE.md) for the checked status.
 ### Improvements
 
 - **Database Modernization** — Migrated from raw SQLite to Room ORM with proper migrations
-- **Notification Accuracy** — Improved scheduling reliability with WorkManager fallback
+- **Background Reminders** — WorkManager reconciles overdue tasks and posts silent repeats; Android may delay execution
 - **Boot Recovery** — Reminders are properly restored after device reboot
 - **Code Architecture** — Clean separation between UI, domain logic, and data access layers
 - **Multi-Language Support** — Full support for English and Russian with proper text encoding
@@ -59,13 +60,13 @@ operation and does not prove automatic migration.
 
 ### Known Limitations
 
-- **No Cloud Sync** — Tasks are local-only (intentional for privacy)
+- **No App Cloud Sync** — Tasks are stored locally; Android backup and selected document providers may transfer copies
 - **No History Analytics** — We don't store reminder history (future feature)
 - **No Shared Tasks** — No collaboration features (intentional for simplicity)
 
 ### Developer Notes
 
-- Full test coverage for reminder calculation logic
+- Regression tests for reminder calculations, calendar boundaries and DST; coverage is bounded by tested cases
 - Instrumentation tests for database migrations
 - ProGuard/R8 optimized release builds
 - Documented release signing process
@@ -86,4 +87,5 @@ https://github.com/valker/intime/issues
 
 ## Privacy
 
-InTime is fully offline. Your data never leaves your device. See [PRIVACY_POLICY.md](PRIVACY_POLICY.md) for details.
+InTime works offline without its own cloud sync. Android system backup and
+user-selected document providers may transfer data. See [PRIVACY_POLICY.md](PRIVACY_POLICY.md).

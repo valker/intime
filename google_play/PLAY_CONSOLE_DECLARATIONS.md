@@ -1,8 +1,10 @@
 # Play Console Declarations
 
-This file is the release checklist for Google Play Console app content forms.
-It is aligned with `app/src/main/AndroidManifest.xml` and the app's local-only
-privacy model.
+Reviewed against source code and the signed candidate AAB on October 4, 2026.
+This is a draft for Google Play Console app content forms, not evidence that
+forms were submitted or accepted. Review the final artifact and current Console
+questions before submission. App operation is offline; system backup and
+user-selected document providers may transfer data (see PRIVACY_POLICY.md).
 
 ## Manifest Permissions
 
@@ -13,6 +15,13 @@ Declared permissions:
 | `POST_NOTIFICATIONS` | Required for app functionality | Intime sends reminder notifications when a task becomes due or overdue. |
 | `SCHEDULE_EXACT_ALARM` | Required for app functionality | Intime is a reminder app. Exact alarms are needed so user-created reminders fire at the selected time. |
 | `RECEIVE_BOOT_COMPLETED` | Required for app functionality | Intime reschedules local reminders after the device restarts. |
+
+The merged AAB also declares WAKE_LOCK, ACCESS_NETWORK_STATE and
+FOREGROUND_SERVICE from WorkManager, plus the application-specific AndroidX
+signature permission DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION. The current
+worker does not use foreground execution. INTERNET is absent. ACCESS_NETWORK_STATE
+alone does not grant network communication. Audit the merged manifest rather
+than only the source manifest.
 
 Not declared:
 
@@ -70,28 +79,41 @@ Use case: **Restore reminders after restart**
 Suggested declaration text:
 
 ```text
-Intime listens for device boot completion only to reschedule reminders that the
-user previously created. It does not start a foreground service, collect data,
-or perform network work after boot.
+Intime listens for device boot completion to reschedule user-created reminders
+and may show a local summary of tasks missed while the device was off. It does
+not request foreground execution or perform network work in this receiver.
 ```
 
 ## Data Safety
 
-Recommended answers:
+Draft answers for app-operated data flows; final review remains open:
 
 | Question | Answer |
 | --- | --- |
 | Does the app collect or share any required user data types? | No |
-| Is all user data collected by the app encrypted in transit? | Not applicable: no data is transmitted off device. |
+| Is all user data collected by the app encrypted in transit? | The app has no network upload flow; review applicability in the current form. Do not claim encryption for plain JSON exports. |
 | Can users request that data is deleted? | Not applicable for server-side deletion: data is stored locally and can be deleted in the app or by uninstalling/clearing app data. |
 | Does the app share data with third parties? | No |
 | Does the app use analytics, advertising, or tracking SDKs? | No |
 
-Privacy policy URL/content: use `PRIVACY_POLICY.md`.
+Privacy policy content: `PRIVACY_POLICY.md`. Before release, publish the matching
+text at an accessible public URL and check the app/store links. The resources
+currently contain https://valker.github.io/intime_privacy_policy.html; its
+availability/content could not be verified by the web tool on October 4.
+This does not establish that the site is unavailable.
 
 Important consistency note: task titles, reminder intervals, and backup files are
-user data stored locally on the device. They should not be reported as collected
-in Data safety because the app does not transmit them off device.
+user data stored locally on the device. Local processing alone is not data
+collection under the linked Data safety definitions. The manifest permits
+Android system backup and SAF can use a cloud provider selected by the user;
+the policy explains both. Confirm applicable disclosures for the final build,
+its dependencies and these transfers in the current Console form.
+
+Official references checked October 4, 2026:
+[Data safety definitions](https://support.google.com/googleplay/android-developer/answer/10787469),
+[User Data/privacy policy requirements](https://support.google.com/googleplay/android-developer/answer/10144311),
+[Android system backup](https://developer.android.com/identity/data/autobackup).
+The repository review does not establish compliance or Play approval.
 
 ## Ads
 
@@ -130,7 +152,8 @@ or marketed specifically for children.
 Short privacy summary for the listing:
 
 ```text
-Intime works offline. Your tasks and reminders stay on your device. The app does
-not use accounts, ads, analytics, tracking, or cloud sync.
+Intime works offline without accounts, ads, analytics or its own cloud sync.
+Android system backup may include app data. You choose the storage provider
+when importing or exporting tasks.
 ```
 

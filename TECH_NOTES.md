@@ -17,7 +17,8 @@ UI/data-access tree should not be restored as a normal runtime path.
   and `AlarmReceiver` registered; `TaskNotificationWorker` for reconciliation.
 - **Legacy UI/data paths:** removed from source after the current stack reached
   parity for the main flows.
-- Target SDK: 35; min SDK: 24.
+- Compile/target SDK: 36; min SDK: 24. JDK 17, Gradle 8.11.1, AGP 8.9.1.
+- Room 2.8.4, WorkManager 2.11.2; Kotlin/Compose остаются будущим пилотом.
 
 ## Runtime Code Layout
 
@@ -195,8 +196,11 @@ column (INTEGER NOT NULL DEFAULT 0) to track whether a task notification has bee
 sent. Migration 4 → 5 first adds quant (INTEGER NOT NULL DEFAULT 1).
 
 Production identity and the upgrade audit are documented in [UPGRADE.md](UPGRADE.md).
-The old package is `com.vpe_soft.intime.intime`; both current build types use `.dev`
-and cannot replace it. Historical v1 databases include SQLiteOpenHelper versions
+The old package is `com.vpe_soft.intime.intime`; default builds use `.dev`
+and cannot replace it. Explicit productionRelease restores the original package
+with mandatory version parameters and a verified Upload key. Google Play uses
+a different App signing key; a locally upload-signed APK cannot replace Play v1.
+Historical v1 databases include SQLiteOpenHelper versions
 4 and 5. Both 4 → 5 and 5 → 6 are registered through AppDatabase.createBuilder,
 which is shared with the singleton. Versions 1–3 remain unsupported.
 
@@ -209,7 +213,8 @@ not a real production SQLiteOpenHelper database or installation upgrade:
 - `migration_5_to_6_initializeWasNotifiedToZero`: Verifies new column defaults to 0
 - `migration_5_to_6_preservesDataIntegrity`: Verifies multiple tasks with various data
 
-Run tests with: `./gradlew connectedAndroidTest`
+Run device tests with `scripts/test.ps1` on a dedicated project emulator;
+see [TESTING.md](TESTING.md) for API selection, commands and Russian test comments.
 
 HistoricalMigrationTest (local) and HistoricalMigrationPlatformTest (Android)
 also seed raw file-backed SQLite databases using the historical version-4/5 DDL,
@@ -226,8 +231,8 @@ through Room, compare all fields and match the actual old schema, then test a
 separate authorized copy of real data and installation upgrade. A JSON import
 does not prove in-place migration. The installed v1 comes from Google Play;
 its extracted APKs now confirm version 1.1.11 / code 24 and a common signer
-certificate (see UPGRADE.md). Access to a compatible signing path for the new
-build and installation upgrade have not yet been verified.
+certificate (see UPGRADE.md). The production AAB has a verified Upload key;
+the Play-signed update APK and installation upgrade still need verification.
 
 Future database work should consider a separate history table for reminder and
 acknowledgement timestamps. This is not required for the first v2 release, but it
@@ -241,8 +246,8 @@ see Background queues and scheduling below for the ordering and transaction rule
 
 ### Encoding
 
-Some Russian text appears garbled in source comments and string literals. Before
-large text/UI work, source encoding and resource text should be normalized.
+Sources/resources use UTF-8. New tests require detailed Russian Javadoc directly
+before @Test; keep its conditions, actions, assertions and coverage limits current.
 
 ## Suggested Architecture Direction
 
@@ -325,6 +330,13 @@ Implemented flow:
     minimum pause for repeats, not a delivery deadline: Android may delay periodic
     work. Clearing app data resets this timestamp; the Room schema stays at version 6.
 
+MainActivityV2 registers unique periodic work with KEEP, a 15-minute interval,
+BatteryNotLow and NetworkType.NOT_REQUIRED. It does not promise delivery every
+15 minutes. API 36 debug checks cover registration across Activity recreation,
+first real execution, and a second execution after process termination with
+a temporarily reduced JobScheduler batching threshold. Default batching timing
+and release/R8 worker execution remain open; see DEVICE_TEST_RESULTS.md.
+
 ACK PendingIntents use a task-specific data URI (`intime://ack/task/<id>`),
 because extras do not participate in PendingIntent identity. Regression tests
 cover consecutive notifications, blocked posts and permission recovery via worker.
@@ -344,6 +356,17 @@ Key classes:
 - `workers/TaskNotificationWorker.java`
 - `database/dao/TaskDao.java` (`getNearestFutureTask`, `countOverdueTasks`,
   `countSkippedTasks`)
+
+## Data transfer and system backup
+
+The current AAB has no INTERNET permission or application network client.
+Room stores tasks locally; SharedPreferences store session/reminder state.
+However, allowBackup=true and no custom backup exclusion rules are configured.
+Android may back up/transfer app data according to device settings; restoration
+and rescheduling after system backup restore have not been tested here.
+SAF export/import uses a provider selected by the user, including cloud providers.
+External store links open another application. See PRIVACY_POLICY.md and the
+[Android Auto Backup documentation](https://developer.android.com/identity/data/autobackup).
 
 ## Error Handling
 
