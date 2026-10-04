@@ -1,5 +1,46 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Настоящий периодический WorkManager — 4 октября 2026
+
+Новый debug integration
+`NotificationDeliveryTest#realPeriodicWorker_postsQuietReminderAndSchedulesNextRun`
+**PASSED, 1/1**: `.test-tools/runs/20261004-204057-8bf694bb/summary.json`.
+Повтор в полном классе: `.test-tools/runs/20261004-204231-840fbc11/summary.json`,
+отчёт **5 тестов, 0 failures/errors/skipped**. Локальная регрессия **97/97**:
+`.test-tools/runs/20261004-204508-76be3615/summary.json`.
+Использован существующий Intime_Test_API36 (AOSP, 2 ГБ/host GPU/8 CPU),
+без нового SDK-образа/AVD. Runtime приложения и production APK/AAB не менялись.
+
+В синтетической in-memory Room создана уже уведомлённая просроченная задача,
+LAST_POST задан 16 минутами ранее. Штатная periodic work тестового приложения
+отменена для изоляции. Настоящий WorkManager получил PeriodicWorkRequest
+с интервалом 15 минут, BatteryNotLow и initial delay 10 секунд; doWork вручную
+и TestWorkerBuilder не вызывались. Проверены регистрация UUID в Android
+JobScheduler, системное уведомление с описанием, отсутствие ACK/sound/vibrate
+и звуковых defaults, неизменные lastAck/nextAlarm/wasNotified, обновление LAST_POST.
+После первого исполнения WorkInfo вернулся в ENQUEUED с nextScheduleTimeMillis
+не менее чем через 14 минут от начала проверки. В finally отменён созданный UUID,
+прежний LAST_POST восстановлен.
+
+Первый запуск `20261004-203734-415bb5c7` — FAILED, 1 тест/1 failure:
+новый тест искал jobs в default namespace. На API 34+ WorkManager использует
+`androidx.work.systemjobscheduler`; выбор namespace исправлен, затем выполнены
+два успешных прогона. Это ошибка тестовой проверки, приложение не менялось.
+
+Полный класс включает условную фазу deniedRuntimePermission с precondition
+по Assume; этот прогон не заменяет отдельно контролируемый отзыв разрешения.
+В device-logcat нет ANR/FATAL EXCEPTION/Fatal signal. Дополнительная диагностика
+сохранена в `device-logcat.log` и `jobscheduler-after.log`. Эмулятор остановлен
+после проверки PID/StartTime/AVD name. Четыре каталога отчётов занимают около
+4,71 МиБ логических файлов (без оценки общего изменения Gradle/AVD).
+
+Покрыт первый запуск настоящей периодической работы и её перепланирование.
+Второй естественный запуск через 15 минут, конкретный исполняющий scheduler
+(SystemJobScheduler/GreedyScheduler), регистрация работы MainActivity,
+сохранение расписания после смерти процесса, release/R8 worker, Doze и слышимость
+на телефоне пока не проверены. Следующий шаг — второй реальный периодический
+запуск и сохранение расписания после смерти процесса на существующем AVD.
+
 ## Release Doze на API 36 — 4 октября 2026
 
 **PASSED, 11/11 фаз:** `.test-tools/runs/20261004-194701-release-smoke/summary.json`.

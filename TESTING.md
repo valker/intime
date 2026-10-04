@@ -32,6 +32,28 @@ ScreenPlatformTest использует AndroidX WindowInsetsCompat и Display.g
 
 ## Commands
 
+### Настоящий периодический WorkManager (debug integration)
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 36 -Filter 'com.vpe_soft.intime.intime.receiver.NotificationDeliveryTest#realPeriodicWorker_postsQuietReminderAndSchedulesNextRun' -Offline
+```
+
+Тест использует настоящий WorkManager, PeriodicWorkRequest с интервалом 15 минут,
+BatteryNotLow и initial delay 10 секунд. Проверяет регистрацию UUID в JobScheduler
+(namespace `androidx.work.systemjobscheduler` на API 34+), первое исполнение,
+тихое системное уведомление без ACK и будущий nextScheduleTimeMillis.
+Исходные lastAck/nextAlarm/wasNotified и время отправки проверяются в синтетической
+in-memory Room/preferences. Остаточная штатная periodic work тестового приложения
+отменяется для изоляции; новый UUID отменяется в finally, LAST_POST возвращается.
+Приватные пользовательские main*.db не читаются.
+
+Это debug-тест с реальным WorkManager, а не вызов doWork через TestWorkerBuilder.
+Он не ждёт второго 15-минутного исполнения и не определяет, какой scheduler
+выполнил первое (SystemJobScheduler или GreedyScheduler). Регистрация расписания
+MainActivity, release/R8, выживание после убийства процесса и Doze не покрыты.
+Полный NotificationDeliveryTest также содержит отдельный условный тест отказа
+POST_NOTIFICATIONS; его precondition по Assume требует отсутствующего разрешения.
+
 ### Точечный release Doze smoke на существующем API 36
 
 ```powershell

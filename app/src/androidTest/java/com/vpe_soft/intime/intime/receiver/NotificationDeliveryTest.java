@@ -153,6 +153,103 @@ public class NotificationDeliveryTest {
     }
 
     /**
+     * В in-memory Room создаётся одна уже уведомлённая просроченная задача; lastAck
+     * и nextAlarm запоминаются, последняя успешная отправка в preferences датируется
+     * 16 минутами ранее. Разрешение уведомлений выдано, канал включён, Activity не
+     * открывается. Настоящему WorkManager передаётся новая периодическая работа
+     * после отмены оставшейся штатной periodic work этого тестового приложения,
+     * чтобы другое расписание не отправило уведомление вместо проверяемого запроса.
+     * TaskNotificationWorker с интервалом 15 минут, BatteryNotLow и начальной
+     * задержкой 10 секунд; TestWorkerBuilder и явный doWork не используются.
+     * До запуска проверяется регистрация её ID в Android JobScheduler (на API 34+
+     * в namespace androidx.work.systemjobscheduler). Затем
+     * ожидается системное уведомление с исходным описанием, без ACK, звука,
+     * вибрации и звуковых defaults. Проверяются неизменные lastAck/nextAlarm,
+     * сохранённый wasNotified и обновление времени успешной отправки. WorkInfo
+     * должен вернуться в ENQUEUED с будущим nextScheduleTimeMillis не менее чем
+     * через 14 минут от начала проверки: это подтверждает перепланирование
+     * периодической работы после первого исполнения. В finally отменяется только
+     * работа с созданным здесь UUID и возвращается прежнее значение LAST_POST.
+     * Проверка не ждёт второй 15-минутный запуск,
+     * не доказывает выбор SystemJobScheduler вместо GreedyScheduler для исполнения,
+     * регистрацию работы MainActivity, устойчивость после убийства процесса или Doze.
+     */
+    @Test
+    public void realPeriodicWorker_postsQuietReminderAndSchedulesNextRun() throws Exception {
+        androidx.work.WorkManager workManager = androidx.work.WorkManager.getInstance(context);
+        workManager.cancelUniqueWork(com.vpe_soft.intime.intime.workers.TaskNotificationWorker.class.getName())
+                .getResult().get(10, TimeUnit.SECONDS);
+        android.content.SharedPreferences reminderState = context.getSharedPreferences(
+                "notification_reminder_state", Context.MODE_PRIVATE);
+        boolean hadLastPost = reminderState.contains("last_successful_post");
+        long previousLastPost = reminderState.getLong("last_successful_post", 0);
+        long started = System.currentTimeMillis();
+        long past = started - 1000;
+        long id = dao.insert(new TaskEntity("Periodic device", 1, 1, past, past, 0, 1));
+        dao.markTaskNotified(id);
+        TaskEntity before = dao.getRawTaskById(id);
+        assertTrue(context.getSharedPreferences("notification_reminder_state", Context.MODE_PRIVATE)
+                .edit().putLong("last_successful_post", started - 960000).commit());
+        androidx.work.PeriodicWorkRequest request = new androidx.work.PeriodicWorkRequest.Builder(
+                com.vpe_soft.intime.intime.workers.TaskNotificationWorker.class, 15, TimeUnit.MINUTES)
+                .setInitialDelay(10, TimeUnit.SECONDS)
+                .setConstraints(new androidx.work.Constraints.Builder().setRequiresBatteryNotLow(true).build())
+                .build();
+        try {
+            workManager.enqueue(request).getResult().get(10, TimeUnit.SECONDS);
+            android.app.job.JobScheduler scheduler = context.getSystemService(android.app.job.JobScheduler.class);
+            if (android.os.Build.VERSION.SDK_INT >= 34) {
+                scheduler = scheduler.forNamespace("androidx.work.systemjobscheduler");
+            }
+            long registrationLimit = SystemClock.elapsedRealtime() + 5000;
+            boolean registered = false;
+            do {
+                for (android.app.job.JobInfo job : scheduler.getAllPendingJobs()) {
+                    if (request.getId().toString().equals(job.getExtras().getString("EXTRA_WORK_SPEC_ID"))) {
+                        registered = true;
+                        break;
+                    }
+                }
+                if (!registered) SystemClock.sleep(100);
+            } while (!registered && SystemClock.elapsedRealtime() < registrationLimit);
+            assertTrue("Periodic work was not registered with Android JobScheduler", registered);
+            Notification notification = awaitNotification(30000);
+            assertEquals("Periodic device", notification.extras.getCharSequence(Notification.EXTRA_TEXT));
+            assertTrue(notification.actions == null || notification.actions.length == 0);
+            assertNull(notification.sound);
+            assertNull(notification.vibrate);
+            assertEquals(0, notification.defaults & (Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE));
+            TaskEntity after = dao.getRawTaskById(id);
+            assertEquals(before.lastAck, after.lastAck);
+            assertEquals(before.nextAlarm, after.nextAlarm);
+            assertTrue(after.isWasNotified());
+            assertTrue(context.getSharedPreferences("notification_reminder_state", Context.MODE_PRIVATE)
+                    .getLong("last_successful_post", 0) >= started);
+            long rescheduleLimit = SystemClock.elapsedRealtime() + 10000;
+            androidx.work.WorkInfo info;
+            do {
+                info = workManager.getWorkInfoById(request.getId()).get(5, TimeUnit.SECONDS);
+                if (info != null && info.getState() == androidx.work.WorkInfo.State.ENQUEUED
+                        && info.getNextScheduleTimeMillis() >= started + TimeUnit.MINUTES.toMillis(14)) break;
+                SystemClock.sleep(100);
+            } while (SystemClock.elapsedRealtime() < rescheduleLimit);
+            assertNotNull(info);
+            assertEquals(androidx.work.WorkInfo.State.ENQUEUED, info.getState());
+            assertTrue("Next periodic run was not scheduled in the future",
+                    info.getNextScheduleTimeMillis() >= started + TimeUnit.MINUTES.toMillis(14));
+        } finally {
+            try {
+                workManager.cancelWorkById(request.getId()).getResult().get(10, TimeUnit.SECONDS);
+            } finally {
+                android.content.SharedPreferences.Editor restore = reminderState.edit();
+                if (hadLastPost) restore.putLong("last_successful_post", previousLastPost);
+                else restore.remove("last_successful_post");
+                assertTrue(restore.commit());
+            }
+        }
+    }
+
+    /**
      * Проверяет отключённый настоящий Android-канал уведомлений тестового приложения.
      * После создания канала его importance понижается до NONE и проверяется в системе.
      * Для просроченной задачи вызывается receiver: уведомления быть не должно,

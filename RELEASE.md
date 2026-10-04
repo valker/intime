@@ -140,6 +140,12 @@ Exact-доступ на API 31 был доступен изначально: е�
 Doze-доставка, не квоты повторных alarm, естественный вход в Doze или inexact
 fallback. Новый SDK-образ/AVD не устанавливался; production APK/AAB не пересобирались.
 
+Debug integration на API 36 проверяет настоящий PeriodicWorkRequest/WorkManager:
+первое исполнение, тихое уведомление без ACK и будущий срок следующего запуска.
+Новый тест прошёл отдельно (`20261004-204057-8bf694bb`) и в классе доставки
+(`20261004-204231-840fbc11`, 5 тестов по отчёту, без ошибок). Это не release/R8
+проверка worker и не ожидание второго 15-минутного запуска; эти пункты остаются открытыми.
+
 ### Create a Keystore (first time only)
 
 For a new application only, if you don't have a keystore yet, create one.
