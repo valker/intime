@@ -1,5 +1,49 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Release Doze на API 36 — 4 октября 2026
+
+**PASSED, 11/11 фаз:** `.test-tools/runs/20261004-194701-release-smoke/summary.json`.
+UI bootstrap **2/2**: `.test-tools/runs/20261004-193810-32dc4da6/summary.json`.
+Использованы существующий Intime_Test_API36 / emulator-5584 (AOSP rev 2,
+2048 МБ/host GPU/8 CPU) и прежний production R8 APK SHA-256
+`00F8198794F6DC307B52D0FEE5C533DC60B69CC6AAC9A9EB7E827FF88772165D`.
+Runtime не менялся; новые SDK-образы/AVD не устанавливались. Unit suite и
+production APK/AAB на этом шаге не пересобирались/не запускались.
+
+Режим `-DozeOnly`: семь CRUD/JSON фаз, reboot, доставка в deep idle,
+проверка уведомления в шторке после выхода из сна и ACK/process restart.
+Boot count `21 → 22`, alarm `1791136059614` восстановился до открытия Activity.
+Минутный alarm `1791132624470` сработал при deep state IDLE. Системная диагностика
+после доставки: `mForceIdle=true`, `mScreenOn=false`, `mCharging=false`,
+`mState=IDLE`; лог receiver, активный notification record собственного пакета
+с уникальным описанием и исчезновение alarm проверены без открытия UI.
+После выхода из сна ACK из шторки создал alarm `1791132690521`, который
+сохранился после force-stop/запуска приложения.
+
+На этом AOSP Doze изначально выключен: runner временно включает только deep idle,
+затем возвращает исходное состояние. Дополнительная проверка после прогона:
+`doze-state-restored.log` — `mForceIdle=false`, `mDeepEnabled=false`;
+`doze-battery-restored.log` — battery simulation снята. Собственные APK/probe/JSON
+очищены без ошибок; эмулятор остановлен после проверки PID/StartTime/AVD name.
+В итоговых журналах нет ANR/FATAL EXCEPTION.
+
+Неуспешные попытки сохранены отдельно и не считаются pass:
+- `20261004-194052-release-smoke`: восемь подготовительных фаз прошли,
+  `force-idle deep` отказал: `Unable to go deep idle; not enabled`.
+  Это ограничение окружения до проверки доставки; cleanup завершился без ошибок.
+- `20261004-194444-release-smoke`: две фазы прошли, потерялся tap перехода
+  из списка к деталям после restart. Добавлен Open-ReleaseDetails с подтверждением
+  btnAckTask и ограниченным повтором tap только при видимой исходной строке;
+  сами действия ACK не повторяются. Приложение не менялось.
+
+Четыре каталога текущей проверки (bootstrap и три smoke) занимают суммарно
+около 44 МиБ логических файлов; это размер отчётов, не измерение общего изменения
+занятого места с учётом Gradle/AVD. Новый образ не скачивался.
+Проверена одна доставка exact-and-allow-while-idle в принудительном Doze.
+Естественный вход в Doze, квоты повторной доставки, inexact fallback, периодический
+WorkManager, физический телефон/OEM и другие API не проверены. Фазы отказа
+разрешения/канала этим режимом пропущены. R4.3/R5.3 целиком остаются открытыми.
+
 ## Подготовка API 24 — 4 октября 2026
 
 Runner принимает API 24: выделенные имя `Intime_Test_API24`, порт 5588,

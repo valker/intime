@@ -32,6 +32,33 @@ ScreenPlatformTest использует AndroidX WindowInsetsCompat и Display.g
 
 ## Commands
 
+### Точечный release Doze smoke на существующем API 36
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 36 -Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline -KeepEmulator
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -TestApi 36 -ApkPath '.test-tools/runs/release-permissions-20261003-225632/intime-25-2.0.0-rc1-r8.apk' -DozeOnly
+```
+
+Режим проходит восемь подготовительных фаз CRUD/JSON/reboot, одну доставку
+в принудительном deep idle, затем проверку шторки и ACK с перезапуском процесса.
+Только собственная новая production-установка получает exact alarm permission.
+Отсутствие пакета в постоянном whitelist, deep state IDLE при каждом опросе,
+активный notification record своего пакета/уникальное описание, лог receiver
+и исчезновение alarm проверяются до включения экрана. Во время ожидания UIAutomator
+и Activity не запускаются. После доставки снимается forced idle, battery simulation
+сбрасывается, экран включается. При ошибке восстановление тоже выполняется в finally.
+Скрипт отказывается заменять существующую battery simulation или forced idle.
+Если deep idle изначально выключен (AOSP API 36 этого хоста), временно включается
+только deep idle; при восстановлении возвращается исходный enabled. Light idle
+и постоянный whitelist не меняются. Переход из списка к деталям подтверждается
+по btnAckTask; потерянный tap повторяется лишь пока видна исходная строка задачи.
+Логи `doze-*.log` и summary сохраняются в каталоге запуска.
+
+Это одна доставка exact-and-allow-while-idle, не естественный переход в Doze,
+квоты нескольких alarm, inexact fallback, периодический WorkManager или поведение
+физического телефона. Фазы отказа разрешения/канала пропущены; RebootOnly и
+DozeOnly несовместимы. Наличие режима само по себе не доказывает pass на устройстве.
+
 GitHub Actions (`.github/workflows/android-ci.yml`) добавлен при слиянии локальной
 master. Он использует JDK 17, SDK 36/build-tools 35.0.0, текущий Gradle Wrapper
 и задачи `:app:lintDebug`, `assembleDebug`, `:app:testDebugUnitTest`.

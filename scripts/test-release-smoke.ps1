@@ -15,6 +15,8 @@ param(
     [ValidateSet(24, 31, 33, 35, 36)][int]$TestApi = 36,
     # Точечный режим проходит подготовку/JSON и повторяет reboot без минутных уведомлений.
     [switch]$RebootOnly,
+    # Только доставка в deep idle и ACK после подготовки/reboot; без фаз запрета.
+    [switch]$DozeOnly,
     [ValidateRange(1, 10)][int]$RebootRepeats = 1,
     # Ноль позволяет проверить гипотезу о задержке записи stopped после force-stop.
     [ValidateRange(0, 60)][int]$RebootSettleSeconds = 15
@@ -32,12 +34,16 @@ $serial = switch ($TestApi) { 24 { 'emulator-5588' }; 31 { 'emulator-5586' }; 33
 $package = 'com.vpe_soft.intime.intime'
 $installedHere = $false
 $probePushed = $false
+$dozeChanged = $false
+$dozeDeepWasEnabled = $null
 $backupDevicePath = $null
 $oldJavaHome = $env:JAVA_HOME
 $lock = $null
 $commandNumber = 0
 $summary = @{ status = 'RUNNING'; passedPhases = @(); reports = $run; serial = $serial; testApi = $TestApi; rebootOnly = [bool]$RebootOnly; rebootResults = @(); rebootSettleSeconds = $RebootSettleSeconds }
 if (-not $RebootOnly -and $RebootRepeats -ne 1) { throw 'RebootRepeats requires RebootOnly' }
+if ($RebootOnly -and $DozeOnly) { throw 'RebootOnly and DozeOnly are mutually exclusive' }
+$summary.dozeOnly = [bool]$DozeOnly
 # API 24 не имеет notification channels и новых Settings intents. Пока эти фазы
 # не адаптированы, отказываем до установки APK вместо ложного полного smoke.
 if ($TestApi -eq 24 -and -not $RebootOnly) { throw 'API 24 currently requires RebootOnly; notification phases are not supported yet.' }
@@ -188,12 +194,94 @@ function Complete-ReleasePhase([string]$Name) {
     Write-Output "PASSED: $Name"
 }
 
+# Восстанавливаем каждую изменённую настройку даже при ошибке предыдущей команды.
+# Вызывается и из finally: отказ проверки доставки не должен оставить forced idle
+# или имитацию отключённой зарядки на проектном AVD.
+function Restore-ReleaseDoze {
+    $errors = @()
+    $restoreCommands = @(@('shell', 'cmd', 'deviceidle', 'unforce'), @('shell', 'dumpsys', 'battery', 'reset'), @('shell', 'input', 'keyevent', '224'))
+    # AOSP AVD может иметь deep idle выключенным. Возвращаем исходное enabled,
+    # не меняя light idle и постоянные whitelist/configuration ОС.
+    if ($null -ne $script:dozeDeepWasEnabled -and -not $script:dozeDeepWasEnabled) {
+        $restoreCommands += ,@('shell', 'cmd', 'deviceidle', 'disable', 'deep')
+    }
+    foreach ($arguments in $restoreCommands) {
+        try { Invoke-ReleaseAdb $arguments | Out-Null } catch { $errors += $_.Exception.Message }
+    }
+    if ($errors.Count) { throw ($errors -join '; ') }
+    $script:dozeChanged = $false
+}
+
+# Tap по строке иногда теряется после перезапуска/перехода. Повторяем его только
+# пока свежий XML показывает именно нужную строку списка; появление btnAckTask
+# подтверждает экран деталей. ACK не повторяется и выполняется отдельной фазой.
+function Open-ReleaseDetails([string]$Description) {
+    $limit = (Get-Date).AddSeconds(30)
+    $row = "//node[@resource-id='${package}:id/textDescription' and @text='$Description']"
+    do {
+        $ui = Read-ReleaseUi
+        if ($ui.SelectSingleNode("//node[@resource-id='${package}:id/btnAckTask']")) { return }
+        if ($ui.SelectSingleNode($row)) { Click-ReleaseNode $row }
+        Start-Sleep -Milliseconds 500
+    } while ((Get-Date) -lt $limit)
+    throw 'Task details did not open'
+}
+
+# Будущая минутная задача уже сохранена UI и запланирована приложением, открыт Home.
+# На собственном AVD имитируем отключение зарядки, гасим экран, включаем deep idle.
+# При ожидании не открываем UI и не запускаем UIAutomator; требуем IDLE при каждом
+# опросе и активное уведомление своего пакета с уникальным описанием. Проверяем
+# реальный receiver и исчезновение сработавшего alarm, не вызываем Java вручную.
+# Покрывается один exact-and-allow-while-idle alarm. Естественный вход в Doze,
+# квоты повторной доставки, inexact fallback и периодический worker не проверяются.
+function Assert-ReleaseDozeDelivery([string]$Description) {
+    $battery = Invoke-ReleaseAdb @('shell', 'dumpsys', 'battery')
+    Set-Content (Join-Path $run 'doze-battery-before.log') $battery -Encoding UTF8
+    if ($battery -match 'UPDATES STOPPED') { throw 'Refusing to overwrite existing battery simulation' }
+    $idle = Invoke-ReleaseAdb @('shell', 'dumpsys', 'deviceidle')
+    Set-Content (Join-Path $run 'doze-state-before.log') $idle -Encoding UTF8
+    if ($idle -notmatch 'mForceIdle=false') { throw 'Refusing an already forced idle state' }
+    $enabled = (Invoke-ReleaseAdb @('shell', 'cmd', 'deviceidle', 'enabled', 'deep')).Trim()
+    if ($enabled -notin @('0', '1')) { throw "Unknown deep idle enabled state: $enabled" }
+    $script:dozeDeepWasEnabled = $enabled -eq '1'
+    $summary.dozeDeepOriginallyEnabled = $script:dozeDeepWasEnabled
+    $whitelist = Invoke-ReleaseAdb @('shell', 'cmd', 'deviceidle', 'whitelist')
+    Set-Content (Join-Path $run 'doze-whitelist.log') $whitelist -Encoding UTF8
+    if ($whitelist -match [regex]::Escape($package)) { throw 'Release package is exempt from device idle' }
+    $since = (Invoke-ReleaseAdb @('shell', "date '+%m-%d %H:%M:%S.000'")).Trim()
+    $script:dozeChanged = $true
+    if (-not $script:dozeDeepWasEnabled) { Invoke-ReleaseAdb @('shell', 'cmd', 'deviceidle', 'enable', 'deep') | Out-Null }
+    Invoke-ReleaseAdb @('shell', 'dumpsys', 'battery', 'unplug') | Out-Null
+    Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '223') | Out-Null
+    Invoke-ReleaseAdb @('shell', 'cmd', 'deviceidle', 'force-idle', 'deep') | Out-Null
+    $limit = (Get-Date).AddSeconds(150)
+    $delivered = $false
+    do {
+        $state = (Invoke-ReleaseAdb @('shell', 'cmd', 'deviceidle', 'get', 'deep')).Trim()
+        if ($state -ne 'IDLE') { throw "Deep idle not maintained: $state" }
+        $notifications = Invoke-ReleaseAdb @('shell', 'dumpsys', 'notification', '--noredact')
+        # Ищем только в активном record своего пакета, не в history/чужих уведомлениях.
+        $record = [regex]::Match($notifications, '(?ms)^\s*NotificationRecord\([^\r\n]*pkg=com\.vpe_soft\.intime\.intime [^\r\n]*\r?\n(?:(?!^\s*NotificationRecord\().)*')
+        $delivered = $record.Success -and $record.Value.Contains("android.text=String ($Description)")
+        if (-not $delivered) { Start-Sleep -Seconds 2 }
+    } while (-not $delivered -and (Get-Date) -lt $limit)
+    Set-Content (Join-Path $run 'doze-notifications.log') $notifications -Encoding UTF8
+    Set-Content (Join-Path $run 'doze-state.log') (Invoke-ReleaseAdb @('shell', 'dumpsys', 'deviceidle')) -Encoding UTF8
+    $deliveryLog = Invoke-ReleaseAdb @('logcat', '-d', '-T', $since)
+    Set-Content (Join-Path $run 'doze-logcat.log') $deliveryLog -Encoding UTF8
+    if (-not $delivered -or $deliveryLog -notmatch 'AlarmReceiver.*handleAlarm: trying to post notification') { throw 'Release notification not confirmed during deep idle' }
+    if ((Read-ReleaseAlarm) -ne 0) { throw 'Doze alarm was not consumed' }
+    $summary.dozeStateAtDelivery = $state
+    Complete-ReleasePhase 'release-doze-delivery'
+    Restore-ReleaseDoze
+}
+
 # Начинаем новый минутный отсчёт только через существующую кнопку ACK в UI.
 # После возврата Home приложение не подавляет доставку своей видимостью.
 function Prepare-ReleaseMinuteAlarm([string]$Description) {
     Launch-Release
     Assert-ReleaseText $Description
-    Click-ReleaseNode "//node[@resource-id='${package}:id/textDescription' and @text='$Description']"
+    Open-ReleaseDetails $Description
     Click-ReleaseId 'btnAckTask'
     Assert-ReleaseText $Description
     $alarm = Wait-ReleaseAlarm
@@ -367,7 +455,7 @@ try {
     # Проверка редактирования: открываем созданную строку и форму Edit, дописываем
     # суффикс. После сохранения старое описание заменяется новым; повторный запуск
     # после force-stop должен прочитать это же значение из файловой Room.
-    Click-ReleaseNode "//node[@resource-id='${package}:id/textDescription' and @text='$description']"
+    Open-ReleaseDetails $description
     Open-ReleaseEdit
     Focus-ReleaseDescription
     Invoke-ReleaseAdb @('shell', 'input', 'keyevent', 'KEYCODE_MOVE_END') | Out-Null
@@ -390,7 +478,7 @@ try {
     # Снимок срока берём после Edit/restart, иначе перенос при редактировании
     # мог бы дать ложный успех даже при неработающем ACK.
     $beforeAck = Wait-ReleaseAlarm
-    Click-ReleaseNode "//node[@resource-id='${package}:id/textDescription' and @text='$edited']"
+    Open-ReleaseDetails $edited
     Click-ReleaseId 'btnAckTask'
     Assert-ReleaseText $edited
     $afterAck = Wait-ReleaseAlarm $beforeAck
@@ -440,7 +528,7 @@ try {
     # Проверка удаления: нажимаем Delete и подтверждаем диалог. Должно появиться
     # пустое состояние, которое сохраняется после нового запуска процесса;
     # будильник единственной удалённой задачи должен быть отменён.
-    Click-ReleaseNode "//node[@resource-id='${package}:id/textDescription' and @text='$edited']"
+    Open-ReleaseDetails $edited
     Click-ReleaseId 'btnDeleteTask'
     Click-ReleaseNode "//node[@resource-id='android:id/button1']"
     Wait-ReleaseNode "//node[@resource-id='${package}:id/emptyStateAddTaskBtn']" | Out-Null
@@ -551,7 +639,7 @@ try {
     Invoke-ReleaseAdb @('shell', 'appops', 'set', $package, 'SCHEDULE_EXACT_ALARM', 'allow') | Out-Null
     Launch-Release
     Assert-ReleaseText $edited
-    Click-ReleaseNode "//node[@resource-id='${package}:id/textDescription' and @text='$edited']"
+    Open-ReleaseDetails $edited
     Open-ReleaseEdit
     Click-ReleaseId 'spinner_interval'
     Click-ReleaseNode "//node[@text='Минута']"
@@ -562,6 +650,7 @@ try {
     $summary.notificationAlarm = $notificationDeadline
     Write-Output "Waiting for real AlarmManager notification (deadline $notificationDeadline)..."
     Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '3') | Out-Null
+    if ($DozeOnly) { Assert-ReleaseDozeDelivery $edited }
     Invoke-ReleaseAdb @('shell', 'cmd', 'statusbar', 'expand-notifications') | Out-Null
     $notificationLimit = (Get-Date).AddSeconds(150)
     $notificationVisible = $false
@@ -592,6 +681,7 @@ try {
     if ((Wait-ReleaseAlarm) -ne $notificationAckAlarm) { throw 'Notification ACK alarm lost after restart' }
     Complete-ReleasePhase 'release-notification-ack'
 
+    if (-not $DozeOnly) {
     # Проверка отказа POST_NOTIFICATIONS: отзыв разрешения может убить процесс,
     # поэтому выполняем его до нового запуска. Флаги user-set/user-fixed исключают
     # всплывающий permission dialog. UI ACK ставит новый минутный alarm, Home;
@@ -650,12 +740,19 @@ try {
     Assert-ReleaseRecoveredNotification $edited 'channel-restored'
     Complete-ReleasePhase 'release-channel-restored'
     }
+    }
     $summary.status = 'PASSED'
 } catch {
     $summary.status = if ($installedHere) { 'FAILED' } else { 'INFRASTRUCTURE_ERROR' }
     $summary.message = $_.Exception.Message
     Write-Output $summary.message
 } finally {
+    if ($dozeChanged) {
+        try {
+            Set-Content (Join-Path $run 'doze-failure-state.log') (Invoke-ReleaseAdb @('shell', 'dumpsys', 'deviceidle')) -Encoding UTF8
+        } catch { $summary.dozeDiagnosticError = $_.Exception.Message }
+        try { Restore-ReleaseDoze } catch { $summary.dozeCleanupError = $_.Exception.Message; $summary.status = 'FAILED' }
+    }
     if ($installedHere) {
         try {
             $window = Invoke-ReleaseAdb @('shell', 'dumpsys', 'window')

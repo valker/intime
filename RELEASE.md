@@ -132,6 +132,14 @@ Exact-доступ на API 31 был доступен изначально: е�
 доказательством исправления. Runner сохраняет package/broadcast/logcat каждого
 повтора. API 24, редкий сбой reboot API 31, Doze, 16 КБ, Play upgrade и новый AAB открыты.
 
+Точечный Doze smoke на существующем AOSP API 36 прошёл 11/11
+(`20261004-194701-release-smoke`), UI bootstrap 2/2. Реальный exact alarm
+доставил уведомление при подтверждённом IDLE и выключенном экране; после выхода
+из сна ACK/перезапуск сохранили новый срок. Изначально отключённый deep idle
+временно включён и восстановлен, battery simulation снята. Это одна принудительная
+Doze-доставка, не квоты повторных alarm, естественный вход в Doze или inexact
+fallback. Новый SDK-образ/AVD не устанавливался; production APK/AAB не пересобирались.
+
 ### Create a Keystore (first time only)
 
 For a new application only, if you don't have a keystore yet, create one.
