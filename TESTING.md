@@ -2,7 +2,7 @@
 
 The Windows runner works with Windows PowerShell 5.1 and JDK 17. Android Studio
 does not need to be open. Use the repository's Gradle Wrapper (8.11.1), AGP 8.9.1
-and installed compile SDK 36. Device API 33/35/36 is independent of compile/target SDK.
+and installed compile SDK 36. Device API 31/33/35/36 is independent of compile/target SDK.
 
 ## Commands
 
@@ -39,12 +39,12 @@ Pipeline 2909444152 остановился на lint (9 errors/43 warnings); ass
 ACK из деталей/перенос срока, настройки/Back, JSON export через SAF,
 удаление/повторное открытие и JSON import с перезапуском. Далее настоящий
 reboot/восстановление alarm до запуска Activity, доставка уведомления и ACK
-из шторки, отказ POST_NOTIFICATIONS/восстановление и отключение/включение
+из шторки, отказ POST_NOTIFICATIONS/восстановление (API 31: общий запрет через Settings) и отключение/включение
 канала — всего четырнадцать фаз. Прогон занимает несколько минут:
 минутные будильники ожидаются в реальном времени, часы ОС не изменяются.
-Runner принимает `-TestApi 33`, `35` или `36` (по умолчанию 36),
-строго для проектных Intime_Test_API33/35/36 с serial
-`emulator-5582`/`emulator-5580`/`emulator-5584` соответственно.
+Runner принимает `-TestApi 31`, `33`, `35` или `36` (по умолчанию 36),
+строго для проектных Intime_Test_API31/33/35/36 с serial
+`emulator-5586`/`emulator-5582`/`emulator-5580`/`emulator-5584` соответственно.
 Выбор API должен совпадать с bootstrap; произвольный serial не поддерживается.
 Нужны JDK `C:\Program Files\Java\jdk-17`, SDK в `%LOCALAPPDATA%\Android\Sdk`,
 platform android-36 с `android.jar`/`uiautomator.jar`, build-tools 35.0.0
@@ -83,6 +83,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.p
 переопределяет INI через `-memory` без удаления данных. RAM записывается в summary
 и запись владения; смена/подтверждение другого значения у работающего AVD отклоняется.
 
+Для API 31 выполните отдельный bootstrap (ScreenPlatformTest поддерживает API 31+):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 31 -Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline -KeepEmulator
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -TestApi 31 -ApkPath '.test-tools/runs/release-permissions-20261003-225632/intime-25-2.0.0-rc1-r8.apk'
+```
+
 Для API 33 используйте отдельный проектный Google APIs AVD (после остановки
 предыдущего принадлежащего runner эмулятора):
 
@@ -111,8 +118,9 @@ Runner проверяет PID/start/имя/API AVD, upload-сертификат,
 JSON проверяется через настоящий ContentResolver: контракт экспорта и
 восстановление описания/срока alarm после удаления и перезапуска. Все поля
 повторным экспортом, неверный JSON и откат в этой UI-проверке не сравниваются.
-POST_NOTIFICATIONS выдано до запуска. Первые фазы и reboot используют inexact
-fallback. Только после reboot runner разрешает SCHEDULE_EXACT_ALARM своей
+На API 33+ POST_NOTIFICATIONS выдано до запуска. Первые фазы и reboot там используют
+inexact fallback; на API 31 exact-доступ уже доступен в чистой установке, поэтому
+этот прогон не доказывает fallback при его запрете. После reboot runner разрешает SCHEDULE_EXACT_ALARM своей
 установке через appops, выбирает минутный период и выполняет UI ACK для нового
 отсчёта. Уходит Home, ждёт настоящее уведомление до 150 секунд, нажимает
 Acknowledge и проверяет исчезновение уведомления/новый alarm/перезапуск процесса.
@@ -120,20 +128,36 @@ Acknowledge и проверяет исчезновение уведомлени�
 300 секундами и ростом boot_count, затем до 180 секунд на восстановление того же
 alarm до открытия Activity. Полные журналы до/после reboot проверяются на ANR/crash.
 Разрешение exact исчезает с удалением собственного APK после проверки.
-После доставки/ACK runner отзывает POST_NOTIFICATIONS своей установке и задаёт
+После доставки/ACK на API 33+ runner отзывает POST_NOTIFICATIONS своей установке и задаёт
 user-set/user-fixed, чтобы permission dialog не перехватывал UI. Dumpsys подтверждает
 granted=false. Новый UI ACK назначает минутный срок; описание не должно появиться
 в шторке до пяти секунд после срока, alarm должен исчезнуть, logcat — подтвердить
 AlarmReceiver. После возврата разрешения новый ACK той же задачи проверяет доставку.
+На API 31 runtime permission отсутствует: вместо него используется главный переключатель
+собственного приложения в системном APP_NOTIFICATION_SETTINGS. Выключение подтверждается
+unchecked и importance=NONE/0 в строке собственного пакета dumpsys notification,
+включение — checked и отсутствием запрета (Android 12 опускает default importance).
+Фазы называются `release-app-notifications-denied/restored`; summary указывает
+`notificationBlockMode=settings-switch`. Общий запрет через appops POST_NOTIFICATION
+ignore здесь неэквивалентен переключателю: такая проба пропустила уведомление и не считается pass.
+Доставка после снятия запрета проверяется новым UI ACK; permission dialog не проверяется.
 Канал DefaultChannelId выключается/включается через системный экран Android;
 проверяются состояние переключателя и importance собственного канала в dumpsys.
 Отсутствие уведомления, работа receiver и восстановление доставки проверяются
 аналогично. Флаги разрешений и состояние канала удаляются с собственным APK.
 Сценарий проверен на английском Settings/notification action проектных Google APIs
-API 33 и AOSP API 35/36. Перед вводом описание должно получить фокус, введённый
-текст сверяется со свежим XML. Back для скрытия IME выполняется только при
+API 31/33 и AOSP API 35/36. Перед вводом описание должно получить фокус, введённый
+текст сверяется со свежим XML. Имя экспорта заменяется через MOVE_END/DEL и проверяется
+до Save: shell Ctrl+A на API 31 вводил лишнюю букву. Перед запуском Activity шторка
+сворачивается, чтобы предыдущая failed-фаза не перекрывала UI. Back для скрытия IME выполняется только при
 показанной клавиатуре по dumpsys input_method. Переход в Edit подтверждается
 появлением поля, потерянный tap повторяется лишь пока видна кнопка деталей.
+Все проверки уведомлений требуют реально раскрытой шторки по resource-id
+notification_stack_scroller; повторное раскрытие ограничено 20 секундами.
+Перед reboot сохраняется пакет и требуется stopped=false; после — пакет,
+при отсутствии прежнего alarm также broadcasts. На API 31 перед reboot добавлены
+15 секунд ожидания после последних операций с процессом. Причина одного случая
+без вызова BootReceiver не установлена: пауза не считается доказанным исправлением.
 Black-box проверки не читают wasNotified, не доказывают сохранение этой отметки
 или автоматическую доставку старой просрочки без нового пользовательского ACK.
 Doze, точность доставки в миллисекундах,
@@ -193,6 +217,7 @@ Robolectric does not replace testing Android platform behavior on a device.
   system-images/android-35/default/x86_64 (AOSP revision 2 installed here).
   The older Google Play 16 KB profile is preserved separately after system failures;
   its results do not establish a release pass.
+  -TestApi 31 uses system-images/android-31/google_apis/x86_64 (revision 12 here).
   -TestApi 33 uses system-images/android-33/google_apis/x86_64 (revision 17
   installed here). -TestApi 36 uses system-images/android-36/default/x86_64 (AOSP)
   in its own Intime_Test_API36 AVD. -SystemImage can choose another installed x86_64 image for
@@ -212,7 +237,7 @@ Robolectric does not replace testing Android platform behavior on a device.
 
 Для диагностики графики нового экземпляра можно указать `-EmulatorGpu host`
 (GPU компьютера), `auto` (выбор эмулятора) или `software`.
-По умолчанию API 35/36 используют host, API 33 — software.
+По умолчанию API 35/36 используют host, API 31/33 — software.
 Параметр меняет только запуск процесса, не сохранённый config.ini. Режим записывается
 в `.test-tools/emulator.json` и summary.json. Явный режим при повторном использовании
 должен совпадать с записью; иначе сначала остановите принадлежащий runner AVD.
@@ -234,8 +259,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode devic
 720×1280/density 280, host GPU и отключённая загрузочная анимация ОС.
 Новый профиль получает не больше 8 ядер и не больше числа логических CPU хоста;
 стабильность на другом хосте/драйвере или с меньшим числом ядер отдельно не проверена.
-API 33/35 используют 2 ядра, 1080×1920/density 420;
-API 33 — 2048 МБ RAM, API 35 — 4096 МБ RAM.
+API 31/33/35 используют 2 ядра, 1080×1920/density 420;
+API 31/33 — 2048 МБ RAM, API 35 — 4096 МБ RAM.
 Отключение boot animation не меняет анимации приложения; параметр описан в
 [документации Android](https://developer.android.com/studio/run/emulator-commandline).
 Он проверяет Android API, но не интеграцию Google Play/Google services.
@@ -250,7 +275,7 @@ Runner также сверяет `ro.build.version.sdk` с выбранным AP
 
 The runner creates a small dedicated AVD inside .test-tools/avd, launches it
 without a window, waits for boot completion and sets ANDROID_SERIAL explicitly.
-Default port is 5580 for API 35, 5582 for API 33 and 5584 for API 36; use -EmulatorPort with another
+Default port is 5586 for API 31, 5580 for API 35, 5582 for API 33 and 5584 for API 36; use -EmulatorPort with another
 even port if occupied. Each API has its own Intime_Test_API<API> AVD.
 It refuses to use an emulator of another name on that port. No existing personal
 AVD is copied or reset. AVD disk data persists, but Gradle removes test APKs after

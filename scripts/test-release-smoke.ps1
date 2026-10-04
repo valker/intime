@@ -1,6 +1,6 @@
 ﻿<#
-Проверяет уже собранный production release APK через UI на проектном AVD API 33/35/36.
-Перед запуском: scripts/test.ps1 -Mode device -TestApi <33, 35 или 36> -Offline -KeepEmulator.
+Проверяет уже собранный production release APK через UI на проектном AVD API 31/33/35/36.
+Перед запуском: scripts/test.ps1 -Mode device -TestApi <31, 33, 35 или 36> -Offline -KeepEmulator.
 Одинаковый TestApi нужно передать обоим скриптам; по умолчанию здесь используется 36.
 APK должен быть подписан подтверждённым upload key; скрипт не публикует его в Play.
 Используются только новые синтетические задачи. Если production-пакет уже установлен,
@@ -11,7 +11,7 @@ APK должен быть подписан подтверждённым upload k
 param(
     [Parameter(Mandatory = $true)][string]$ApkPath,
     # Выбор ограничен проектными AVD; произвольный serial принимать небезопасно.
-    [ValidateSet(33, 35, 36)][int]$TestApi = 36
+    [ValidateSet(31, 33, 35, 36)][int]$TestApi = 36
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -22,7 +22,7 @@ New-Item -ItemType Directory -Path $run -Force | Out-Null
 $sdk = Join-Path $env:LOCALAPPDATA 'Android\Sdk'
 $adb = Join-Path $sdk 'platform-tools\adb.exe'
 # Каждому разрешённому API соответствует только закреплённый проектный порт.
-$serial = switch ($TestApi) { 33 { 'emulator-5582' }; 35 { 'emulator-5580' }; 36 { 'emulator-5584' } }
+$serial = switch ($TestApi) { 31 { 'emulator-5586' }; 33 { 'emulator-5582' }; 35 { 'emulator-5580' }; 36 { 'emulator-5584' } }
 $package = 'com.vpe_soft.intime.intime'
 $installedHere = $false
 $probePushed = $false
@@ -75,6 +75,20 @@ function Read-ReleaseUi {
     Invoke-ReleaseAdb @('pull', '/data/local/tmp/intime-release-ui.xml', $path) | Out-Null
     return [xml](Get-Content $path -Raw -Encoding UTF8)
 }
+# После Home команда раскрытия шторки может потеряться в переходе. Подтверждаем
+# реальный контейнер уведомлений по свежему XML, иначе отсутствие описания ничего
+# не доказывает. Повторяем раскрытие ограниченно, только на проектном AVD.
+function Read-ReleaseShade {
+    $limit = (Get-Date).AddSeconds(20)
+    do {
+        Invoke-ReleaseAdb @('shell', 'cmd', 'statusbar', 'expand-notifications') | Out-Null
+        Start-Sleep -Milliseconds 500
+        $ui = Read-ReleaseUi
+        if ($ui.SelectSingleNode("//node[@resource-id='com.android.systemui:id/notification_stack_scroller']")) { return $ui }
+    } while ((Get-Date) -lt $limit)
+    throw 'Notification shade did not open'
+}
+
 function Wait-ReleaseNode([string]$XPath) {
     $deadline = (Get-Date).AddSeconds(30)
     do {
@@ -135,6 +149,9 @@ function Close-ReleaseKeyboard {
 }
 function Assert-ReleaseText([string]$Text) { Wait-ReleaseNode "//node[@text='$Text']" | Out-Null }
 function Launch-Release {
+    # После failed-фазы шторка может остаться раскрытой и перекрыть Activity.
+    # Сбрасываем только этот UI-слой проектного AVD перед проверкой списка.
+    Invoke-ReleaseAdb @('shell', 'cmd', 'statusbar', 'collapse') | Out-Null
     Invoke-ReleaseAdb @('shell', 'am', 'start', '-W', '-n', "$package/com.vpe_soft.intime.intime.activity.MainActivityV2") | Out-Null
     Wait-ReleaseNode "//node[@resource-id='${package}:id/fab_add_task']" | Out-Null
 }
@@ -185,7 +202,7 @@ function Assert-ReleaseBlockedNotification([long]$Alarm, [string]$Description, [
     $limit = (Get-Date).AddSeconds(150)
     $finished = $false
     do {
-        $ui = Read-ReleaseUi
+        $ui = Read-ReleaseShade
         if ($ui.SelectSingleNode("//node[@text='$Description']")) { throw "Blocked notification visible: $Name" }
         $now = [long](Invoke-ReleaseAdb @('shell', 'date', '+%s')).Trim() * 1000
         if ($now -ge $Alarm + 5000 -and (Read-ReleaseAlarm) -eq 0) { $finished = $true; break }
@@ -210,7 +227,7 @@ function Assert-ReleaseRecoveredNotification([string]$Description, [string]$Name
     $limit = (Get-Date).AddSeconds(150)
     $visible = $false
     do {
-        $ui = Read-ReleaseUi
+        $ui = Read-ReleaseShade
         $visible = $null -ne $ui.SelectSingleNode("//node[@text='$Description']")
         if (-not $visible) { Start-Sleep -Seconds 2 }
     } while (-not $visible -and (Get-Date) -lt $limit)
@@ -222,6 +239,28 @@ function Assert-ReleaseRecoveredNotification([string]$Description, [string]$Name
     Invoke-ReleaseAdb @('shell', 'cmd', 'statusbar', 'collapse') | Out-Null
     Launch-Release
     Assert-ReleaseText $Description
+}
+
+# API 31: меняем общий доступ через системный экран собственного приложения.
+# В отличие от appops POST_NOTIFICATION, Settings меняет notification preferences.
+# Требуем состояние главного переключателя и importance именно собственного пакета.
+# Тест не проверяет permission dialog API 33+ и не трогает чужие приложения.
+function Set-ReleaseAppNotificationsEnabled([bool]$Enabled) {
+    Invoke-ReleaseAdb @('shell', 'am', 'start', '-W', '-a', 'android.settings.APP_NOTIFICATION_SETTINGS', '--es', 'android.provider.extra.APP_PACKAGE', $package) | Out-Null
+    $xpath = "//node[(@resource-id='android:id/switch_widget' or @resource-id='com.android.settings:id/switch_widget') and @checkable='true']"
+    $switch = Wait-ReleaseNode $xpath
+    $expected = if ($Enabled) { 'true' } else { 'false' }
+    if ($switch.GetAttribute('checked') -ne $expected) { Click-ReleaseNode $xpath }
+    Wait-ReleaseNode ($xpath.TrimEnd(']') + " and @checked='$expected']") | Out-Null
+    $dump = Invoke-ReleaseAdb @('shell', 'dumpsys', 'notification', '--noredact')
+    $app = [regex]::Match($dump, '(?m)^\s*AppSettings: com\.vpe_soft\.intime\.intime \(\d+\)(?<details>[^\r\n]*)$')
+    if (-not $app.Success) { throw 'Own app notification preferences not found' }
+    # Android 12 опускает importance при возвращении к значению по умолчанию.
+    # Наличие строки своего пакета обязательно; NONE/0 означает общий запрет.
+    $blocked = $app.Groups['details'].Value -match '\bimportance=(NONE|0)(?:\s|$)'
+    if ($blocked -eq $Enabled) { throw 'Own app notification importance does not match switch' }
+    Set-Content (Join-Path $run ("app-notifications-$expected-settings.log")) $dump -Encoding UTF8
+    Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '3') | Out-Null
 }
 
 # Меняем только канал собственного production-пакета через системный экран.
@@ -293,7 +332,9 @@ try {
     Invoke-ReleaseAdb @('logcat', '-c') | Out-Null # Начало журнала только этого smoke на тестовом AVD.
     Invoke-ReleaseAdb @('install', $ApkPath) | Out-Null
     $installedHere = $true
-    Invoke-ReleaseAdb @('shell', 'pm', 'grant', $package, 'android.permission.POST_NOTIFICATIONS') | Out-Null
+    # На API 31 runtime POST_NOTIFICATIONS отсутствует; начальная установка
+    # получает обычный доступ к уведомлениям без команды pm grant.
+    if ($TestApi -ge 33) { Invoke-ReleaseAdb @('shell', 'pm', 'grant', $package, 'android.permission.POST_NOTIFICATIONS') | Out-Null }
     Launch-Release
 
     # Проверка создания: чистая release-установка, разрешение уведомлений выдано.
@@ -365,8 +406,15 @@ try {
     Click-ReleaseId 'btn_open_settings'
     Click-ReleaseId 'export_to_json_btn'
     Click-ReleaseNode "//node[@class='android.widget.EditText']"
-    Invoke-ReleaseAdb @('shell', 'input', 'keycombination', '113', '29') | Out-Null
+    # API 31 интерпретирует shell keycombination Ctrl+A как ввод буквы a.
+    # Вместо него читаем текущее имя, переводим курсор в конец и удаляем символы
+    # обычными DEL. Перед Save требуем точное новое имя по свежему XML.
+    $nameField = Wait-ReleaseNode "//node[@class='android.widget.EditText' and @focused='true']"
+    Invoke-ReleaseAdb @('shell', 'input', 'keyevent', 'KEYCODE_MOVE_END') | Out-Null
+    $nameLength = $nameField.GetAttribute('text').Length
+    if ($nameLength -gt 0) { Invoke-ReleaseAdb (@('shell', 'input', 'keyevent') + (@('KEYCODE_DEL') * $nameLength)) | Out-Null }
     Invoke-ReleaseAdb @('shell', 'input', 'text', $backupName) | Out-Null
+    Wait-ReleaseNode "//node[@class='android.widget.EditText' and @text='$backupName']" | Out-Null
     Click-ReleaseNode "//node[@resource-id='android:id/button1']"
     Wait-ReleaseNode "//node[@resource-id='${package}:id/export_to_json_btn']" | Out-Null
     $backupLocalPath = Join-Path $run $backupName
@@ -421,6 +469,13 @@ try {
     Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '3') | Out-Null
     $bootBefore = [int](Invoke-ReleaseAdb @('shell', 'settings', 'get', 'global', 'boot_count')).Trim()
     $expectedBootAlarm = Wait-ReleaseAlarm
+    # API 31: после force-stop/запуска оставляем ОС время зафиксировать состояние
+    # пакета перед reboot. Отсутствие BOOT_COMPLETED однажды наблюдалось, но связь
+    # с отложенной записью PackageManager не доказана; сохраняем состояние для диагностики.
+    if ($TestApi -eq 31) { Start-Sleep -Seconds 15 }
+    $beforeBootPackage = Invoke-ReleaseAdb @('shell', 'dumpsys', 'package', $package)
+    Set-Content (Join-Path $run 'package-before-reboot.log') $beforeBootPackage -Encoding UTF8
+    if ($beforeBootPackage -notmatch 'User 0:.*stopped=false') { throw 'Release package stopped before reboot' }
     Set-Content (Join-Path $run 'logcat-before-reboot.log') (Invoke-ReleaseAdb @('logcat', '-d')) -Encoding UTF8
     Invoke-ReleaseAdb @('reboot') | Out-Null
     Write-Output 'Waiting for owned AVD reboot...'
@@ -441,7 +496,11 @@ try {
         if ($bootAlarm -eq $expectedBootAlarm) { break }
         Start-Sleep -Seconds 2
     } while ((Get-Date) -lt $bootAlarmLimit)
-    if ($bootAlarm -ne $expectedBootAlarm) { throw 'Release BootReceiver did not restore the same alarm' }
+    Set-Content (Join-Path $run 'package-after-reboot.log') (Invoke-ReleaseAdb @('shell', 'dumpsys', 'package', $package)) -Encoding UTF8
+    if ($bootAlarm -ne $expectedBootAlarm) {
+        Set-Content (Join-Path $run 'broadcasts-after-reboot.log') (Invoke-ReleaseAdb @('shell', 'dumpsys', 'activity', 'broadcasts')) -Encoding UTF8
+        throw 'Release BootReceiver did not restore the same alarm'
+    }
     if ((Invoke-ReleaseAdb @('shell', 'dumpsys', 'window')) -match 'Application Not Responding:') { throw 'ANR dialog after reboot' }
     $summary.bootCountBefore = $bootBefore
     $summary.bootCountAfter = $bootAfter
@@ -472,7 +531,7 @@ try {
     $notificationLimit = (Get-Date).AddSeconds(150)
     $notificationVisible = $false
     do {
-        $notificationUi = Read-ReleaseUi
+        $notificationUi = Read-ReleaseShade
         $notificationVisible = $null -ne $notificationUi.SelectSingleNode("//node[@text='$edited']")
         if (-not $notificationVisible) { Start-Sleep -Seconds 2 }
     } while (-not $notificationVisible -and (Get-Date) -lt $notificationLimit)
@@ -487,7 +546,7 @@ try {
     # и исчезает вместе с удалением установленного нами APK в finally.
     Click-ReleaseNode "//node[@text='Acknowledge' or @text='ACKNOWLEDGE']"
     $notificationAckAlarm = Wait-ReleaseAlarm $notificationDeadline
-    $afterNotificationAckUi = Read-ReleaseUi
+    $afterNotificationAckUi = Read-ReleaseShade
     if ($afterNotificationAckUi.SelectSingleNode("//node[@text='$edited']")) { throw 'Acknowledged notification still visible in shade' }
     Set-Content (Join-Path $run 'notifications-after-ack.log') (Invoke-ReleaseAdb @('shell', 'dumpsys', 'notification', '--noredact')) -Encoding UTF8
     $summary.notificationAckAlarm = $notificationAckAlarm
@@ -503,26 +562,42 @@ try {
     # всплывающий permission dialog. UI ACK ставит новый минутный alarm, Home;
     # receiver должен сработать, но описание не должно появиться в шторке даже
     # через пять секунд после срока. Задача остаётся в списке; базу не читаем.
-    Invoke-ReleaseAdb @('shell', 'pm', 'revoke', $package, 'android.permission.POST_NOTIFICATIONS') | Out-Null
-    Invoke-ReleaseAdb @('shell', 'pm', 'set-permission-flags', $package, 'android.permission.POST_NOTIFICATIONS', 'user-set', 'user-fixed') | Out-Null
-    $deniedPackage = Invoke-ReleaseAdb @('shell', 'dumpsys', 'package', $package)
-    if ($deniedPackage -notmatch 'android.permission.POST_NOTIFICATIONS: granted=false') { throw 'Runtime permission denial not confirmed' }
-    Set-Content (Join-Path $run 'permission-denied-package.log') $deniedPackage -Encoding UTF8
+    if ($TestApi -ge 33) {
+        Invoke-ReleaseAdb @('shell', 'pm', 'revoke', $package, 'android.permission.POST_NOTIFICATIONS') | Out-Null
+        Invoke-ReleaseAdb @('shell', 'pm', 'set-permission-flags', $package, 'android.permission.POST_NOTIFICATIONS', 'user-set', 'user-fixed') | Out-Null
+        $deniedPackage = Invoke-ReleaseAdb @('shell', 'dumpsys', 'package', $package)
+        if ($deniedPackage -notmatch 'android.permission.POST_NOTIFICATIONS: granted=false') { throw 'Runtime permission denial not confirmed' }
+        Set-Content (Join-Path $run 'permission-denied-package.log') $deniedPackage -Encoding UTF8
+        $summary.notificationBlockMode = 'runtime-permission'
+    } else {
+        # API 31: runtime permission отсутствует. Выключаем общий доступ через
+        # системный экран только собственной установки; проверяем переключатель
+        # и importance=NONE, затем receiver и отсутствие уведомления.
+        Set-ReleaseAppNotificationsEnabled $false
+        $summary.notificationBlockMode = 'settings-switch'
+    }
     $deniedAlarm = Prepare-ReleaseMinuteAlarm $edited
     Assert-ReleaseBlockedNotification $deniedAlarm $edited 'permission-denied'
     $summary.permissionDeniedAlarm = $deniedAlarm
-    Complete-ReleasePhase 'release-permission-denied'
+    Complete-ReleasePhase $(if ($TestApi -ge 33) { 'release-permission-denied' } else { 'release-app-notifications-denied' })
 
     # Проверка снятия отказа: очищаем только выставленные нами флаги, возвращаем
     # POST_NOTIFICATIONS и через UI ACK создаём новый срок той же задачи. Настоящее
     # уведомление и его action ACK должны снова работать. Снятие отказа без нового
     # ACK у старой просрочки в этой фазе не проверяется.
-    Invoke-ReleaseAdb @('shell', 'pm', 'clear-permission-flags', $package, 'android.permission.POST_NOTIFICATIONS', 'user-set', 'user-fixed') | Out-Null
-    Invoke-ReleaseAdb @('shell', 'pm', 'grant', $package, 'android.permission.POST_NOTIFICATIONS') | Out-Null
+    if ($TestApi -ge 33) {
+        Invoke-ReleaseAdb @('shell', 'pm', 'clear-permission-flags', $package, 'android.permission.POST_NOTIFICATIONS', 'user-set', 'user-fixed') | Out-Null
+        Invoke-ReleaseAdb @('shell', 'pm', 'grant', $package, 'android.permission.POST_NOTIFICATIONS') | Out-Null
+    } else {
+        # Снятие общего запрета API 31: включаем уведомления в Settings;
+        # новый UI ACK существующей задачи должен восстановить доставку/action ACK.
+        # Автоматическая доставка старой просрочки без ACK этим не проверяется.
+        Set-ReleaseAppNotificationsEnabled $true
+    }
     Assert-ReleaseRecoveredNotification $edited 'permission-restored'
-    Complete-ReleasePhase 'release-permission-restored'
+    Complete-ReleasePhase $(if ($TestApi -ge 33) { 'release-permission-restored' } else { 'release-app-notifications-restored' })
 
-    # Проверка отключённого канала: runtime permission остаётся выданным, канал
+    # Проверка отключённого канала: общий доступ к уведомлениям разрешён, канал
     # DefaultChannelId выключается через экран Android. Новый минутный alarm
     # должен дойти до receiver, но не создать видимое уведомление. Это отдельная
     # проверка канала; общий системный запрет всех уведомлений здесь не включается.

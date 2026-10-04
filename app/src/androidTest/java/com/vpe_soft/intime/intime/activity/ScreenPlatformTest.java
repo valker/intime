@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Insets;
 import android.graphics.Rect;
+import android.os.Build;
 import android.os.SystemClock;
 import android.view.KeyEvent;
 import android.view.View;
@@ -37,7 +38,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.junit.Assert.*;
 
 @RunWith(AndroidJUnit4.class)
-@SdkSuppress(minSdkVersion = 33)
+@SdkSuppress(minSdkVersion = 31)
 public class ScreenPlatformTest {
     private Context context;
     private AppDatabase database;
@@ -46,8 +47,11 @@ public class ScreenPlatformTest {
     @Before
     public void setUp() {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        InstrumentationRegistry.getInstrumentation().getUiAutomation()
-                .grantRuntimePermission(context.getPackageName(), Manifest.permission.POST_NOTIFICATIONS);
+        // Runtime-разрешение появилось на API 33; API 31 не принимает его выдачу.
+        if (Build.VERSION.SDK_INT >= 33) {
+            InstrumentationRegistry.getInstrumentation().getUiAutomation()
+                    .grantRuntimePermission(context.getPackageName(), Manifest.permission.POST_NOTIFICATIONS);
+        }
         database = Room.inMemoryDatabaseBuilder(context, AppDatabase.class).build();
         AppDatabase.setTestInstance(database);
         long future = System.currentTimeMillis() + 7200000;
@@ -74,7 +78,8 @@ public class ScreenPlatformTest {
 
     /**
      * На тестовом устройстве создаётся in-memory Room с одной будущей задачей и выдаётся
-     * разрешение уведомлений, чтобы системный диалог не перекрывал экраны. Последовательно
+     * разрешение уведомлений на API 33+, чтобы системный диалог не перекрывал экраны;
+     * на API 31 runtime-разрешение отсутствует. Последовательно
      * открываются список, добавление, настройки и детали этой задачи. После layout проверяются
      * полные экранные границы кнопок и описания: они должны находиться внутри области окна
      * за вычетом system bars/display cutout. Проверка использует реальные WindowInsets ОС,

@@ -1,5 +1,78 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Release R8 на API 31 — 4 октября 2026
+
+**PASSED, 14/14 фаз:** `.test-tools/runs/20261004-142752-release-smoke/summary.json`.
+UI bootstrap ScreenPlatformTest **2/2**:
+`.test-tools/runs/20261004-135317-d3f2f7dd/summary.json`.
+Первый bootstrap `20261004-134815-32062307` дал нулевой результат и
+INFRASTRUCTURE_ERROR: класс был ограничен API 33+. SDK-фильтр расширен до 31,
+выдача POST_NOTIFICATIONS выполняется только на API 33+, русский комментарий обновлён.
+Нулевой результат не считается pass.
+
+Проектный Intime_Test_API31 / emulator-5586: Google APIs x86_64 rev 12,
+Emulator 37.2.12, 2 CPU, 2048 МБ RAM, software GPU, 1080×1920/density 420.
+Использован прежний upload-signed production APK 25/2.0.0-rc1 из
+`.test-tools/runs/release-permissions-20261003-225632`; runtime не менялся.
+APK SHA-256 `00F8198794F6DC307B52D0FEE5C533DC60B69CC6AAC9A9EB7E827FF88772165D`,
+mapping SHA-256 `7B5DEBF5DCCE8160A40A2F0B0442B722CA9DA511984806B7981587E4DC2E2E23`.
+Проверены production package/version/upload certificate, non-debuggable и R8 renaming.
+APK/AAB и unit suite на этом шаге не пересобирались/не запускались.
+
+Прошли CRUD/ACK, настройки/Back, process restart, JSON через SAF, реальный reboot,
+доставка/ACK уведомления, общий запрет/восстановление и отключение/включение канала.
+На API 31 runtime POST_NOTIFICATIONS отсутствует: общий доступ переключается
+в APP_NOTIFICATION_SETTINGS собственной установки. Dumpsys до снятия запрета
+содержит `importance=NONE`, после — строку того же пакета без importance (default).
+Переключатель unchecked/checked также проверен. Summary указывает
+`notificationBlockMode=settings-switch`, фазы `release-app-notifications-denied/restored`.
+Имена части вспомогательных файлов/полей (`permission-denied`, `permission-restored`)
+сохранены для совместимости и не означают проверку runtime permission на API 31.
+
+Boot count `5` → `6`, alarm `1791116917004` восстановился до открытия Activity.
+В package-логах до/после reboot `stopped=false`. Доставка: `1791113543096`
+→ ACK `1791113606499`; общий запрет — `1791113622469`, после снятия
+`1791113698650` → ACK `1791113761145`; канал отключён — `1791113772282`,
+после включения `1791113850506` → ACK `1791113912610`.
+В полных сохранённых журналах до/после reboot нет ANR, FATAL EXCEPTION,
+Fatal signal или lowmemorykiller для InTime.
+
+Исправления harness подтверждены итоговым прогоном: имя экспорта очищается через
+MOVE_END/DEL и сверяется до Save (Ctrl+A на API 31 вводил лишнюю букву);
+перед Activity сворачивается шторка; все проверки доставки/отсутствия требуют
+свежий XML с notification_stack_scroller, раскрытие повторяется до 20 секунд.
+Главный переключатель приложения проверяется отдельно от канала; в парсере dumpsys
+учтено отсутствие default importance. Комментарии описывают эти условия и ограничения.
+
+Неуспешные прогоны сохранены отдельно, каталоги — `.test-tools/runs`:
+
+| Прогон | Завершённые фазы | Причина |
+|---|---:|---|
+| 20261004-135502-release-smoke | 4 | Экспорт получил лишнюю `a` в имени, ожидаемый путь не найден; собственный ошибочный JSON удалён отдельно |
+| 20261004-135701-release-smoke | 10 | appops POST_NOTIFICATION ignore не воспроизвёл общий запрет: уведомление появилось; заменён Settings |
+| 20261004-140352-release-smoke | 0 | После предыдущего failure раскрытая шторка перекрыла MainActivity |
+| 20261004-140524-release-smoke | 11 | Общий запрет сработал; при включении parser ошибочно требовал явно заданную default importance |
+| 20261004-141222-release-smoke | 7 | После reboot прежний alarm не восстановился, вызов BootReceiver приложения в журнале не найден |
+| 20261004-141941-release-smoke | 8 | Receiver записал showNotification, но UI-проба читала рабочий стол после потерянного раскрытия шторки |
+
+Причина отсутствия вызова BootReceiver в `141222` **не установлена**.
+Добавлены package-логи до/после reboot, при повторном отсутствии alarm — broadcasts;
+на API 31 перед reboot выдерживаются 15 секунд после операций с процессом.
+Гонка отложенной фиксации состояния PackageManager — гипотеза, не доказательство.
+Успешный итоговый прогон не доказывает устранение этой нестабильности: нужна
+точечная проверка reboot API 31, затем API 24. R4.3/R5.3 целиком открыты.
+
+Пределы: exact был доступен изначально на API 31, запрет exact/inexact fallback
+этим прогоном не проверяются. Чистая синтетическая установка, не Play upgrade;
+wasNotified/ID Room не сверяются, автоматическая доставка старой просрочки без ACK,
+Doze, тихий worker и boot-уведомления не покрыты. Шторка опрашивается с паузами.
+Новая редакция runner/UI-тестов на API 33/35/36 в этом шаге не повторялась.
+
+Отсутствие своего release-пакета, probe, итогового уникального JSON и ошибочно
+названного JSON первого прогона проверено отдельно. Проектный AVD остановлен
+после сверки PID/start/имени. Личные устройства и main*.db не использовались.
+PowerShell syntax/BOM и git diff --check прошли.
+
 ## Release R8 на API 33 — 4 октября 2026
 
 **PASSED, 14/14 фаз:** `.test-tools/runs/20261004-110211-release-smoke/summary.json`.

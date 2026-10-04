@@ -116,6 +116,18 @@ Back для скрытия IME выполняется только при её �
 API 35/36 новой редакцией runner в этом шаге не повторялись.
 Следующие платформы — API 31/24; Doze, 16 КБ, Play upgrade и новый AAB открыты.
 
+API 31 затем прошёл **14/14 фаз** на том же APK:
+`.test-tools/runs/20261004-142752-release-smoke/summary.json`, UI bootstrap 2/2.
+Runner принимает API 31/33/35/36; на Android 12 общий запрет/восстановление
+проверены через системный переключатель приложения, канал — отдельно.
+Шторка подтверждается свежим XML, имя экспорта сверяется до Save.
+Один предыдущий reboot не восстановил alarm; вызов BootReceiver не найден,
+причина не установлена. Добавлены package-логи до/после reboot и 15 секунд
+ожидания на API 31 перед reboot; это не доказанное исправление причины.
+Exact-доступ на API 31 был доступен изначально: его запрет/inexact fallback
+этим прогоном не проверен. API 33/35/36 новой редакцией runner не повторялись.
+API 24, стабильность reboot API 31, Doze, 16 КБ, Play upgrade и новый AAB открыты.
+
 ### Create a Keystore (first time only)
 
 For a new application only, if you don't have a keystore yet, create one.

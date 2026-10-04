@@ -10,7 +10,7 @@ param(
     [ValidateSet('local', 'device')][string]$Mode = 'local',
     [string]$Filter,
     # API тестового устройства; компиляция приложения использует SDK 36.
-    [ValidateSet(33, 35, 36)][int]$TestApi = 35,
+    [ValidateSet(31, 33, 35, 36)][int]$TestApi = 35,
     # Пути можно задать явно; иначе скрипт найдёт SDK и JDK в окружении.
     [string]$SdkPath,
     [string]$JdkPath,
@@ -148,6 +148,7 @@ try {
     # Локальным тестам эмулятор не нужен. Всё ниже выполняется только в режиме device.
     if ($Mode -eq 'device') {
         # Для каждого API — собственные AVD, данные и порт. Не смешиваем образы.
+        if (-not $PSBoundParameters.ContainsKey('EmulatorPort') -and $TestApi -eq 31) { $EmulatorPort = 5586 }
         if (-not $PSBoundParameters.ContainsKey('EmulatorPort') -and $TestApi -eq 33) { $EmulatorPort = 5582 }
         if (-not $PSBoundParameters.ContainsKey('EmulatorPort') -and $TestApi -eq 36) { $EmulatorPort = 5584 }
         # API 35/36 на этом компьютере проверены с аппаратной графикой. Явный
@@ -156,6 +157,9 @@ try {
         # API 35 проверен с 4 ГБ после lowmemorykiller в Play-образе с 2 ГБ.
         if (-not $PSBoundParameters.ContainsKey('EmulatorRamMb') -and $TestApi -eq 35) { $EmulatorRamMb = 4096 }
         $serial = "emulator-$EmulatorPort"
+        if (-not $PSBoundParameters.ContainsKey('SystemImage') -and $TestApi -eq 31) {
+            $SystemImage = 'system-images\android-31\google_apis\x86_64'
+        }
         if (-not $PSBoundParameters.ContainsKey('SystemImage') -and $TestApi -eq 33) {
             $SystemImage = 'system-images\android-33\google_apis\x86_64'
         }
