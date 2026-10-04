@@ -14,6 +14,28 @@ This document describes the process for building and releasing Intime.
 
 ## R6.1: Release Signing Configuration
 
+### Актуальный AAB — 4 октября 2026
+
+Подписанный кандидат **25/2.0.0-rc1** из коммита `a0c055f` собран с R8 и
+lintVitalRelease. `jarsigner` подтвердил подпись, сертификат совпал с Upload key,
+кэшированный bundletool 1.17.2 успешно выполнил validate/dump manifest без загрузок.
+Манифест внутри AAB: исходный package, minSdk 24, targetSdk/compileSdk 36,
+debuggable отсутствует. Встроенная карта R8 совпадает с сохранённой mapping.txt.
+Отчёт/артефакты: `.test-tools/runs/production-aab-20261004-214440/`;
+подробности и SHA-256 — [DEVICE_TEST_RESULTS.md](DEVICE_TEST_RESULTS.md).
+
+Проверенный вызов PowerShell (JDK 17, SDK и локальные signing credentials настроены):
+
+```powershell
+./gradlew.bat ':app:bundleRelease' '-PproductionRelease=true' '-PreleaseVersionCode=25' '-PreleaseVersionName=2.0.0-rc1' --offline --no-daemon --no-watch-fs --no-configuration-cache
+```
+
+Версию передавать в кавычках. В этом шаге unit/device-тесты не запускались,
+runtime не изменялся; ранее проверенный APK и новый AAB — отдельные артефакты.
+Новый AAB не опубликован, финальная версия/Play коды не согласованы,
+обновление Play v1 и оставшиеся device-проверки открыты. Более ранние записи
+ниже описывают состояние на момент соответствующего прогона.
+
 ### Production candidate — 3 октября 2026
 
 Обычные сборки остаются `.dev`/21/1.1.8. Production-режим сохраняет исходный пакет

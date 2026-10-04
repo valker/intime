@@ -1,5 +1,43 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Актуальный подписанный production AAB — 4 октября 2026
+
+**SIGNED_AAB_VALIDATED**, исходный коммит `a0c055fd6db948120924602ad3feb55ff4c7b45e`.
+Архив: `.test-tools/runs/production-aab-20261004-214440/summary.json`.
+Подписанный `intime-25-2.0.0-rc1-upload-signed.aab` — 3449067 байт,
+SHA-256 `ABD45D9E2B922B6242E62E6A8682D4025D4175D01E55AACB9856173554D2D1ED`.
+
+Свежая offline-сборка `:app:bundleRelease` завершилась успешно с
+`minifyReleaseWithR8`, `lintVitalRelease` и `signReleaseBundle`.
+Первый вызов остановился до компиляции из-за передачи версии без кавычек
+в PowerShell; исправленный вызов прошёл. Оба журнала сохранены.
+`jarsigner -verify` подтвердил подпись; `keytool -printcert -jarfile`
+подтвердил Upload key SHA-256
+`97B60110A8E894791B4770826A8D214DC5E3A551CD24BD41D646C29F64A1DD26`.
+Предупреждения jarsigner о самоподписанном сертификате/цепочке доверия,
+отсутствии timestamp и неподписываемых POSIX-атрибутах сохранены в журнале.
+
+Кэшированный bundletool 1.17.2 выполнил `validate` и `dump manifest`
+с кодами 0, без скачивания зависимостей. Проверен манифест внутри самого AAB:
+`com.vpe_soft.intime.intime`, versionCode 25, versionName 2.0.0-rc1,
+minSdk 24, targetSdk/compileSdk 36; debuggable отсутствует (по умолчанию false).
+В пакете есть `base/dex/classes.dex`, файлов `.so` нет. Это инвентаризация,
+не отдельный запуск в окружении со страницами 16 КБ.
+Встроенный `BUNDLE-METADATA/com.android.tools.build.obfuscation/proguard.map`
+совпадает по SHA-256 с сохранённым mapping.txt:
+`7B5DEBF5DCCE8160A40A2F0B0442B722CA9DA511984806B7981587E4DC2E2E23`.
+В mapping `TaskRepository` переименован в `i1.l`.
+
+Runtime-исходники/конфигурация сборки не отличаются от baseline `7fbae39`
+ранее проверенного release APK; BuildConfig содержит текущий Git hash.
+Unit/device-тесты на этом шаге не запускались, новый APK не устанавливался.
+Весь архив AAB/mapping/отчётов занимает около 12 МиБ логических файлов;
+новые SDK-образы/AVD не создавались. AAB не загружался в Play.
+Финальная версия/использованные Play коды и обновление установленной v1
+через APK с App signing key ещё не проверены; R5.3 целиком остаётся открытым.
+Следующий доступный шаг — сверить релизную документацию и декларации с
+фактическим поведением (R5.4), сохраняя открытые проверки матрицы/Play.
+
 ## Регистрация расписания MainActivity — 4 октября 2026
 
 Новый `ScreenPlatformTest#mainStartup_keepsOnePeriodicReminderAcrossRecreationAndReopening`
