@@ -32,6 +32,51 @@ ScreenPlatformTest использует AndroidX WindowInsetsCompat и Display.g
 
 ## Commands
 
+### Второй естественный период после завершения процесса (API 36)
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 36 -Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline -KeepEmulator
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-periodic-smoke.ps1
+```
+
+Host использует только существующий Intime_Test_API36/5584 с проверкой PID,
+StartTime, AVD name и API, держит run.lock. Новые SDK-образы не устанавливаются.
+Скрипт отказывается перезаписывать существующие .dev/.dev.test APK, устанавливает
+свои собранные debug APK и удаляет их в finally (включая Room/preferences/jobs).
+
+Две фазы PeriodicRecoveryTest имеют подробные русские Javadoc и требуют
+отдельного метода/periodicPhase=true; обычная suite пропускает их. Первая
+создаёт уже уведомлённую просроченную задачу в пустой файловой Room, отменяет
+штатную periodic work для изоляции и ставит настоящий PeriodicWorkRequest:
+15 минут, BatteryNotLow, initial delay 10 секунд. Проверяет первую тихую отправку
+и ENQUEUED с будущим сроком; сохраняет UUID/задачу/поля/firstPost для второй фазы.
+
+Host после окончания instrumentation вызывает am kill только фонового .dev процесса, требует отсутствия процесса
+и stopped=false. Shell force-stop не используется. Далее до 50 минут опрашивается только
+системная диагностика: никакой Activity/instrumentation, ручного job run, изменения
+часов или ускорения периода. Активный notification record должен иметь своё описание
+и when не раньше firstPost+15 минут. После этого вторая фаза сверяет postTime,
+тихие поля без ACK, неизменные lastAck/nextAlarm/wasNotified, новый LAST_POST
+и будущий WorkInfo. Фикстура удаляется, прежний LAST_POST возвращается.
+
+Снимки опроса перезаписываются для ограничения размера отчёта; финальная диагностика
+сохраняется в `.test-tools/runs/*-periodic-smoke`. `-WaitMinutes` допускает 16–60,
+но не ускоряет период. Эти фазы проверяют debug worker и обычную смерть процесса,
+не force-stop, reboot, Doze, release/R8, регистрацию MainActivity или OEM-квоты.
+Результат подтверждается только summary PASSED с двумя фазами, не наличием скрипта.
+
+Окно по умолчанию увеличено до 50 минут: AOSP API 36 может пакетно задерживать
+одиночный CPU job до 31 минуты даже после наступления его срока. Для контролируемого
+варианта добавлен `-ReduceBatching`: временный override
+`jobscheduler/min_ready_cpu_only_jobs_count=1`, с точным возвратом прежнего override
+(или удалением ключа, если был null) в finally. Этот режим не меняет период/часы
+и не вызывает jobs вручную, но не проверяет срок доставки при default batching.
+В фактическом прогоне 4 октября override применён отдельной контрольной командой
+после примерно 24 минут ожидания и восстановлен; обе фазы прошли. Полный прогон
+с новым флагом с самого начала ещё не выполнен. Системные логи показывают, что
+первый процесс завершён при окончании instrumentation; am kill дополнительно
+проверяет отсутствие фонового процесса, а не доказывает единственную причину его смерти.
+
 ### Настоящий периодический WorkManager (debug integration)
 
 ```powershell

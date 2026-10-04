@@ -1,5 +1,65 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Второй период после завершения процесса — 4 октября 2026
+
+**PASSED при описанном ниже условии, 2/2 host-фазы:**
+`.test-tools/runs/20261004-210140-periodic-smoke/summary.json`.
+UI bootstrap **2/2**: `.test-tools/runs/20261004-205954-76b1ffce/summary.json`.
+Локальная регрессия **97/97**: `.test-tools/runs/20261004-212825-488b7ad6/summary.json`.
+Тот же существующий AOSP Intime_Test_API36, без новых образов/AVD.
+Runtime приложения/production APK/AAB не менялись.
+
+Добавлены PeriodicRecoveryTest (две фазовые @Test с русскими Javadoc) и
+scripts/test-periodic-smoke.ps1. Host отказал бы при уже установленных .dev/.dev.test,
+установил собственные APK, открыл список/Home. Prepare в пустой файловой Room
+создал уже уведомлённую просроченную задачу и настоящий PeriodicWorkRequest:
+15 минут/BatteryNotLow/initial delay 10 секунд. Штатная periodic work отменена
+для изоляции. Первая тихая отправка/следующий срок проверены; UUID, ID/поля задачи
+и firstPost сохранены для второй фазы.
+
+Первая отправка `1791136919666`, вторая notification when `1791138356556`:
+интервал около **23 минут 57 секунд**. Вторая фаза сверила системный postTime
+не раньше firstPost+15 минут, тихое уведомление без ACK, неизменные
+lastAck/nextAlarm/wasNotified, обновлённый LAST_POST и будущий WorkInfo.
+Фикстура/UUID удалены, прежний LAST_POST возвращён; собственные APK удалены host.
+
+После prepare host выполнил am kill и подтвердил отсутствие PID/stopped=false.
+Логи показывают, что Android завершил первый процесс PID 2475 ещё при окончании
+instrumentation; тест не приписывает его смерть исключительно am kill.
+До второго уведомления Activity/instrumentation не открывались. В pre-verification
+logcat виден новый PID 2697 и запуск SystemJobService для того же UUID
+`49b738c0-15f0-45a6-8e42-05f800a0a4f3`; обновление уведомления произошло до verify.
+
+**Условие, ограничивающее результат:** с исходными настройками второй доставки
+не было примерно 24 минуты. Job сохранился, наступил его срок и был `Ready: true`.
+У ОС min_ready_cpu_only_jobs_count=3 и max_cpu_only_job_batch_delay_ms=1860000
+(31 минута). Затем отдельной контрольной командой временно задан threshold=1,
+после чего готовая работа выполнилась. Это согласуется с пакетной задержкой ОС;
+точный срок при default batching не проверен. Часы/интервал не менялись,
+JobScheduler run и doWork вручную не вызывались.
+
+Override до изменения был null, после снятия снова null; эффективный порог 3
+подтверждён в jobs-after-config-restoration.log. Summary явно содержит
+batchThresholdTemporarilyRelaxed=true и batchConfigOverrideRestored=true.
+Успех нельзя интерпретировать как default-batching проверку или точную доставку
+каждые 15 минут. Для дальнейших прогонов окно runner увеличено с 25 до 50 минут
+(16–60 разрешено) и добавлен опциональный ReduceBatching с возвратом override
+в finally. Полный повтор нового флага с самого начала ещё не выполнялся;
+его команды изменения/возврата проверены отдельным контролем в этом прогоне.
+
+Неуспешная подготовка сохранена:
+- `20261004-205723-6b5d3c1b`: INFRASTRUCTURE_ERROR/0 tests, неоднозначная
+  assertEquals(long, Long); исправлена явная longValue, затем UI bootstrap прошёл.
+- `20261004-210120-periodic-smoke`: отказ до установки APK, pm path вернул exit 1
+  для отсутствующего пакета; проверка заменена на точный pm list packages.
+
+В финальном logcat нет ANR/FATAL EXCEPTION. Эмулятор остановлен после проверки
+PID/StartTime/AVD name и восстановления JobScheduler; маркер владельца удалён.
+Пять каталогов отчётов занимают около 16 МиБ логических файлов (не общая дельта
+Gradle/AVD). Host main*.db пользователя не использовались.
+Default batching, регистрация работы MainActivity, shell force-stop, reboot,
+Doze, release/R8 и OEM-квоты остаются отдельными проверками.
+
 ## Настоящий периодический WorkManager — 4 октября 2026
 
 Новый debug integration
