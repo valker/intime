@@ -1,5 +1,58 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Release R8 на API 35 — 4 октября 2026
+
+Runner `scripts/test-release-smoke.ps1` принимает `-TestApi 35/36`;
+выбор ограничен проектными AVD/serial, сверяются PID/start/имя/версия ОС.
+Новый APK не собирался: runtime и build-конфигурация после `7fbae39` не изменились.
+Использован кандидат 25/2.0.0-rc1 из
+`.test-tools/runs/release-permissions-20261003-225632` с теми же APK/mapping SHA-256,
+что приведены ниже для API 36. Это чистая синтетическая установка upload-signed
+non-debuggable APK с проверенным R8 mapping, а не обновление Play v1.
+
+**PASSED, 14/14 фаз:** `.test-tools/runs/20261004-103427-release-smoke/summary.json`.
+CRUD/ACK, настройки/Back, process restart, JSON через SAF, настоящий reboot,
+доставка/ACK уведомления, отказ POST_NOTIFICATIONS, отключённый канал и восстановление
+после каждого запрета с новым UI ACK прошли. Boot count `1` → `2`, alarm
+`1791102895832` восстановлен до запуска Activity. В сохранённых журналах до/после
+reboot нет ANR, FATAL EXCEPTION, Fatal signal или lowmemorykiller для InTime.
+Ограничения прежние: UI опрашивается с паузами, wasNotified/ID приватной Room
+не сверяются, автоматическое восстановление старой просрочки без ACK/Doze не проверяется.
+
+Проверенная конфигурация: Emulator 37.2.12, AOSP API 35 default x86_64 rev 2,
+2 CPU, 4096 МБ RAM, 1080×1920/density 420, host GPU.
+Bootstrap ScreenPlatformTest: **2/2**, `.test-tools/runs/20261004-103144-4280d465/summary.json`.
+После закрепления defaults повтор с короткой командой `test.ps1 -Mode device
+-TestApi 35 -Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline
+-KeepEmulator` на том же AVD: **2/2**, `.test-tools/runs/20261004-104310-84eff499/summary.json`.
+В test.ps1 добавлен `-EmulatorRamMb`, фактическая RAM сохраняется в summary/ownership,
+смена явного значения у работающего экземпляра отклоняется. API 33/36 defaults RAM
+сохранены; текущий шаг повторно их не проверял. Новые сценарии/параметры снабжены
+русскими комментариями. Runtime приложения не менялся.
+
+Предшествующие сбои сохранены отдельно:
+
+- Google Play API 35 16 КБ, 2048 МБ/software: bootstrap **2/2**,
+  `.test-tools/runs/20261004-101647-7300c086/summary.json`, затем release **FAILED**
+  после двух фаз, `.test-tools/runs/20261004-102104-release-smoke/summary.json`.
+  Probe не получил свежий XML; logcat прямо фиксирует `lowmemorykiller` для InTime
+  PID 8450 с причиной `min watermark is breached even after kill` и массовые убийства
+  системных/Google-процессов. Проверка свежести XML не ослаблялась.
+- Тот же Play 16 КБ образ с 4096 МБ/host: bootstrap **FAILED**, один записанный failure,
+  `.test-tools/runs/20261004-102458-0869d1db/summary.json`.
+  XML сообщает `INSTRUMENTATION_ABORTED: System has crashed`, logcat — SIGSEGV
+  в system_server и Google-процессах, DeadSystemException и ANR com.android.phone.
+  Это не успешно завершённый UI-тест; причина native сбоя не установлена.
+
+Прежний проектный Play 16 КБ профиль сохранён без удаления данных в
+`.test-tools/avd/Intime_Test_API35-ps16k-20261004.avd`, INI — рядом с суффиксом `.ini.backup`.
+Создан AOSP-профиль с прежним проектным именем; личные AVD/телефон не использовались.
+Проверка 16 КБ и Google services остаётся открытой. AAB не пересобран;
+полная API-матрица/Play upgrade не закрыты. Следующий шаг — release smoke API 33.
+После итогового прогона отсутствие собственного production-пакета, probe и уникального
+JSON на AVD проверено отдельно. Эмулятор остановлен после сверки PID/start/имени;
+личные main*.db не читались и не изменялись. PowerShell syntax/BOM и git diff --check прошли.
+
 ## Release R8: разрешение уведомлений и канал — 3 октября 2026
 
 После исправлений lint и слияния master `7fbae39` собран свежий production APK

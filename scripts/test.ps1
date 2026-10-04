@@ -15,7 +15,7 @@ param(
     [string]$SdkPath,
     [string]$JdkPath,
     # Путь установленного образа Android относительно каталога SDK.
-    [string]$SystemImage = 'system-images\android-35\google_apis_playstore_ps16k\x86_64',
+    [string]$SystemImage = 'system-images\android-35\default\x86_64',
     # Отдельные ограничения времени для Gradle и загрузки эмулятора, в секундах.
     [ValidateRange(1, 3600)][int]$TimeoutSeconds = 900,
     [ValidateRange(1, 1200)][int]$BootTimeoutSeconds = 300,
@@ -24,6 +24,9 @@ param(
     # Режим графики нового экземпляра: host использует GPU компьютера,
     # software — программный рендеринг. Уже работающий AVD нужно сначала остановить.
     [ValidateSet('software', 'host', 'auto')][string]$EmulatorGpu = 'software',
+    # Образы с Google Play могут требовать больше памяти при фоновых обновлениях.
+    # Параметр применяется к новому процессу проектного AVD; уже запущенный нужно остановить.
+    [ValidateRange(2048, 8192)][int]$EmulatorRamMb = 2048,
     # Offline запрещает загрузки зависимостей; KeepEmulator оставляет загруженный эмулятор.
     [switch]$Offline,
     [switch]$KeepEmulator
@@ -147,9 +150,11 @@ try {
         # Для каждого API — собственные AVD, данные и порт. Не смешиваем образы.
         if (-not $PSBoundParameters.ContainsKey('EmulatorPort') -and $TestApi -eq 33) { $EmulatorPort = 5582 }
         if (-not $PSBoundParameters.ContainsKey('EmulatorPort') -and $TestApi -eq 36) { $EmulatorPort = 5584 }
-        # API 36 на этом компьютере проверен с аппаратной графикой. Явный
+        # API 35/36 на этом компьютере проверены с аппаратной графикой. Явный
         # EmulatorGpu позволяет выбрать другой режим на другом драйвере/хосте.
-        if (-not $PSBoundParameters.ContainsKey('EmulatorGpu') -and $TestApi -eq 36) { $EmulatorGpu = 'host' }
+        if (-not $PSBoundParameters.ContainsKey('EmulatorGpu') -and $TestApi -in @(35, 36)) { $EmulatorGpu = 'host' }
+        # API 35 проверен с 4 ГБ после lowmemorykiller в Play-образе с 2 ГБ.
+        if (-not $PSBoundParameters.ContainsKey('EmulatorRamMb') -and $TestApi -eq 35) { $EmulatorRamMb = 4096 }
         $serial = "emulator-$EmulatorPort"
         if (-not $PSBoundParameters.ContainsKey('SystemImage') -and $TestApi -eq 33) {
             $SystemImage = 'system-images\android-33\google_apis\x86_64'
@@ -199,7 +204,7 @@ avd.ini.encoding=UTF-8
 abi.type=x86_64
 hw.cpu.arch=x86_64
 hw.cpu.ncore=$testCpuCount
-hw.ramSize=2048
+hw.ramSize=$EmulatorRamMb
 hw.lcd.width=$testWidth
 hw.lcd.height=$testHeight
 hw.lcd.density=$testDensity
@@ -253,6 +258,12 @@ fastboot.forceColdBoot=yes
                 throw 'Stop the retained project emulator before changing or confirming EmulatorGpu.'
             }
             $summary.emulatorGpu = $recordedGpu
+            # RAM работающего процесса берём из записи запуска, а не изменённого INI.
+            $recordedRam = if ($state.PSObject.Properties['ramMb']) { $state.ramMb } else { $null }
+            if ($PSBoundParameters.ContainsKey('EmulatorRamMb') -and $recordedRam -ne $EmulatorRamMb) {
+                throw 'Stop the retained project emulator before changing or confirming EmulatorRamMb.'
+            }
+            if ($null -ne $recordedRam) { $summary.emulatorRamMb = $recordedRam }
             $deviceOwned = $true
         } else {
             # Новый экземпляр запускаем в фоне после проверки аппаратного ускорения.
@@ -267,13 +278,18 @@ fastboot.forceColdBoot=yes
             $check = Join-Path $SdkPath 'emulator\emulator-check.exe'
             if ((Invoke-LoggedProcess $check @('accel') 'acceleration' 30) -ne 0) { throw 'Hardware acceleration unavailable. See acceleration logs.' }
             $emulatorArgs = @('-avd', $avdName, '-port', "$EmulatorPort", '-no-window', '-no-audio', '-no-snapshot', '-gpu', $EmulatorGpu)
+            # Явный override действует и для существующего AVD без удаления его данных.
+            if ($PSBoundParameters.ContainsKey('EmulatorRamMb') -or $TestApi -eq 35) {
+                $emulatorArgs += @('-memory', "$EmulatorRamMb")
+                $summary.emulatorRamMb = $EmulatorRamMb
+            }
             # В headless-прогоне API 36 загрузочная анимация ОС не нужна;
             # отключаем её, сохраняя анимации экранов самого приложения.
             if ($TestApi -eq 36) { $emulatorArgs += '-no-boot-anim' }
             $argsLine = ($emulatorArgs | ForEach-Object { Quote-Argument $_ }) -join ' '
             $ownedEmulator = Start-Process $emulator -ArgumentList $argsLine -WorkingDirectory $root -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $run 'emulator.stdout.log') -RedirectStandardError (Join-Path $run 'emulator.stderr.log')
             # Запись позволяет безопасно переиспользовать экземпляр после KeepEmulator.
-            @{ processId = $ownedEmulator.Id; started = $ownedEmulator.StartTime.ToUniversalTime().ToString('o'); serial = $serial; gpu = $EmulatorGpu } | ConvertTo-Json | Set-Content $emulatorState -Encoding UTF8
+            @{ processId = $ownedEmulator.Id; started = $ownedEmulator.StartTime.ToUniversalTime().ToString('o'); serial = $serial; gpu = $EmulatorGpu; ramMb = $summary.emulatorRamMb } | ConvertTo-Json | Set-Content $emulatorState -Encoding UTF8
             $summary.emulatorGpu = $EmulatorGpu
             $deviceOwned = $true
         }

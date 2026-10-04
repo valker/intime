@@ -1,13 +1,18 @@
 ﻿<#
-Проверяет уже собранный production release APK через UI на проектном AVD API 36.
-Перед запуском: scripts/test.ps1 -Mode device -TestApi 36 -Offline -KeepEmulator.
+Проверяет уже собранный production release APK через UI на проектном AVD API 35/36.
+Перед запуском: scripts/test.ps1 -Mode device -TestApi <35 или 36> -Offline -KeepEmulator.
+Одинаковый TestApi нужно передать обоим скриптам; по умолчанию здесь используется 36.
 APK должен быть подписан подтверждённым upload key; скрипт не публикует его в Play.
 Используются только новые синтетические задачи. Если production-пакет уже установлен,
 скрипт отказывается продолжать; данные существующей установки не очищаются.
 После проверки удаляется только APK, установленный этим запуском. Эмулятор остаётся работать.
 #>
 [CmdletBinding()]
-param([Parameter(Mandatory = $true)][string]$ApkPath)
+param(
+    [Parameter(Mandatory = $true)][string]$ApkPath,
+    # Выбор ограничен проектными AVD; произвольный serial принимать небезопасно.
+    [ValidateSet(35, 36)][int]$TestApi = 36
+)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
@@ -16,7 +21,7 @@ $run = Join-Path $work ('runs\' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-relea
 New-Item -ItemType Directory -Path $run -Force | Out-Null
 $sdk = Join-Path $env:LOCALAPPDATA 'Android\Sdk'
 $adb = Join-Path $sdk 'platform-tools\adb.exe'
-$serial = 'emulator-5584'
+$serial = if ($TestApi -eq 35) { 'emulator-5580' } else { 'emulator-5584' }
 $package = 'com.vpe_soft.intime.intime'
 $installedHere = $false
 $probePushed = $false
@@ -24,7 +29,7 @@ $backupDevicePath = $null
 $oldJavaHome = $env:JAVA_HOME
 $lock = $null
 $commandNumber = 0
-$summary = @{ status = 'RUNNING'; passedPhases = @(); reports = $run; serial = $serial }
+$summary = @{ status = 'RUNNING'; passedPhases = @(); reports = $run; serial = $serial; testApi = $TestApi }
 
 # SDK-компиляторы тоже могут писать предупреждения в stderr с exit 0.
 # Сохраняем оба потока и определяем результат по коду завершения.
@@ -133,7 +138,8 @@ function Prepare-ReleaseMinuteAlarm([string]$Description) {
     return $alarm
 }
 
-# Проверяем отсутствие уведомления непрерывно до пяти секунд после срока alarm.
+# Повторно опрашиваем шторку до пяти секунд после срока alarm; между снимками
+# UI есть паузы, поэтому кратковременное появление между ними не исключается.
 # Дополнительно требуем исчезновения сработавшего alarm и запись receiver в logcat,
 # чтобы отсутствие уведомления не стало ложным успехом при несработавшем будильнике.
 # wasNotified в приватной Room этим black-box наблюдением не проверяется.
@@ -208,8 +214,8 @@ try {
     $process = Get-Process -Id $state.processId -ErrorAction Stop
     if ($state.serial -ne $serial -or $process.StartTime.ToUniversalTime().ToString('o') -ne $state.started) { throw 'Emulator ownership mismatch' }
     $name = Invoke-ReleaseAdb @('emu', 'avd', 'name')
-    if ($name.Split("`n")[0].Trim() -ne 'Intime_Test_API36') { throw 'Refusing another AVD' }
-    if ((Invoke-ReleaseAdb @('shell', 'getprop', 'ro.build.version.sdk')).Trim() -ne '36') { throw 'Expected API 36' }
+    if ($name.Split("`n")[0].Trim() -ne "Intime_Test_API$TestApi") { throw 'Refusing another AVD' }
+    if ((Invoke-ReleaseAdb @('shell', 'getprop', 'ro.build.version.sdk')).Trim() -ne "$TestApi") { throw "Expected API $TestApi" }
     if ((Invoke-ReleaseAdb @('shell', 'dumpsys', 'window')) -match 'Application Not Responding:') { throw 'System ANR dialog is present' }
     $ApkPath = (Resolve-Path -LiteralPath $ApkPath).Path
     $tools = Join-Path $sdk 'build-tools\35.0.0'

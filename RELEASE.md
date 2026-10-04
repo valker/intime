@@ -99,6 +99,15 @@ receiver срабатывает, alarm исчезает, уведомление 
 изменений не пересобран; прежний AAB является историческим артефактом.
 Хеши, частичный неуспешный прогон и границы проверки — DEVICE_TEST_RESULTS.md.
 
+4 октября тот же APK (без изменений runtime) прошёл **14/14 фаз на AOSP API 35**:
+`.test-tools/runs/20261004-103427-release-smoke/summary.json`.
+Runner принимает `-TestApi 35/36` и сверяет выбранные serial/AVD/API.
+Проверенный API 35 профиль: Emulator 37.2.12, AOSP default x86_64 rev 2,
+2 CPU, 4 ГБ RAM, 1080×1920/density 420, host GPU; он закреплён в test.ps1.
+Прежний Google Play 16 КБ профиль сохранён отдельно после lowmemorykiller
+и native падения system_server; успешность на 16 КБ этим AOSP-прогоном не подтверждена.
+Оставшиеся API 24/31/33, Doze, обновление Play и новый AAB ещё требуют проверки.
+
 ### Create a Keystore (first time only)
 
 For a new application only, if you don't have a keystore yet, create one.

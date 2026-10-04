@@ -42,7 +42,9 @@ reboot/восстановление alarm до запуска Activity, дост
 из шторки, отказ POST_NOTIFICATIONS/восстановление и отключение/включение
 канала — всего четырнадцать фаз. Прогон занимает несколько минут:
 минутные будильники ожидаются в реальном времени, часы ОС не изменяются.
-Он пока рассчитан только на проектный API 36, serial `emulator-5584`.
+Runner принимает `-TestApi 35` или `-TestApi 36` (по умолчанию 36),
+строго для проектных Intime_Test_API35/36 с serial `emulator-5580`/`emulator-5584`.
+Выбор API должен совпадать с bootstrap; произвольный serial не поддерживается.
 Нужны JDK `C:\Program Files\Java\jdk-17`, SDK в `%LOCALAPPDATA%\Android\Sdk`,
 platform android-36 с `android.jar`/`uiautomator.jar`, build-tools 35.0.0
 и JUnit 4.13.2 в Gradle cache после bootstrap. Signing credentials вводятся
@@ -63,12 +65,29 @@ Mapping должен лежать рядом с переданным APK. При
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -ApkPath '.test-tools/runs/release-permissions-20261003-225632/intime-25-2.0.0-rc1-r8.apk'
 ```
 
+Для API 35 сначала оставьте запущенным соответствующий проектный AVD, затем
+передайте тот же API release-runner (приложение и shell-probe компилируются с SDK 36):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 35 -SystemImage 'system-images\android-35\default\x86_64' -EmulatorGpu host -EmulatorRamMb 4096 -Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline -KeepEmulator
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -TestApi 35 -ApkPath '.test-tools/runs/release-permissions-20261003-225632/intime-25-2.0.0-rc1-r8.apk'
+```
+
+По умолчанию API 35 теперь использует AOSP, 4 ГБ RAM и host GPU. Образ устанавливается
+отдельно через sdkmanager. Существующий проектный AVD с другим SystemImage runner
+не переиспользует: перед сменой образа нужно остановить принадлежащий runner процесс
+и сохранить прежний профиль. Для новой конфигурации здесь прежний Play 16 КБ профиль
+сохранён в `.test-tools/avd/Intime_Test_API35-ps16k-20261004.avd`.
+`-EmulatorRamMb` задаёт RAM нового процесса (2048–8192 МБ); явное значение
+переопределяет INI через `-memory` без удаления данных. RAM записывается в summary
+и запись владения; смена/подтверждение другого значения у работающего AVD отклоняется.
+
 Runner проверяет PID/start/имя/API AVD, upload-сертификат, production пакет,
 код 25, non-debuggable и переименование репозитория в mapping; снимает SHA-256.
 При существующем production-пакете отказывается продолжать. Использует только
 синтетическую задачу и после проверки удаляет собственную установку/probe.
 Уникальный экспорт сохраняется в Downloads и также удаляется после smoke;
-его локальная копия остаётся в отчёте. Проверенный picker — DocumentsUI AOSP API 36,
+его локальная копия остаётся в отчёте. Проверенный picker — DocumentsUI AOSP API 35/36,
 с открытой папкой Downloads; другие providers/каталоги не проверялись.
 Ошибка сбора диагностики не отменяет попытку очистки. Общий `run.lock` исключает
 параллельный запуск с другими runner. Отчёты — `.test-tools/runs/*-release-smoke`.
@@ -100,7 +119,7 @@ AlarmReceiver. После возврата разрешения новый ACK �
 проверяются состояние переключателя и importance собственного канала в dumpsys.
 Отсутствие уведомления, работа receiver и восстановление доставки проверяются
 аналогично. Флаги разрешений и состояние канала удаляются с собственным APK.
-Сценарий рассчитан на английский Settings/notification action проектного AOSP API 36.
+Сценарий проверен на английском Settings/notification action проектных AOSP API 35/36.
 Black-box проверки не читают wasNotified, не доказывают сохранение этой отметки
 или автоматическую доставку старой просрочки без нового пользовательского ACK.
 Doze, точность доставки в миллисекундах,
@@ -156,8 +175,10 @@ Robolectric does not replace testing Android platform behavior on a device.
   ANDROID_HOME; -SdkPath overrides runner discovery. Ensure local.properties
   points to the same SDK because Gradle also reads it.
 - For device mode: platform-tools, modern emulator/emulator.exe, hardware
-  virtualization and a system image. On this machine the installed image is
-  system-images/android-35/google_apis_playstore_ps16k/x86_64.
+  virtualization and a system image. Default API 35 now uses
+  system-images/android-35/default/x86_64 (AOSP revision 2 installed here).
+  The older Google Play 16 KB profile is preserved separately after system failures;
+  its results do not establish a release pass.
   -TestApi 33 uses system-images/android-33/google_apis/x86_64 (revision 17
   installed here). -TestApi 36 uses system-images/android-36/default/x86_64 (AOSP)
   in its own Intime_Test_API36 AVD. -SystemImage can choose another installed x86_64 image for
@@ -177,7 +198,7 @@ Robolectric does not replace testing Android platform behavior on a device.
 
 Для диагностики графики нового экземпляра можно указать `-EmulatorGpu host`
 (GPU компьютера), `auto` (выбор эмулятора) или `software`.
-По умолчанию API 36 использует host, API 33/35 — software.
+По умолчанию API 35/36 используют host, API 33 — software.
 Параметр меняет только запуск процесса, не сохранённый config.ini. Режим записывается
 в `.test-tools/emulator.json` и summary.json. Явный режим при повторном использовании
 должен совпадать с записью; иначе сначала остановите принадлежащий runner AVD.
@@ -199,7 +220,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode devic
 720×1280/density 280, host GPU и отключённая загрузочная анимация ОС.
 Новый профиль получает не больше 8 ядер и не больше числа логических CPU хоста;
 стабильность на другом хосте/драйвере или с меньшим числом ядер отдельно не проверена.
-API 33/35 сохраняют шаблон 2 ядра, 2048 МБ, 1080×1920/density 420.
+API 33/35 используют 2 ядра, 1080×1920/density 420;
+API 33 — 2048 МБ RAM, API 35 — 4096 МБ RAM.
 Отключение boot animation не меняет анимации приложения; параметр описан в
 [документации Android](https://developer.android.com/studio/run/emulator-commandline).
 Он проверяет Android API, но не интеграцию Google Play/Google services.
