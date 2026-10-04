@@ -155,9 +155,23 @@ API 31/33 и AOSP API 35/36. Перед вводом описание должн
 Все проверки уведомлений требуют реально раскрытой шторки по resource-id
 notification_stack_scroller; повторное раскрытие ограничено 20 секундами.
 Перед reboot сохраняется пакет и требуется stopped=false; после — пакет,
-при отсутствии прежнего alarm также broadcasts. На API 31 перед reboot добавлены
+broadcasts и logcat каждого повтора, в том числе успешного. На API 31 по умолчанию
 15 секунд ожидания после последних операций с процессом. Причина одного случая
 без вызова BootReceiver не установлена: пауза не считается доказанным исправлением.
+Для точечного исследования используйте тот же bootstrap API 31 с KeepEmulator,
+затем (production APK должен отсутствовать):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -TestApi 31 -ApkPath '.test-tools/runs/release-permissions-20261003-225632/intime-25-2.0.0-rc1-r8.apk' -RebootOnly -RebootRepeats 3 -RebootSettleSeconds 0
+```
+
+Этот режим проходит семь подготовительных фаз CRUD/JSON, затем указанное число
+настоящих reboot. Перед повтором снова выполняется force-stop/запуск и сверяется
+описание/alarm, после reboot alarm проверяется до открытия Activity. При первом
+сбое запуск прекращается, summary сохраняет rebootResults и диагностику.
+Минутные уведомления и разрешения в этом режиме не проверяются; его успех не
+равнозначен полному smoke. RebootRepeats (1–10) требует RebootOnly;
+RebootSettleSeconds (0–60) применяется только на API 31.
 Black-box проверки не читают wasNotified, не доказывают сохранение этой отметки
 или автоматическую доставку старой просрочки без нового пользовательского ACK.
 Doze, точность доставки в миллисекундах,

@@ -11,7 +11,12 @@ APK должен быть подписан подтверждённым upload k
 param(
     [Parameter(Mandatory = $true)][string]$ApkPath,
     # Выбор ограничен проектными AVD; произвольный serial принимать небезопасно.
-    [ValidateSet(31, 33, 35, 36)][int]$TestApi = 36
+    [ValidateSet(31, 33, 35, 36)][int]$TestApi = 36,
+    # Точечный режим проходит подготовку/JSON и повторяет reboot без минутных уведомлений.
+    [switch]$RebootOnly,
+    [ValidateRange(1, 10)][int]$RebootRepeats = 1,
+    # Ноль позволяет проверить гипотезу о задержке записи stopped после force-stop.
+    [ValidateRange(0, 60)][int]$RebootSettleSeconds = 15
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -30,7 +35,8 @@ $backupDevicePath = $null
 $oldJavaHome = $env:JAVA_HOME
 $lock = $null
 $commandNumber = 0
-$summary = @{ status = 'RUNNING'; passedPhases = @(); reports = $run; serial = $serial; testApi = $TestApi }
+$summary = @{ status = 'RUNNING'; passedPhases = @(); reports = $run; serial = $serial; testApi = $TestApi; rebootOnly = [bool]$RebootOnly; rebootResults = @(); rebootSettleSeconds = $RebootSettleSeconds }
+if (-not $RebootOnly -and $RebootRepeats -ne 1) { throw 'RebootRepeats requires RebootOnly' }
 
 # SDK-компиляторы тоже могут писать предупреждения в stderr с exit 0.
 # Сохраняем оба потока и определяем результат по коду завершения.
@@ -466,17 +472,31 @@ try {
     # После нового boot_count ждём тот же alarm ДО запуска Activity: восстановить
     # его должен release BootReceiver, а не побочный эффект открытия приложения.
     # Просрочку во время выключения и boot-уведомление эта фаза не моделирует.
+    for ($bootIteration = 1; $bootIteration -le $RebootRepeats; $bootIteration++) {
+    # Каждый повтор воспроизводит force-stop/запуск, а не только reboot уже стабильного
+    # пакета. Проверяем сохранённое описание и срок до Home; после reboot Activity
+    # не открывается до проверки alarm. Не читаем private DB и не вызываем receiver вручную.
+    if ($bootIteration -gt 1) {
+        Invoke-ReleaseAdb @('shell', 'am', 'force-stop', $package) | Out-Null
+        Launch-Release
+        Assert-ReleaseText $edited
+        if ((Wait-ReleaseAlarm) -ne $afterAck) { throw 'Alarm changed before repeated reboot' }
+    }
+    $bootPrefix = "reboot-$bootIteration"
     Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '3') | Out-Null
     $bootBefore = [int](Invoke-ReleaseAdb @('shell', 'settings', 'get', 'global', 'boot_count')).Trim()
     $expectedBootAlarm = Wait-ReleaseAlarm
     # API 31: после force-stop/запуска оставляем ОС время зафиксировать состояние
     # пакета перед reboot. Отсутствие BOOT_COMPLETED однажды наблюдалось, но связь
     # с отложенной записью PackageManager не доказана; сохраняем состояние для диагностики.
-    if ($TestApi -eq 31) { Start-Sleep -Seconds 15 }
+    if ($TestApi -eq 31 -and $RebootSettleSeconds -gt 0) { Start-Sleep -Seconds $RebootSettleSeconds }
     $beforeBootPackage = Invoke-ReleaseAdb @('shell', 'dumpsys', 'package', $package)
     Set-Content (Join-Path $run 'package-before-reboot.log') $beforeBootPackage -Encoding UTF8
+    Set-Content (Join-Path $run "$bootPrefix-package-before.log") $beforeBootPackage -Encoding UTF8
     if ($beforeBootPackage -notmatch 'User 0:.*stopped=false') { throw 'Release package stopped before reboot' }
     Set-Content (Join-Path $run 'logcat-before-reboot.log') (Invoke-ReleaseAdb @('logcat', '-d')) -Encoding UTF8
+    Copy-Item -LiteralPath (Join-Path $run 'logcat-before-reboot.log') -Destination (Join-Path $run "$bootPrefix-logcat-before.log")
+    if ((Get-Content (Join-Path $run "$bootPrefix-logcat-before.log") -Raw) -match 'ANR in|FATAL EXCEPTION') { throw 'ANR or fatal exception before repeated reboot' }
     Invoke-ReleaseAdb @('reboot') | Out-Null
     Write-Output 'Waiting for owned AVD reboot...'
     $bootLimit = (Get-Date).AddSeconds(300)
@@ -497,6 +517,14 @@ try {
         Start-Sleep -Seconds 2
     } while ((Get-Date) -lt $bootAlarmLimit)
     Set-Content (Join-Path $run 'package-after-reboot.log') (Invoke-ReleaseAdb @('shell', 'dumpsys', 'package', $package)) -Encoding UTF8
+    Copy-Item -LiteralPath (Join-Path $run 'package-after-reboot.log') -Destination (Join-Path $run "$bootPrefix-package-after.log")
+    # Сохраняем broadcast history и logcat также при успехе: сравнение только
+    # неуспешных запусков не показывает, доставлялся ли BOOT_COMPLETED в норме.
+    Set-Content (Join-Path $run "$bootPrefix-broadcasts-after.log") (Invoke-ReleaseAdb @('shell', 'dumpsys', 'activity', 'broadcasts')) -Encoding UTF8
+    $bootLog = Invoke-ReleaseAdb @('logcat', '-d')
+    Set-Content (Join-Path $run "$bootPrefix-logcat-after.log") $bootLog -Encoding UTF8
+    $summary.rebootResults += @{ iteration = $bootIteration; bootBefore = $bootBefore; bootAfter = $bootAfter; expectedAlarm = $expectedBootAlarm; actualAlarm = $bootAlarm; receiverLogged = [bool]($bootLog -match 'BootReceiver.*onReceive'); restored = ($bootAlarm -eq $expectedBootAlarm) }
+    if ($bootLog -match 'ANR in|FATAL EXCEPTION') { throw 'ANR or fatal exception during repeated reboot' }
     if ($bootAlarm -ne $expectedBootAlarm) {
         Set-Content (Join-Path $run 'broadcasts-after-reboot.log') (Invoke-ReleaseAdb @('shell', 'dumpsys', 'activity', 'broadcasts')) -Encoding UTF8
         throw 'Release BootReceiver did not restore the same alarm'
@@ -505,8 +533,11 @@ try {
     $summary.bootCountBefore = $bootBefore
     $summary.bootCountAfter = $bootAfter
     $summary.bootRestoredAlarm = $bootAlarm
-    Complete-ReleasePhase 'release-reboot-recovery'
+    $bootPhase = if ($RebootOnly) { "release-reboot-recovery-$bootIteration" } else { 'release-reboot-recovery' }
+    Complete-ReleasePhase $bootPhase
+    }
 
+    if (-not $RebootOnly) {
     # Проверка реальной доставки: только нашей новой установке разрешаем exact
     # alarms через appops, меняем период задачи через UI на минуту, подтверждаем
     # её в деталях для нового отсчёта от текущего ACK и уходим Home.
@@ -614,6 +645,7 @@ try {
     Set-ReleaseChannelEnabled $true
     Assert-ReleaseRecoveredNotification $edited 'channel-restored'
     Complete-ReleasePhase 'release-channel-restored'
+    }
     $summary.status = 'PASSED'
 } catch {
     $summary.status = if ($installedHere) { 'FAILED' } else { 'INFRASTRUCTURE_ERROR' }
@@ -647,7 +679,7 @@ try {
     }
     $env:JAVA_HOME = $oldJavaHome
     if ($lock) { $lock.Dispose() }
-    $summary | ConvertTo-Json | Set-Content (Join-Path $run 'summary.json') -Encoding UTF8
+    $summary | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $run 'summary.json') -Encoding UTF8
     Write-Output "$($summary.status). Reports: $run"
 }
 if ($summary.status -ne 'PASSED') { exit 1 }
