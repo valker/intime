@@ -39,6 +39,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode devic
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -TestApi 36 -ApkPath '.test-tools/runs/release-icons-20261004-221247/intime-25-2.0.0-rc1-icons.apk' -PeriodicOnly -PeriodicWaitMinutes 65
 ```
 
+В PeriodicOnly снимки `periodic-diagnostic-{before,latest,after}-*.log`
+содержат очередь JobScheduler, power, deviceidle и battery. Before снимается
+после завершения процесса, latest обновляется раз в пять минут, after — после
+ожидания, в том числе при тайм-ауте. Фиксированные имена ограничивают число
+файлов; отдельно сохраняются время и fingerprint сборки Android. Это чтение
+состояния ОС, без запуска работы или изменения настроек. Ready:true сам по себе
+не доказывает доставку; наличие batch threshold не доказывает причину задержки.
+
 Этот режим принимает только API 36 и не совмещается с RebootOnly/DozeOnly.
 Требует прежнего разрешённого Intime_Test_API36/5584 с маркером владельца,
 подписанного non-debuggable production APK code 25 и соседнего mapping.txt

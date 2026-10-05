@@ -1,5 +1,42 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Диагностика очереди по сохранённым логам — 5 октября 2026
+
+Нового device-прогона не было. Разобран снимок
+`.test-tools/runs/20261004-223947-release-smoke/periodic-default-before-forced.log`:
+собственное задание namespace androidx.work.systemjobscheduler, uid 10152, id 1
+имеет Standby bucket EXEMPTED, Ready:true, пустые Unsatisfied constraints,
+Restricted due to:none. BATTERY_NOT_LOW, TIMING_DELAY, DEVICE_NOT_DOZING,
+BACKGROUND_NOT_RESTRICTED и WITHIN_QUOTA выполнены. Очередь Pending — None,
+Active jobs — N/A, 16 idle contexts; screen ON, thermal status 0,
+Stable power/Not low — true. TIMING_DELAY был выполнен примерно за 39 минут
+до снимка. Это исключает перечисленные ограничения как видимую причину
+в данном снимке, но не описывает все переходы состояния между снимками.
+
+Предположение о задержке из-за CPU batch threshold 3 не подтверждено:
+batch_active_bucket_jobs=false, а задание EXEMPTED. В просмотренном
+[исходнике AOSP JobSchedulerService](https://android.googlesource.com/platform/frameworks/base/+/4ce707990cdcf0ea0af5a19159ab968db8bede80/apex/jobscheduler/service/java/com/android/server/job/JobSchedulerService.java)
+ветка force batching исключает EXEMPTED и при выключенном флаге использует
+MIN_READY_NON_ACTIVE_JOBS_COUNT. Исходник служит ориентиром; соответствие
+этому commit установленного системного модуля пока не установлено.
+Причина удержания задания остаётся неизвестной; ошибку приложения/R8 не объявляем.
+
+PeriodicOnly теперь сохраняет dumpsys jobscheduler/power/deviceidle/battery
+после am kill, каждые пять минут ожидания и перед оценкой результата,
+включая естественный тайм-аут; также сохраняет build fingerprint и время снимков.
+Наборы before/latest/after имеют фиксированные имена, latest перезаписывается;
+сбор не меняет настройки и не запускает jobs. Полный logcat после ожидания
+и прежний controlled/natural статус сохраняются как раньше.
+Проверены синтаксис PowerShell и вызовы новой функции с подставным adb:
+15 операций чтения, 12 фиксированных файлов dumpsys, 3 временные отметки.
+Результат: `.test-tools/runs/20261005-periodic-diagnostic-validation/validation.txt`.
+Это host-проверка, а не новый PASS устройства; приложение не пересобиралось.
+
+Следующий шаг — один прогон PeriodicOnly на существующем API 36 с этой
+диагностикой, без изменения batching и ручного job run; перед ним проверить
+доступное место. При повторной задержке сопоставить системную сборку,
+снимки и logcat, отдельно выяснить доступность причин ожидания JobScheduler.
+
 ## Тихий periodic worker в release/R8 — 4 октября 2026
 
 **PASSED_CONTROLLED_PLATFORM_DISPATCH, 10/10 host-фаз:**

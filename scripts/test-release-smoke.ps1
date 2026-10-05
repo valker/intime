@@ -298,6 +298,20 @@ function Prepare-ReleaseMinuteAlarm([string]$Description) {
     return $alarm
 }
 
+# Сохраняем только чтение состояния ОС: очередь/слоты/ограничения задания,
+# питание, Doze и сборку Android. Не запускаем работу и не меняем настройки.
+# Три фиксированных набора (before/latest/after) ограничивают расход диска;
+# latest перезаписывается раз в пять минут, after снимается и при тайм-ауте.
+# Эти dumpsys показывают состояние в момент снимка, но не доказывают причину
+# решения планировщика между снимками и могут содержать другие системные пакеты.
+function Save-ReleasePeriodicDiagnostics([ValidateSet('before', 'latest', 'after')][string]$Stage) {
+    foreach ($service in @('jobscheduler', 'power', 'deviceidle', 'battery')) {
+        Invoke-ReleaseTool $adb @('-s', $serial, 'shell', 'dumpsys', $service) "periodic-diagnostic-$Stage-$service.log" | Out-Null
+    }
+    Invoke-ReleaseTool $adb @('-s', $serial, 'shell', 'getprop', 'ro.build.fingerprint') 'periodic-build-fingerprint.log' | Out-Null
+    Set-Content (Join-Path $run "periodic-diagnostic-$Stage-time.txt") ([datetimeoffset]::Now.ToString('o')) -Encoding UTF8
+}
+
 # Чистая release-установка уже прошла CRUD/JSON/reboot и доставила настоящий
 # минутный alarm с ACK. После Home убиваем только фоновый процесс (не force-stop),
 # подтверждаем stopped=false и оставшуюся SystemJobService. Ждём новое активное
@@ -332,8 +346,10 @@ function Assert-ReleasePeriodicReminder([string]$Description) {
     Set-Content (Join-Path $run 'periodic-package-after-kill.log') $state -Encoding UTF8
     if ($state -notmatch 'User 0:.*stopped=false') { throw 'Release package stopped after kill' }
     $summary.periodicProcessAbsentAfterKill = $true
+    Save-ReleasePeriodicDiagnostics 'before'
     $limit = (Get-Date).AddMinutes($PeriodicWaitMinutes)
     $timer = [Diagnostics.Stopwatch]::StartNew()
+    $nextDiagnosticSeconds = 300
     $delivered = $false
     Write-Output "Waiting for natural release worker (up to $PeriodicWaitMinutes minutes, unchanged batching)..."
     do {
@@ -343,9 +359,14 @@ function Assert-ReleasePeriodicReminder([string]$Description) {
         $record = [regex]::Match($notifications, $pattern)
         $when = [regex]::Match($record.Value, '(?m)^\s*when=(\d+)/')
         if ($record.Success -and $record.Value.Contains("android.text=String ($Description)") -and $when.Success -and [long]$when.Groups[1].Value -ge $firstPost + 900000) { $delivered = $true; break }
+        if ($timer.Elapsed.TotalSeconds -ge $nextDiagnosticSeconds) {
+            Save-ReleasePeriodicDiagnostics 'latest'
+            $nextDiagnosticSeconds = $timer.Elapsed.TotalSeconds + 300
+        }
         Write-Output ("Worker wait: {0:N1} minutes" -f $timer.Elapsed.TotalMinutes)
         Start-Sleep -Seconds 30
     } while ((Get-Date) -lt $limit)
+    Save-ReleasePeriodicDiagnostics 'after'
     Set-Content (Join-Path $run 'periodic-jobs-after.log') (Invoke-ReleaseAdb @('shell', 'dumpsys', 'jobscheduler')) -Encoding UTF8
     $log = Invoke-ReleaseAdb @('logcat', '-d', '-T', $since)
     Set-Content (Join-Path $run 'periodic-logcat.log') $log -Encoding UTF8
