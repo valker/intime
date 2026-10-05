@@ -265,12 +265,16 @@ run identifiers, initial conditions and coverage limits.
 | API 33 | Upload-signed APK smoke 14/14 | Remaining shared coverage and Play upgrade |
 | API 35 | Upload-signed APK smoke 14/14; synthetic debug upgrade separately | Real production upgrade/data |
 | API 36 | Upload-signed APK smoke 14/14 and a separate forced deep Doze scenario | Natural Doze/quotas, inexact fallback coverage, release worker |
-| WorkManager | Debug real first execution, KEEP registration, second execution after process exit with temporary batching adjustment | Default batching timing, release/R8 worker and other API coverage |
+| WorkManager | Debug execution/KEEP; release/R8 quiet repeat after process exit with controlled JobScheduler run -s, 10/10 phases | Natural release delivery was not observed during 52 minutes; default dispatch/timing, other API and repeated-period coverage open |
 | 16 KB pages | Fresh AAB contains no native `.so` files | Separate device/platform verification not performed |
 | CI | Configuration and local checks recorded | Successful new remote pipelines not confirmed |
 
 Use the release-smoke runner and commands in [TESTING.md](TESTING.md), only on
 the dedicated project AVDs. Do not install or clear a personal device implicitly.
+Release periodic result uses PASSED_CONTROLLED_PLATFORM_DISPATCH, not a natural
+delivery pass. The scheduler remained Ready:true; host then dispatched its ready
+job with -s. The APK's WorkManager returned SUCCESS and posted the quiet repeat.
+No batching threshold, interval or clock changes were made; no direct doWork call.
 Do not infer a current pass from older logs or treat a packaging check as a device
 check. Preserve R8 mapping for crash decoding; a renamed class alone does not
 prove all runtime paths work.

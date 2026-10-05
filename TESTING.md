@@ -32,6 +32,62 @@ ScreenPlatformTest использует AndroidX WindowInsetsCompat и Display.g
 
 ## Commands
 
+### Тихий periodic worker в production release/R8 (API 36)
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 36 -Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline -KeepEmulator
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -TestApi 36 -ApkPath '.test-tools/runs/release-icons-20261004-221247/intime-25-2.0.0-rc1-icons.apk' -PeriodicOnly -PeriodicWaitMinutes 65
+```
+
+Этот режим принимает только API 36 и не совмещается с RebootOnly/DozeOnly.
+Требует прежнего разрешённого Intime_Test_API36/5584 с маркером владельца,
+подписанного non-debuggable production APK code 25 и соседнего mapping.txt
+с переименованным R8 TaskRepository. Новые образы/зависимости не скачиваются.
+
+Чистая собственная установка проходит семь подготовительных CRUD/JSON-фаз,
+реальный reboot и первое минутное уведомление AlarmReceiver с ACK. Затем Home,
+am kill только фонового процесса, проверка отсутствия PID и stopped=false.
+До тихого повтора не открываются Activity/шторка, не запускаются UIAutomator,
+instrumentation или ручной job run. Период, часы, ограничения WorkManager
+и batching ОС не меняются. Время ожидания 16–75 минут (по умолчанию 65)
+не является обещанием доставки: Android может пропустить/задержать исполнение.
+
+Повтор должен быть в активном record production-пакета с уникальным описанием,
+when не раньше первой отправки +15 минут, LOW priority, без actions/ACK,
+с sound/vibrate=null и defaults=0 в Notification, SILENT и groupAlertBehavior=1.
+В dumpsys mSound может оставаться звуком канала несмотря на SILENT;
+его null не требуется. Это проверка полей тихой доставки, не измерение звука.
+Logcat после завершения процесса должен содержать SUCCESS настоящего
+TaskNotificationWorker; будущий alarm для единственной просрочки отсутствует.
+Private Room/preferences не читаются: wasNotified, UUID work и точные значения
+последнего ACK этими наблюдениями не утверждаются. Doze/OEM, очередной период
+после worker и остальные API не входят в сценарий.
+
+Во время ожидания один notifications snapshot перезаписывается, чтобы не
+увеличивать расход диска; финальные jobs/logcat/summary сохраняются в runs.
+Собственная установка/probe/JSON удаляются в finally; эмулятор остаётся для
+контролируемой остановки с проверкой PID/StartTime/AVD. Успех подтверждает только
+summary PASSED с десятью фазами; наличие режима не подтверждает пройденную проверку.
+Фактический статус и границы — DEVICE_TEST_RESULTS.md.
+
+Фактический первый release-прогон 4 октября завершён **контролируемо**, 10/10:
+естественный повтор не наблюдался за 52 минуты 4 секунды от первого уведомления,
+хотя JobScheduler показывал Ready:true. Затем host отдельно запустил именно это
+собственное задание через `cmd jobscheduler run -s -n androidx.work.systemjobscheduler
+com.vpe_soft.intime.intime 1` (ID выбран из dumpsys этого запуска, не универсальная
+константа). Вызов -s требует выполненных ограничений; не использовать -f вместо него.
+Настройки/период/часы не менялись, но это ручной dispatch и не natural pass.
+Перед таким вызовом обязательно проверить маркер владельца/PID/StartTime/AVD и
+единственное задание production-пакета. Сохранить periodic-dispatch-control.json
+(observedAt, ownJobCount=1, jobId) и periodic-controlled-run.log с выводом команды
+в каталог активного прогона. Маркер не исполняет никаких команд: он позволяет
+runner уточнить итог как PASSED_CONTROLLED_PLATFORM_DISPATCH,
+naturalDispatchValidated=false. Без успешного Running job маркер отвергается.
+Оба PASS-статуса дают exit 0, но имеют разные границы; natural timeout —
+INCONCLUSIVE/exit 1. Исходный summary первого прогона до уточнения сохранён отдельно
+и не подтверждает естественную доставку. Классификатор проверен на его реальных
+файлах; весь сценарий после этой доработки заново не запускался.
+
 ### Регистрация расписания самим MainActivity
 
 ```powershell

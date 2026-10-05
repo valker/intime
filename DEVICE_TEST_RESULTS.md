@@ -1,5 +1,62 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Тихий periodic worker в release/R8 — 4 октября 2026
+
+**PASSED_CONTROLLED_PLATFORM_DISPATCH, 10/10 host-фаз:**
+`.test-tools/runs/20261004-223947-release-smoke/summary.json`.
+Свежий UI bootstrap **3/3**, без failures/errors/skipped:
+`.test-tools/runs/20261004-223643-7f4f62e5/summary.json`.
+Использован прежний проверенный APK с иконками, SHA-256
+`4F5911443EF3D9A18645C2285E1D1BD2F7B26566F51E7448D2A6D39C40B9D056`,
+production code 25/2.0.0-rc1, non-debuggable, Upload key, R8 mapping того же архива.
+Приложение не пересобиралось; runtime Java/Room/scheduling не менялся.
+
+Новый PeriodicOnly (только API 36) прошёл семь CRUD/JSON-фаз, настоящий reboot
+28 → 29, первое минутное уведомление с ACK, затем Home/am kill фонового процесса,
+отсутствие PID и stopped=false. Задание SystemJobService/TaskNotificationWorker
+сохранилось. До повтора Activity/шторка/probe/instrumentation не запускались,
+private DB/preferences не читались. Batching оставался прежним: CPU threshold 3,
+max_cpu_only_job_batch_delay_ms=1860000; период/часы не менялись.
+
+**Естественная доставка не подтверждена:** до контрольного снимка прошло
+3124.374 секунды от первого уведомления (52 минуты 4 секунды), повтора не было.
+Задание оставалось Ready:true, без невыполненных ограничений, не active/pending.
+Это наблюдение очереди Android, не доказательство ошибки R8 и не завершённый
+тайм-аут 65 минут. Снимки periodic-jobs-observation.log и
+periodic-default-before-forced.log сохранены.
+
+Host проверил PID/StartTime/AVD name и единственное собственное задание и выполнил
+`cmd jobscheduler run -s -n androidx.work.systemjobscheduler com.vpe_soft.intime.intime 1`.
+Флаг -s требует выполненных ограничений. Это контролируемый dispatch через ОС,
+не прямой doWork и не естественное решение очереди. Маркер/вывод команды —
+periodic-dispatch-control.json и periodic-controlled-run.log. Новый процесс PID 3271
+выполнил настоящий WorkManager, `Worker result SUCCESS`, id
+c7e1db59-2507-4957-aa53-11974bab32b2.
+
+Первый Notification.when=1791142993523, повтор=1791146144995: **3151.472 секунды
+(52 минуты 31 секунда)**. То же уникальное описание, LOW priority (-1), без actions/ACK,
+sound/vibrate=null и defaults=0 в Notification, SILENT и groupAlertBehavior=1.
+Будущий alarm для единственной просрочки отсутствовал. mSound в dumpsys сохраняет
+звук канала; его null не требуется, физический звук не измерялся.
+Проверено исполнение release/R8 после смерти процесса, не обычные сроки доставки,
+следующий период worker, Doze/OEM, UUID до/после, wasNotified или все private поля.
+
+Raw summary сохранён в summary-runner-before-dispatch-annotation.json; его PASSED
+**не является natural pass**. Авторитетный summary.json имеет controlled status,
+naturalDispatchValidated=false, periodicPlatformJobDispatched=true и команду.
+Runner теперь учитывает такой маркер/Running job в итоговом статусе; классификатор
+проверен на реальных файлах прогона и случае без маркера, синтаксис/BOM проверены.
+Полный runner после добавления классификатора не повторялся. Будущий natural timeout
+обозначается INCONCLUSIVE, отдельно от assertions/ошибок приложения и очистки.
+
+В итоговой диагностике нет ANR/FATAL EXCEPTION; свои APK/probe/JSON удалены,
+собственный AVD остановлен, маркер отсутствует. Архив около 34.6 МиБ логических
+файлов; снимок опроса перезаписывался. Новых образов/AVD/зависимостей нет.
+Unit suite и новый production APK/AAB не запускались/не собирались.
+R5.3 целиком открыт: естественная доставка и оставшаяся матрица/Play не подтверждены.
+Далее — диагностика ожидания JobScheduler на том же окружении; не менять приложение
+или увеличивать время ожидания без новых оснований.
+
 ## Launcher/adaptive icons и свежий release — 4 октября 2026
 
 R5.2: манифест переведён на `@mipmap/ic_launcher`/`ic_launcher_round`, без DEV-метки.

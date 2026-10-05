@@ -7,6 +7,9 @@ APK должен быть подписан подтверждённым upload k
 Используются только новые синтетические задачи. Если production-пакет уже установлен,
 скрипт отказывается продолжать; данные существующей установки не очищаются.
 После проверки удаляется только APK, установленный этим запуском. Эмулятор остаётся работать.
+PeriodicOnly (только API 36) проходит подготовку/boot/первый alarm и ждёт тихий
+повтор после am kill фонового процесса. Обычный полный режим сохраняет 14 фаз;
+periodic-режим содержит 10 фаз и не меняет batching/период/часы Android.
 #>
 [CmdletBinding()]
 param(
@@ -17,6 +20,10 @@ param(
     [switch]$RebootOnly,
     # Только доставка в deep idle и ACK после подготовки/reboot; без фаз запрета.
     [switch]$DozeOnly,
+    # После реального первого alarm ждём тихого повторного worker в release/R8.
+    # Никакого ручного job run, ускорения часов/периода или изменения batching.
+    [switch]$PeriodicOnly,
+    [ValidateRange(16, 75)][int]$PeriodicWaitMinutes = 65,
     [ValidateRange(1, 10)][int]$RebootRepeats = 1,
     # Ноль позволяет проверить гипотезу о задержке записи stopped после force-stop.
     [ValidateRange(0, 60)][int]$RebootSettleSeconds = 15
@@ -44,6 +51,8 @@ $summary = @{ status = 'RUNNING'; passedPhases = @(); reports = $run; serial = $
 if (-not $RebootOnly -and $RebootRepeats -ne 1) { throw 'RebootRepeats requires RebootOnly' }
 if ($RebootOnly -and $DozeOnly) { throw 'RebootOnly and DozeOnly are mutually exclusive' }
 $summary.dozeOnly = [bool]$DozeOnly
+$summary.periodicOnly = [bool]$PeriodicOnly
+if ($PeriodicOnly -and ($RebootOnly -or $DozeOnly -or $TestApi -ne 36)) { throw 'PeriodicOnly requires API 36 and cannot be combined with other modes.' }
 # API 24 не имеет notification channels и новых Settings intents. Пока эти фазы
 # не адаптированы, отказываем до установки APK вместо ложного полного smoke.
 if ($TestApi -eq 24 -and -not $RebootOnly) { throw 'API 24 currently requires RebootOnly; notification phases are not supported yet.' }
@@ -287,6 +296,83 @@ function Prepare-ReleaseMinuteAlarm([string]$Description) {
     $alarm = Wait-ReleaseAlarm
     Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '3') | Out-Null
     return $alarm
+}
+
+# Чистая release-установка уже прошла CRUD/JSON/reboot и доставила настоящий
+# минутный alarm с ACK. После Home убиваем только фоновый процесс (не force-stop),
+# подтверждаем stopped=false и оставшуюся SystemJobService. Ждём новое активное
+# уведомление с тем же уникальным описанием и when >= первой отправки + 15 минут.
+# Проверяем отсутствие ACK, приоритет LOW, null sound/vibration и defaults=0
+# в Notification, SILENT и подавление оповещения группы. mSound в dumpsys
+# может сохранять звук канала даже при SILENT, поэтому его null не требуем.
+# а также SUCCESS настоящего WorkManager worker в logcat после смерти процесса.
+# Штатный режим не вызывает job вручную. Если host отдельно выполнил контролируемый
+# dispatch, он обязан сохранить маркер и вывод команды; итог будет PASSED_CONTROLLED,
+# а не подтверждением естественной доставки. Не читаем private Room/preferences,
+# поэтому UUID work и wasNotified не утверждаем.
+# Нет проверки повторного периода после worker, Doze/OEM или точного времени запуска.
+function Assert-ReleasePeriodicReminder([string]$Description) {
+    $dump = Get-Content (Join-Path $run 'notifications-delivered.log') -Raw -Encoding UTF8
+    $pattern = '(?ms)^\s*NotificationRecord\([^\r\n]*pkg=com\.vpe_soft\.intime\.intime [^\r\n]*\r?\n(?:(?!^\s*NotificationRecord\().)*'
+    $initial = [regex]::Match($dump, $pattern)
+    $first = [regex]::Match($initial.Value, '(?m)^\s*when=(\d+)/')
+    if (-not $initial.Success -or -not $first.Success -or -not $initial.Value.Contains("android.text=String ($Description)") -or $initial.Value -notmatch 'actions=1') { throw 'Initial alarm record with ACK missing' }
+    $firstPost = [long]$first.Groups[1].Value
+    $summary.periodicFirstAlarmWhen = $firstPost
+    Invoke-ReleaseAdb @('shell', 'cmd', 'statusbar', 'collapse') | Out-Null
+    Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '3') | Out-Null
+    $since = (Invoke-ReleaseAdb @('shell', "date '+%m-%d %H:%M:%S.000'")).Trim()
+    $summary.periodicBatchingChanged = $false
+    Set-Content (Join-Path $run 'periodic-jobs-before.log') (Invoke-ReleaseAdb @('shell', 'dumpsys', 'jobscheduler')) -Encoding UTF8
+    if ((Get-Content (Join-Path $run 'periodic-jobs-before.log') -Raw) -notmatch 'com\.vpe_soft\.intime\.intime/androidx\.work\.impl\.background\.systemjob\.SystemJobService') { throw 'Release WorkManager platform job missing' }
+    Invoke-ReleaseAdb @('shell', 'am', 'kill', $package) | Out-Null
+    Start-Sleep -Seconds 2
+    if ((Invoke-ReleaseAdb @('shell', "pidof $package || true")).Trim()) { throw 'Release process survived am kill' }
+    $state = Invoke-ReleaseAdb @('shell', 'dumpsys', 'package', $package)
+    Set-Content (Join-Path $run 'periodic-package-after-kill.log') $state -Encoding UTF8
+    if ($state -notmatch 'User 0:.*stopped=false') { throw 'Release package stopped after kill' }
+    $summary.periodicProcessAbsentAfterKill = $true
+    $limit = (Get-Date).AddMinutes($PeriodicWaitMinutes)
+    $timer = [Diagnostics.Stopwatch]::StartNew()
+    $delivered = $false
+    Write-Output "Waiting for natural release worker (up to $PeriodicWaitMinutes minutes, unchanged batching)..."
+    do {
+        # Перезаписываем снимок опроса, чтобы длительное ожидание не раздувало диск.
+        # Не вызываем UI/probe/Activity/instrumentation/ручной JobScheduler run.
+        $notifications = Invoke-ReleaseTool $adb @('-s', $serial, 'shell', 'dumpsys', 'notification', '--noredact') 'periodic-notifications-poll.log'
+        $record = [regex]::Match($notifications, $pattern)
+        $when = [regex]::Match($record.Value, '(?m)^\s*when=(\d+)/')
+        if ($record.Success -and $record.Value.Contains("android.text=String ($Description)") -and $when.Success -and [long]$when.Groups[1].Value -ge $firstPost + 900000) { $delivered = $true; break }
+        Write-Output ("Worker wait: {0:N1} minutes" -f $timer.Elapsed.TotalMinutes)
+        Start-Sleep -Seconds 30
+    } while ((Get-Date) -lt $limit)
+    Set-Content (Join-Path $run 'periodic-jobs-after.log') (Invoke-ReleaseAdb @('shell', 'dumpsys', 'jobscheduler')) -Encoding UTF8
+    $log = Invoke-ReleaseAdb @('logcat', '-d', '-T', $since)
+    Set-Content (Join-Path $run 'periodic-logcat.log') $log -Encoding UTF8
+    if (-not $delivered) { throw 'Natural release worker notification timed out; inspect platform scheduling before blaming application' }
+    if ($record.Value -match 'actions=[1-9]\d*|actions=\{' -or $record.Value -notmatch '(?m)^\s*pri=-1\s*$' -or $record.Value -notmatch 'vibrate=null sound=null defaults=0' -or $record.Value -notmatch 'flags=[^\r\n]*SILENT' -or $record.Value -notmatch '(?m)^\s*groupAlertBehavior=1\s*$') { throw 'Repeat is not a quiet notification without ACK' }
+    if ($log -notmatch 'Worker result SUCCESS for Work.*TaskNotificationWorker') { throw 'Actual WorkManager SUCCESS not found after process termination' }
+    if ((Read-ReleaseAlarm) -ne 0) { throw 'Unexpected future alarm after overdue repeat' }
+    $summary.periodicQuietNotificationWhen = [long]$when.Groups[1].Value
+    $summary.periodicGapSeconds = ($summary.periodicQuietNotificationWhen - $firstPost) / 1000.0
+    Complete-ReleasePhase 'release-periodic-quiet-after-process-exit'
+}
+
+# Метаданные отдельного host-dispatch не запускают команды. Они только уточняют
+# область фактической проверки: PASS после явного JobScheduler run нельзя выдавать
+# за естественную доставку. Маркер без подтверждённого Running job отвергается.
+# Применяется после сбора диагностики/очистки, не затрагивает APK или настройки ОС.
+function Set-ReleaseDispatchAssessment([hashtable]$Result, [string]$RunDirectory) {
+    $marker = Join-Path $RunDirectory 'periodic-dispatch-control.json'
+    if (-not (Test-Path -LiteralPath $marker)) { return }
+    $control = Get-Content -LiteralPath $marker -Raw -Encoding UTF8 | ConvertFrom-Json
+    $output = Get-Content (Join-Path $RunDirectory 'periodic-controlled-run.log') -Raw -Encoding UTF8
+    if ($control.ownJobCount -ne 1 -or "$($control.jobId)" -notmatch '^\d+$' -or $output -notmatch '(?m)^Running job\s*$') { throw 'Controlled dispatch evidence is incomplete' }
+    $Result.periodicPlatformJobDispatched = $true
+    $Result.naturalDispatchValidated = $false
+    $Result.periodicDispatchCommand = 'cmd jobscheduler run -s -n androidx.work.systemjobscheduler com.vpe_soft.intime.intime ' + $control.jobId
+    $Result.naturalObservationSeconds = (([datetimeoffset]$control.observedAt).ToUnixTimeMilliseconds() - [long]$Result.periodicFirstAlarmWhen) / 1000.0
+    if ($Result.status -eq 'PASSED') { $Result.status = 'PASSED_CONTROLLED_PLATFORM_DISPATCH' }
 }
 
 # Повторно опрашиваем шторку до пяти секунд после срока alarm; между снимками
@@ -663,6 +749,10 @@ try {
     Set-Content (Join-Path $run 'notifications-delivered.log') (Invoke-ReleaseAdb @('shell', 'dumpsys', 'notification', '--noredact')) -Encoding UTF8
     Complete-ReleasePhase 'release-notification-delivery'
 
+    if ($PeriodicOnly) {
+        Assert-ReleasePeriodicReminder $edited
+    } else {
+
     # Проверка ACK из настоящего уведомления: нажимаем системную action Acknowledge,
     # которая отправляет PendingIntent release AckReceiver. Новый alarm должен стать
     # позднее сработавшего, описание остаётся в списке после нового запуска процесса.
@@ -741,10 +831,15 @@ try {
     Complete-ReleasePhase 'release-channel-restored'
     }
     }
+    }
     $summary.status = 'PASSED'
 } catch {
     $summary.status = if ($installedHere) { 'FAILED' } else { 'INFRASTRUCTURE_ERROR' }
     $summary.message = $_.Exception.Message
+    # Отсутствие естественного запуска к лимиту — неопределённый результат
+    # планирования, а не доказанное падение приложения/R8. Остальные assertions
+    # и ошибки диагностики/очистки по-прежнему считаются FAILED.
+    if ($summary.message -like 'Natural release worker notification timed out*') { $summary.status = 'INCONCLUSIVE' }
     Write-Output $summary.message
 } finally {
     if ($dozeChanged) {
@@ -780,7 +875,11 @@ try {
     }
     $env:JAVA_HOME = $oldJavaHome
     if ($lock) { $lock.Dispose() }
+    if ($PeriodicOnly) {
+        try { Set-ReleaseDispatchAssessment $summary $run }
+        catch { $summary.dispatchAssessmentError = $_.Exception.Message; $summary.status = 'FAILED' }
+    }
     $summary | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $run 'summary.json') -Encoding UTF8
     Write-Output "$($summary.status). Reports: $run"
 }
-if ($summary.status -ne 'PASSED') { exit 1 }
+if ($summary.status -notin @('PASSED', 'PASSED_CONTROLLED_PLATFORM_DISPATCH')) { exit 1 }
