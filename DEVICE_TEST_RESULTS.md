@@ -1,5 +1,50 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Неточный alarm в release/R8 при запрете exact на API 36 — 6 октября 2026
+
+**PASSED, 11/11 host-фаз**, exit 0:
+`.test-tools/runs/20261006-194542-release-smoke/summary.json`.
+Свежий UI bootstrap — **3/3**, без ошибок и пропусков:
+`.test-tools/runs/20261006-194326-cda82cf2/summary.json`.
+Существующий AOSP API 36, `Intime_Test_API36`, emulator-5584,
+Emulator 37.2.12; успешный профиль: **2 CPU, 4096 МБ, host GPU**.
+Fingerprint: `Android/sdk_phone64_x86_64/emu64x:16/BE2A.250530.026.D1/13818094:userdebug/test-keys`.
+Использован прежний signed non-debuggable code 25/2.0.0-rc1 APK с иконками,
+без пересборки; SHA-256
+`4F5911443EF3D9A18645C2285E1D1BD2F7B26566F51E7448D2A6D39C40B9D056`,
+mapping `7B5DEBF5DCCE8160A40A2F0B0442B722CA9DA511984806B7981587E4DC2E2E23`.
+
+CRUD/JSON и reboot 41 → 42 прошли. После запрета SCHEDULE_EXACT_ALARM собственный
+AlarmReceiver имел срок `1791305362125`, положительное окно `+44s719ms`.
+Приложение находилось в фоне; receiver вручную не вызывался, часы не менялись.
+Уведомление с уникальным описанием и action ACK пришло с when `1791305406906` —
+**через 44.781 секунды после срока**. Logcat содержит предупреждение
+SchedulingCoordinator о fallback и реальный AlarmReceiver в 16:50:06.903 UTC.
+Сработавший alarm исчез. Тихий periodic worker без ACK не мог засчитаться доставкой.
+
+ACK из системной шторки убрал уведомление и назначил будущий alarm
+`1791305473626`. После force-stop/нового запуска срок сохранился, appop оставался
+`deny`, окно нового alarm — `+42s696ms`. Повторная доставка этого нового alarm
+не ожидалась. Проверена одна обычная доставка на активном AVD; Doze, квоты,
+максимальная задержка, OEM и другие API не покрыты. R5.3 целиком не закрыт.
+
+Предыдущие попытки сохранены отдельно: bootstrap
+`20261006-192631-880c0ecf` (host/2048) и `20261006-193901-fddee619`
+(software/4096) завершились INFRASTRUCTURE_ERROR с System UI ANR и нулём тестов.
+`20261006-193050-3f65c4bd` (host/4096, 8 CPU) — FAILED, 3 теста/1 failure:
+SettingsActivity потеряла фокус; диагностический снимок показывает фокус у
+диалога ANR System UI, logcat содержит также ANR Phone. Это не успешные тесты.
+После остановки только собственных процессов число CPU существующего проектного
+AVD уменьшено с 8 до 2, данные сохранены; следующий bootstrap и release прошли.
+Причина системных ANR не доказана, постоянное исправление не утверждается.
+
+Host-fixture `.test-tools/runs/20261006-inexact-validation/validation.txt`
+проверяет отказ при нулевом окне и игнорирование quiet record без ACK;
+синтетический успех с receiver не подменяет приведённый device-прогон.
+Production APK, probe и созданный JSON удалены runner; отсутствие production
+package подтверждено отдельно, собственный эмулятор остановлен. Отчёты всех
+попыток этого этапа занимают около **25.9 МиБ**, новые образы не загружались.
+
 ## Два естественных quiet periodic периода в release/R8 на API 31 — 6 октября 2026
 
 **PASSED, 11/11 host-фаз**, exit 0:

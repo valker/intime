@@ -264,7 +264,7 @@ run identifiers, initial conditions and coverage limits.
 | API 31 | Upload-signed APK smoke 14/14, three reboot repeats and two natural release periodic repeats, 11/11 on host GPU/4 GB | Earlier isolated reboot failure unexplained; Doze/OEM and full matrix open |
 | API 33 | Upload-signed APK smoke 14/14 and two natural release periodic repeats, 11/11 on host GPU/4 GB | Natural Doze/OEM, system ANR stability and Play upgrade |
 | API 35 | Upload-signed APK smoke 14/14 and two natural release periodic repeats, 11/11; synthetic debug upgrade separately | Natural Doze/OEM, real production upgrade/data |
-| API 36 | Upload-signed APK smoke 14/14, forced deep Doze scenario and two natural release periodic repeats, 11/11 | Natural Doze/quotas, inexact fallback coverage, remaining matrix |
+| API 36 | Upload-signed APK smoke 14/14, forced exact deep Doze, two natural periodic repeats and ordinary inexact delivery with exact denied, each 11/11 | Inexact deep Doze, natural Doze/quotas, system ANR stability and remaining matrix |
 | WorkManager | Debug execution/KEEP; October 6 release/R8 two natural quiet repeats after process exit on API 31, 33, 35 and 36, each 11/11; earlier controlled run kept separately | Timing guarantees, other API/OEM and Play upgrade coverage open |
 | 16 KB pages | Fresh AAB contains no native `.so` files | Separate device/platform verification not performed |
 | CI | Configuration and local checks recorded | Successful new remote pipelines not confirmed |
@@ -295,7 +295,12 @@ three SUCCESS entries for the same worker id (the early execution did not update
 the notification). Reboot restored the alarm; the earlier isolated reboot failure
 remains unexplained. The two-repeat matrix is now verified on active dedicated
 AVDs API 31/33/35/36, without dispatch or scheduling changes. Ordinary Doze/OEM,
-inexact delivery without exact access, older APIs and Play upgrade remain open.
+inexact deep Doze, older APIs and Play upgrade remain open.
+October 6 InexactOnly on API 36 passed 11/11: own exact appop denied, positive
+alarm window +44s719ms and actual receiver/ACK notification 44.781 seconds after
+the deadline. Notification ACK and restart retained denial and the new inexact
+alarm. UI bootstrap passed 3/3 on host GPU/4 GB/2 CPU; earlier system ANR failures
+are preserved. This confirms one ordinary fallback delivery, not Doze or quotas.
 The earlier October 4 periodic result uses PASSED_CONTROLLED_PLATFORM_DISPATCH, not a natural
 delivery pass. The scheduler remained Ready:true; host then dispatched its ready
 job with -s. The APK's WorkManager returned SUCCESS and posted the quiet repeat.

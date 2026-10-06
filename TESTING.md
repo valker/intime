@@ -32,6 +32,34 @@ ScreenPlatformTest использует AndroidX WindowInsetsCompat и Display.g
 
 ## Commands
 
+### Доставка release/R8 при запрете exact alarm (API 36)
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 36 -Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline -EmulatorGpu host -EmulatorRamMb 4096 -KeepEmulator
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -TestApi 36 -ApkPath '.test-tools/runs/release-icons-20261004-221247/intime-25-2.0.0-rc1-icons.apk' -InexactOnly
+```
+
+InexactOnly работает только на выделенном API 36 и не совмещается с RebootOnly,
+DozeOnly или PeriodicOnly. 11 host-фаз включают CRUD/JSON, reboot, самостоятельную
+доставку fallback и ACK из уведомления с перезапуском приложения. Runner задаёт
+SCHEDULE_EXACT_ALARM=deny только собственной новой production-установке, проверяет
+положительное окно собственного AlarmReceiver и совпадение срока. До доставки
+не запускает Activity или receiver вручную. Quiet worker без ACK не засчитывается:
+требуются запись AlarmReceiver в logcat и уведомление задачи с action ACK.
+После ACK/restart запрет сохраняется, будущий alarm также имеет положительное окно.
+
+Ожидание ограничено 15 минутами: тайм-аут означает INCONCLUSIVE, а разрыв host-
+опросов более 180 секунд или перевод часов назад — INFRASTRUCTURE_INTERRUPTED.
+Это проверка обычной доставки на активном эмуляторе; Doze, квоты и максимальная
+задержка Android ею не подтверждаются. Appop исчезает при удалении тестовой
+установки в finally. Наличие режима само по себе не означает успешный device-прогон;
+свежие результаты и ограничения записываются в DEVICE_TEST_RESULTS.md.
+
+Успешный прогон 6 октября использовал существующий профиль API 36 с 2 CPU,
+host GPU/4096 МБ. Число CPU хранится в config.ini проектного AVD; после системных
+ANR оно уменьшено с 8 до 2 при остановленном эмуляторе. Команда выше не меняет
+CPU существующего профиля. Данные AVD сохранены; причина ANR пока не доказана.
+
 ### Тихий periodic worker в production release/R8 (API 31/33/35/36)
 
 ```powershell

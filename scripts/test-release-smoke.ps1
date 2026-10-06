@@ -10,6 +10,7 @@ APK должен быть подписан подтверждённым upload k
 PeriodicOnly (API 31/33/35/36) проходит подготовку/boot/первый alarm и ждёт тихий
 повтор после am kill фонового процесса. Обычный полный режим сохраняет 14 фаз;
 periodic-режим содержит 10 фаз (11 при PeriodicRepeats=2) и не меняет batching/период/часы Android.
+InexactOnly (API 36) содержит 11 фаз: подготовка, доставка fallback и ACK/restart.
 #>
 [CmdletBinding()]
 param(
@@ -20,6 +21,8 @@ param(
     [switch]$RebootOnly,
     # Только доставка в deep idle и ACK после подготовки/reboot; без фаз запрета.
     [switch]$DozeOnly,
+    # На API 36 запрещаем exact только своей установке и проверяем inexact delivery/ACK.
+    [switch]$InexactOnly,
     # После реального первого alarm ждём тихого повторного worker в release/R8.
     # Никакого ручного job run, ускорения часов/периода или изменения batching.
     [switch]$PeriodicOnly,
@@ -54,6 +57,8 @@ $summary = @{ status = 'RUNNING'; passedPhases = @(); reports = $run; serial = $
 if (-not $RebootOnly -and $RebootRepeats -ne 1) { throw 'RebootRepeats requires RebootOnly' }
 if ($RebootOnly -and $DozeOnly) { throw 'RebootOnly and DozeOnly are mutually exclusive' }
 $summary.dozeOnly = [bool]$DozeOnly
+$summary.inexactOnly = [bool]$InexactOnly
+if ($InexactOnly -and ($RebootOnly -or $DozeOnly -or $PeriodicOnly -or $TestApi -ne 36)) { throw 'InexactOnly requires API 36 and cannot be combined with other modes.' }
 $summary.periodicOnly = [bool]$PeriodicOnly
 if (-not $PeriodicOnly -and $PeriodicRepeats -ne 1) { throw 'PeriodicRepeats requires PeriodicOnly' }
 $summary.periodicRepeats = $PeriodicRepeats
@@ -206,6 +211,45 @@ function Wait-ReleaseAlarm([long]$After = 0) {
 function Complete-ReleasePhase([string]$Name) {
     $summary.passedPhases += $Name
     Write-Output "PASSED: $Name"
+}
+
+# Задача сохранена UI, exact appop запрещён. Проверяем собственный активный
+# AlarmReceiver с тем же deadline и ненулевым окном, затем ждём настоящую доставку
+# до 15 минут без Activity/probe/ручного receiver. Фиксированные файлы опроса
+# ограничивают расход диска. Требуем ACK, запись receiver и потребление alarm;
+# один тихий periodic worker не может подменить успех. Это активный AVD, не Doze.
+function Assert-ReleaseInexactDelivery([string]$Description, [long]$Deadline, [string]$Since) {
+    $ops = Invoke-ReleaseAdb @('shell', 'appops', 'get', $package, 'SCHEDULE_EXACT_ALARM')
+    Set-Content (Join-Path $run 'inexact-appops.log') $ops -Encoding UTF8
+    if ($ops -notmatch 'SCHEDULE_EXACT_ALARM: deny') { throw 'Exact alarm denial not confirmed' }
+    $alarms = Invoke-ReleaseAdb @('shell', 'dumpsys', 'alarm')
+    Set-Content (Join-Path $run 'inexact-alarm-before.log') $alarms -Encoding UTF8
+    $alarm = [regex]::Match($alarms, '(?m)^\s*RTC_WAKEUP #\d+: Alarm\{\S+ type 0 origWhen (?<deadline>\d+) [^\r\n]* com\.vpe_soft\.intime\.intime\}\r?\n\s+tag=\*walarm\*:com\.vpe_soft\.intime\.intime/(?:com\.vpe_soft\.intime\.intime)?\.receiver\.AlarmReceiver\r?\n\s+type=RTC_WAKEUP[^\r\n]*?window=(?<window>\S+)')
+    if (-not $alarm.Success -or [long]$alarm.Groups['deadline'].Value -ne $Deadline -or $alarm.Groups['window'].Value -notmatch '[1-9]') { throw 'Own inexact alarm with positive window missing' }
+    $summary.inexactAlarmWindow = $alarm.Groups['window'].Value
+    $summary.exactAlarmDenied = $true
+    $limit = (Get-Date).AddMinutes(15)
+    $delivered = $false
+    $previous = [datetimeoffset]::UtcNow
+    do {
+        $now = [datetimeoffset]::UtcNow
+        $gap = ($now - $previous).TotalSeconds
+        if ($gap -lt 0 -or $gap -gt 180) { throw 'Inexact observation interrupted by host polling gap' }
+        $previous = $now
+        $dump = Invoke-ReleaseTool $adb @('-s', $serial, 'shell', 'dumpsys', 'notification', '--noredact') 'inexact-notifications-poll.log'
+        $record = [regex]::Match($dump, '(?ms)^\s*NotificationRecord\([^\r\n]*pkg=com\.vpe_soft\.intime\.intime [^\r\n]*\r?\n(?:(?!^\s*NotificationRecord\().)*')
+        $when = [regex]::Match($record.Value, '(?m)^\s*when=(\d+)(?:/|\r?$)')
+        $delivered = $record.Success -and $record.Value.Contains("android.text=String ($Description)") -and $record.Value -match 'actions=1' -and $when.Success -and [long]$when.Groups[1].Value -ge $Deadline
+        if (-not $delivered) { Write-Output 'Waiting for real inexact alarm notification...'; Start-Sleep -Seconds 15 }
+    } while (-not $delivered -and (Get-Date) -lt $limit)
+    $log = Invoke-ReleaseAdb @('logcat', '-d', '-T', $Since)
+    Set-Content (Join-Path $run 'inexact-logcat.log') $log -Encoding UTF8
+    if (-not $delivered) { throw 'Inexact alarm notification timed out; delivery not validated' }
+    if ($log -notmatch 'scheduleAlarm: exact alarms are not available, using inexact alarm' -or $log -notmatch 'AlarmReceiver.*handleAlarm: trying to post notification') { throw 'Fallback scheduling or actual receiver log missing' }
+    if ((Read-ReleaseAlarm) -ne 0) { throw 'Inexact alarm was not consumed' }
+    $summary.inexactNotificationWhen = [long]$when.Groups[1].Value
+    $summary.inexactDelaySeconds = ($summary.inexactNotificationWhen - $Deadline) / 1000.0
+    Complete-ReleasePhase 'release-inexact-fallback-delivery'
 }
 
 # Восстанавливаем каждую изменённую настройку даже при ошибке предыдущей команды.
@@ -820,13 +864,14 @@ try {
     }
 
     if (-not $RebootOnly) {
-    # Проверка реальной доставки: только нашей новой установке разрешаем exact
-    # alarms через appops, меняем период задачи через UI на минуту, подтверждаем
+    # Проверка реальной доставки: задаём appops только нашей новой установке,
+    # меняем период задачи через UI на минуту, подтверждаем
     # её в деталях для нового отсчёта от текущего ACK и уходим Home.
     # Ждём наступления срока и появления её уникального описания в системной шторке.
     # Receiver не вызывается вручную, время ОС не меняется, приватная база не читается.
-    # Этот сценарий проверяет разрешённые уведомления/exact alarm, не отказ или Doze.
-    Invoke-ReleaseAdb @('shell', 'appops', 'set', $package, 'SCHEDULE_EXACT_ALARM', 'allow') | Out-Null
+    # InexactOnly сохраняет запрет exact; остальные режимы проверяют разрешённый exact.
+    $inexactSince = (Invoke-ReleaseAdb @('shell', "date '+%m-%d %H:%M:%S.000'")).Trim()
+    Invoke-ReleaseAdb @('shell', 'appops', 'set', $package, 'SCHEDULE_EXACT_ALARM', $(if ($InexactOnly) { 'deny' } else { 'allow' })) | Out-Null
     Launch-Release
     Assert-ReleaseText $edited
     Open-ReleaseDetails $edited
@@ -840,6 +885,7 @@ try {
     $summary.notificationAlarm = $notificationDeadline
     Write-Output "Waiting for real AlarmManager notification (deadline $notificationDeadline)..."
     Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '3') | Out-Null
+    if ($InexactOnly) { Assert-ReleaseInexactDelivery $edited $notificationDeadline $inexactSince }
     if ($DozeOnly) { Assert-ReleaseDozeDelivery $edited }
     Invoke-ReleaseAdb @('shell', 'cmd', 'statusbar', 'expand-notifications') | Out-Null
     $notificationLimit = (Get-Date).AddSeconds(150)
@@ -860,7 +906,7 @@ try {
     # Проверка ACK из настоящего уведомления: нажимаем системную action Acknowledge,
     # которая отправляет PendingIntent release AckReceiver. Новый alarm должен стать
     # позднее сработавшего, описание остаётся в списке после нового запуска процесса.
-    # Перед reboot appops не изменяли; разрешение exact относится лишь к этой фазе
+    # Перед reboot appops не изменяли; allow/deny exact относится лишь к этой фазе
     # и исчезает вместе с удалением установленного нами APK в finally.
     Click-ReleaseNode "//node[@text='Acknowledge' or @text='ACKNOWLEDGE']"
     $notificationAckAlarm = Wait-ReleaseAlarm $notificationDeadline
@@ -874,8 +920,20 @@ try {
     Assert-ReleaseText $edited
     if ((Wait-ReleaseAlarm) -ne $notificationAckAlarm) { throw 'Notification ACK alarm lost after restart' }
     Complete-ReleasePhase 'release-notification-ack'
+    # После ACK/restart запрет должен сохраниться, новый alarm — иметь положительное
+    # окно и тот же срок, который прочитан после ACK. Повторную доставку не ждём.
+    if ($InexactOnly) {
+        $opsAfterAck = Invoke-ReleaseAdb @('shell', 'appops', 'get', $package, 'SCHEDULE_EXACT_ALARM')
+        Set-Content (Join-Path $run 'inexact-appops-after-ack.log') $opsAfterAck -Encoding UTF8
+        if ($opsAfterAck -notmatch 'SCHEDULE_EXACT_ALARM: deny') { throw 'Exact denial lost after notification ACK' }
+        $ackAlarms = Invoke-ReleaseAdb @('shell', 'dumpsys', 'alarm')
+        Set-Content (Join-Path $run 'inexact-alarm-after-ack.log') $ackAlarms -Encoding UTF8
+        $ackAlarm = [regex]::Match($ackAlarms, '(?m)^\s*RTC_WAKEUP #\d+: Alarm\{\S+ type 0 origWhen (?<deadline>\d+) [^\r\n]* com\.vpe_soft\.intime\.intime\}\r?\n\s+tag=\*walarm\*:com\.vpe_soft\.intime\.intime/(?:com\.vpe_soft\.intime\.intime)?\.receiver\.AlarmReceiver\r?\n\s+type=RTC_WAKEUP[^\r\n]*?window=(?<window>\S+)')
+        if (-not $ackAlarm.Success -or [long]$ackAlarm.Groups['deadline'].Value -ne $notificationAckAlarm -or $ackAlarm.Groups['window'].Value -notmatch '[1-9]') { throw 'Notification ACK did not keep an inexact alarm' }
+        $summary.inexactAckAlarmWindow = $ackAlarm.Groups['window'].Value
+    }
 
-    if (-not $DozeOnly) {
+    if (-not $DozeOnly -and -not $InexactOnly) {
     # Проверка отказа POST_NOTIFICATIONS: отзыв разрешения может убить процесс,
     # поэтому выполняем его до нового запуска. Флаги user-set/user-fixed исключают
     # всплывающий permission dialog. UI ACK ставит новый минутный alarm, Home;
@@ -945,6 +1003,8 @@ try {
     # и ошибки диагностики/очистки по-прежнему считаются FAILED.
     if ($summary.message -like 'Natural release worker notification timed out*') { $summary.status = 'INCONCLUSIVE' }
     if ($summary.message -like 'Periodic observation interrupted*') { $summary.status = 'INFRASTRUCTURE_INTERRUPTED' }
+    if ($summary.message -like 'Inexact observation interrupted*') { $summary.status = 'INFRASTRUCTURE_INTERRUPTED' }
+    if ($summary.message -like 'Inexact alarm notification timed out*') { $summary.status = 'INCONCLUSIVE' }
     Write-Output $summary.message
 } finally {
     if ($dozeChanged) {
