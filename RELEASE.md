@@ -261,10 +261,10 @@ run identifiers, initial conditions and coverage limits.
 | --- | --- | --- |
 | Signed AAB | October 4: R8/lint, Upload key, bundletool validate and actual manifest; embedded mapping matches | Play-generated APKs/installation update; final version |
 | API 24 | Runner/test support prepared | No device run: new image exceeds authorized 100 MB disk budget |
-| API 31 | Upload-signed APK smoke 14/14, three reboot repeats and two natural release periodic repeats, 11/11 on host GPU/4 GB | Earlier isolated reboot failure unexplained; Doze/OEM and full matrix open |
-| API 33 | Upload-signed APK smoke 14/14 and two natural release periodic repeats, 11/11 on host GPU/4 GB | Natural Doze/OEM, system ANR stability and Play upgrade |
-| API 35 | Upload-signed APK smoke 14/14 and two natural release periodic repeats, 11/11; synthetic debug upgrade separately | Natural Doze/OEM, real production upgrade/data |
-| API 36 | Upload-signed APK smoke 14/14, forced exact deep Doze and two natural periodic repeats (11/11); inexact ordinary delivery 11/11 and forced deep Doze 12/12 with exact denied | Other API/OEM inexact Doze, natural Doze/quotas, system ANR stability and remaining matrix |
+| API 31 | Upload-signed APK smoke 14/14, three reboot repeats, two natural periodic repeats (11/11) and inexact forced deep Doze (12/12) | Earlier isolated reboot failure unexplained; Doze/OEM and full matrix open |
+| API 33 | Upload-signed APK smoke 14/14 and two natural periodic repeats (11/11) and inexact forced deep Doze (12/12), after SAF focus retry fix | Natural Doze/OEM, system ANR stability and Play upgrade |
+| API 35 | Upload-signed APK smoke 14/14 and two natural periodic repeats (11/11) and inexact forced deep Doze (12/12); synthetic debug upgrade separately | Natural Doze/OEM, real production upgrade/data |
+| API 36 | Upload-signed APK smoke 14/14, forced exact deep Doze and two natural periodic repeats (11/11); inexact ordinary delivery 11/11 and forced deep Doze 12/12 with exact denied | OEM inexact Doze, natural Doze/quotas, system ANR stability and remaining matrix |
 | WorkManager | Debug execution/KEEP; October 6 release/R8 two natural quiet repeats after process exit on API 31, 33, 35 and 36, each 11/11; earlier controlled run kept separately | Timing guarantees, other API/OEM and Play upgrade coverage open |
 | 16 KB pages | Fresh AAB contains no native `.so` files | Separate device/platform verification not performed |
 | CI | Configuration and local checks recorded | Successful new remote pipelines not confirmed |
@@ -295,7 +295,7 @@ three SUCCESS entries for the same worker id (the early execution did not update
 the notification). Reboot restored the alarm; the earlier isolated reboot failure
 remains unexplained. The two-repeat matrix is now verified on active dedicated
 AVDs API 31/33/35/36, without dispatch or scheduling changes. Ordinary Doze/OEM,
-inexact deep Doze on other APIs, older APIs and Play upgrade remain open.
+inexact deep Doze on other/OEM devices, older APIs and Play upgrade remain open.
 October 6 InexactOnly on API 36 passed 11/11: own exact appop denied, positive
 alarm window +44s719ms and actual receiver/ACK notification 44.781 seconds after
 the deadline. Notification ACK and restart retained denial and the new inexact
@@ -306,6 +306,13 @@ positive window +44s864ms, own receiver/ACK notification 44.941 seconds after th
 deadline, IDLE at every poll and after delivery. Power settings were restored;
 ACK/restart kept denial and the new inexact alarm. UI bootstrap passed 3/3.
 This confirms one forced deep Doze fallback delivery, not natural entry or quotas.
+The October 6 batch extended that same scenario to existing API 35/33/31:
+each passed 12/12 and UI bootstrap 3/3, with notification delays 44.913/44.574/
+44.927 seconds, IDLE checks, actual receiver/ACK and a retained new inexact alarm.
+The first API 33 attempt failed before Doze because the SAF filename lacked focus;
+a bounded targeted tap retry fixed the runner, and the full repeat passed.
+The initial failure is preserved; app code/APK are unchanged. All AVDs were stopped.
+The single forced inexact delivery matrix is now confirmed on API 31/33/35/36.
 The earlier October 4 periodic result uses PASSED_CONTROLLED_PLATFORM_DISPATCH, not a natural
 delivery pass. The scheduler remained Ready:true; host then dispatched its ready
 job with -s. The APK's WorkManager returned SUCCESS and posted the quiet repeat.

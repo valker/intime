@@ -10,7 +10,7 @@ APK должен быть подписан подтверждённым upload k
 PeriodicOnly (API 31/33/35/36) проходит подготовку/boot/первый alarm и ждёт тихий
 повтор после am kill фонового процесса. Обычный полный режим сохраняет 14 фаз;
 periodic-режим содержит 10 фаз (11 при PeriodicRepeats=2) и не меняет batching/период/часы Android.
-InexactOnly (API 36) содержит 11 фаз: подготовка, доставка fallback и ACK/restart.
+InexactOnly (API 31/33/35/36) содержит 11 фаз: подготовка, доставка fallback и ACK/restart.
 InexactOnly + DozeOnly содержит 12 фаз: дополнительно подтверждается deep IDLE.
 #>
 [CmdletBinding()]
@@ -22,7 +22,7 @@ param(
     [switch]$RebootOnly,
     # Только доставка в deep idle и ACK после подготовки/reboot; без фаз запрета.
     [switch]$DozeOnly,
-    # На API 36 запрещаем exact только своей установке и проверяем inexact delivery/ACK.
+    # На API 31/33/35/36 запрещаем exact своей установке и проверяем inexact delivery/ACK.
     [switch]$InexactOnly,
     # После реального первого alarm ждём тихого повторного worker в release/R8.
     # Никакого ручного job run, ускорения часов/периода или изменения batching.
@@ -59,7 +59,7 @@ if (-not $RebootOnly -and $RebootRepeats -ne 1) { throw 'RebootRepeats requires 
 if ($RebootOnly -and $DozeOnly) { throw 'RebootOnly and DozeOnly are mutually exclusive' }
 $summary.dozeOnly = [bool]$DozeOnly
 $summary.inexactOnly = [bool]$InexactOnly
-if ($InexactOnly -and ($RebootOnly -or $PeriodicOnly -or $TestApi -ne 36)) { throw 'InexactOnly requires API 36 and can only be combined with DozeOnly.' }
+if ($InexactOnly -and ($RebootOnly -or $PeriodicOnly -or $TestApi -notin @(31, 33, 35, 36))) { throw 'InexactOnly requires API 31/33/35/36 and can only be combined with DozeOnly.' }
 $summary.periodicOnly = [bool]$PeriodicOnly
 if (-not $PeriodicOnly -and $PeriodicRepeats -ne 1) { throw 'PeriodicRepeats requires PeriodicOnly' }
 $summary.periodicRepeats = $PeriodicRepeats
@@ -746,11 +746,21 @@ try {
     $backupDevicePath = '/sdcard/Download/' + $backupName
     Click-ReleaseId 'btn_open_settings'
     Click-ReleaseId 'export_to_json_btn'
-    Click-ReleaseNode "//node[@class='android.widget.EditText']"
+    # После открытия SAF поле имени существует, но первый tap может потеряться
+    # во время раскладки системного picker. Повторяем tap только по его android:id/title
+    # до подтверждённого фокуса, не вводя символы в другой элемент. Лимит 30 секунд;
+    # далее проверка точного имени и реального JSON остаётся обязательной.
+    $nameFocusLimit = (Get-Date).AddSeconds(30)
+    do {
+        $nameField = Wait-ReleaseNode "//node[@class='android.widget.EditText' and @resource-id='android:id/title']"
+        if ($nameField.GetAttribute('focused') -eq 'true') { break }
+        Click-ReleaseNode "//node[@class='android.widget.EditText' and @resource-id='android:id/title']"
+        Start-Sleep -Milliseconds 500
+    } while ((Get-Date) -lt $nameFocusLimit)
+    if ($nameField.GetAttribute('focused') -ne 'true') { throw 'SAF backup filename did not gain focus' }
     # API 31 интерпретирует shell keycombination Ctrl+A как ввод буквы a.
     # Вместо него читаем текущее имя, переводим курсор в конец и удаляем символы
     # обычными DEL. Перед Save требуем точное новое имя по свежему XML.
-    $nameField = Wait-ReleaseNode "//node[@class='android.widget.EditText' and @focused='true']"
     Invoke-ReleaseAdb @('shell', 'input', 'keyevent', 'KEYCODE_MOVE_END') | Out-Null
     $nameLength = $nameField.GetAttribute('text').Length
     if ($nameLength -gt 0) { Invoke-ReleaseAdb (@('shell', 'input', 'keyevent') + (@('KEYCODE_DEL') * $nameLength)) | Out-Null }

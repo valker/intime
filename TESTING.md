@@ -32,14 +32,14 @@ ScreenPlatformTest использует AndroidX WindowInsetsCompat и Display.g
 
 ## Commands
 
-### Доставка release/R8 при запрете exact alarm (API 36)
+### Доставка release/R8 при запрете exact alarm (API 31/33/35/36)
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 36 -Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline -EmulatorGpu host -EmulatorRamMb 4096 -KeepEmulator
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -TestApi 36 -ApkPath '.test-tools/runs/release-icons-20261004-221247/intime-25-2.0.0-rc1-icons.apk' -InexactOnly
 ```
 
-InexactOnly работает только на выделенном API 36 и не совмещается с RebootOnly
+InexactOnly работает на выделенных API 31/33/35/36 и не совмещается с RebootOnly
 или PeriodicOnly. Совместное использование с DozeOnly описано ниже. 11 host-фаз включают CRUD/JSON, reboot, самостоятельную
 доставку fallback и ACK из уведомления с перезапуском приложения. Runner задаёт
 SCHEDULE_EXACT_ALARM=deny только собственной новой production-установке, проверяет
@@ -253,13 +253,19 @@ MainActivity, release/R8, выживание после убийства про�
 Полный NotificationDeliveryTest также содержит отдельный условный тест отказа
 POST_NOTIFICATIONS; его precondition по Assume требует отсутствующего разрешения.
 
-### Неточный release alarm в принудительном deep Doze (API 36)
+### Неточный release alarm в принудительном deep Doze (API 31/33/35/36)
 
-После успешного UI bootstrap на существующем проектном API 36:
+После успешного UI bootstrap на существующем проектном AVD того же API.
+Пример для API 36:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -TestApi 36 -ApkPath '.test-tools/runs/release-icons-20261004-221247/intime-25-2.0.0-rc1-icons.apk' -InexactOnly -DozeOnly
 ```
+
+Для API 35/33/31 задайте соответствующий -TestApi в обеих командах.
+Bootstrap выполняется с -EmulatorGpu host -EmulatorRamMb 4096 -KeepEmulator.
+Каждый AVD запускается последовательно; перед переходом к следующему остановите
+только принадлежащий прогону процесс, сверив PID/started и имя AVD.
 
 Совместный режим содержит 12 host-фаз. Exact appop остаётся deny, собственный
 alarm должен иметь положительное окно. Перед ожиданием проверяется отсутствие
@@ -274,6 +280,10 @@ UI/receiver вручную во время ожидания не запуска�
 inexact alarm после ACK/restart и сохранение deny. Естественный вход в Doze,
 квоты нескольких alarm, OEM и повторная доставка после ACK не покрываются.
 Успех режима фиксируется только по свежему DEVICE_TEST_RESULTS.md.
+6 октября API 35/33/31 проверены последовательно за один этап, каждый 12/12,
+UI 3/3; API 36 ранее прошёл 12/12. Первый API 33 FAILED до Doze сохранён:
+runner повторяет tap только по SAF android:id/title до focused=true (30 секунд),
+не вводя имя без фокуса; затем проверяет точное имя и реальный JSON. Повтор прошёл.
 
 ### Точечный release Doze smoke на существующем API 36
 
