@@ -7,7 +7,7 @@ APK должен быть подписан подтверждённым upload k
 Используются только новые синтетические задачи. Если production-пакет уже установлен,
 скрипт отказывается продолжать; данные существующей установки не очищаются.
 После проверки удаляется только APK, установленный этим запуском. Эмулятор остаётся работать.
-PeriodicOnly (API 35/36) проходит подготовку/boot/первый alarm и ждёт тихий
+PeriodicOnly (API 33/35/36) проходит подготовку/boot/первый alarm и ждёт тихий
 повтор после am kill фонового процесса. Обычный полный режим сохраняет 14 фаз;
 periodic-режим содержит 10 фаз (11 при PeriodicRepeats=2) и не меняет batching/период/часы Android.
 #>
@@ -57,7 +57,7 @@ $summary.dozeOnly = [bool]$DozeOnly
 $summary.periodicOnly = [bool]$PeriodicOnly
 if (-not $PeriodicOnly -and $PeriodicRepeats -ne 1) { throw 'PeriodicRepeats requires PeriodicOnly' }
 $summary.periodicRepeats = $PeriodicRepeats
-if ($PeriodicOnly -and ($RebootOnly -or $DozeOnly -or $TestApi -notin @(35, 36))) { throw 'PeriodicOnly requires API 35/36 and cannot be combined with other modes.' }
+if ($PeriodicOnly -and ($RebootOnly -or $DozeOnly -or $TestApi -notin @(33, 35, 36))) { throw 'PeriodicOnly requires API 33/35/36 and cannot be combined with other modes.' }
 # API 24 не имеет notification channels и новых Settings intents. Пока эти фазы
 # не адаптированы, отказываем до установки APK вместо ложного полного smoke.
 if ($TestApi -eq 24 -and -not $RebootOnly) { throw 'API 24 currently requires RebootOnly; notification phases are not supported yet.' }
@@ -342,20 +342,34 @@ function Assert-ReleasePeriodicPollContinuity([datetimeoffset]$Previous, [dateti
 # подтверждаем stopped=false и оставшуюся SystemJobService. Ждём новое активное
 # уведомление с тем же уникальным описанием и when >= первой отправки + 15 минут.
 # Проверяем отсутствие ACK, приоритет LOW, null sound/vibration и defaults=0
-# в Notification, SILENT и подавление оповещения группы. mSound в dumpsys
+# в Notification, SILENT на API 35/36 и подавление оповещения группы. mSound в dumpsys
 # может сохранять звук канала даже при SILENT, поэтому его null не требуем.
 # а также SUCCESS настоящего WorkManager worker в logcat после смерти процесса.
 # Штатный режим не вызывает job вручную. Если host отдельно выполнил контролируемый
 # dispatch, он обязан сохранить маркер и вывод команды; итог будет PASSED_CONTROLLED,
 # а не подтверждением естественной доставки. Не читаем private Room/preferences,
-# поэтому UUID work и wasNotified не утверждаем.
+# поэтому сопоставление work UUID с private Room и wasNotified не утверждаем.
 # PeriodicRepeats=2 проверяет следующий период без вмешательства между повторами.
 # Doze/OEM и точное время запуска этой проверкой не покрываются.
+# Проверяем именно объект Notification, а не настройки канала. API 33 печатает
+# defaults/flags в hex, API 35/36 — ноль и символические флаги. На API 33 нет
+# текстового SILENT: требуем ONLY_ALERT_ONCE (0x8), AUTO_CANCEL (0x10),
+# groupAlertBehavior=1 и null sound/vibrate с нулевыми defaults. Звук динамика
+# не измеряется; значение mSound канала не подменяет эти проверки.
+function Assert-ReleaseQuietNotification([string]$Record) {
+    if ($Record -match 'actions=[1-9]\d*|actions=\{' -or $Record -notmatch '(?m)^\s*pri=-1\s*$' -or $Record -notmatch 'vibrate=null sound=null defaults=(?:0x0|0)(?=\s)' -or $Record -notmatch '(?m)^\s*groupAlertBehavior=1\s*$') { throw 'Repeat is not a quiet notification without ACK' }
+    if ($TestApi -eq 33) {
+        $flags = [regex]::Match($Record, '\bflags=0x([0-9a-fA-F]+)\b')
+        if (-not $flags.Success -or ([Convert]::ToInt64($flags.Groups[1].Value, 16) -band 0x18) -ne 0x18) { throw 'Quiet notification flags missing on API 33' }
+    } elseif ($Record -notmatch 'flags=[^\r\n]*SILENT') { throw 'Quiet notification SILENT flag missing' }
+}
+
 function Assert-ReleasePeriodicReminder([string]$Description) {
     $dump = Get-Content (Join-Path $run 'notifications-delivered.log') -Raw -Encoding UTF8
     $pattern = '(?ms)^\s*NotificationRecord\([^\r\n]*pkg=com\.vpe_soft\.intime\.intime [^\r\n]*\r?\n(?:(?!^\s*NotificationRecord\().)*'
     $initial = [regex]::Match($dump, $pattern)
-    $first = [regex]::Match($initial.Value, '(?m)^\s*when=(\d+)/')
+    # Старые платформы печатают только when, новые добавляют /postingTime.
+    $first = [regex]::Match($initial.Value, '(?m)^\s*when=(\d+)(?:/|\r?$)')
     if (-not $initial.Success -or -not $first.Success -or -not $initial.Value.Contains("android.text=String ($Description)") -or $initial.Value -notmatch 'actions=1') { throw 'Initial alarm record with ACK missing' }
     $firstPost = [long]$first.Groups[1].Value
     $summary.periodicFirstAlarmWhen = $firstPost
@@ -392,11 +406,11 @@ function Assert-ReleasePeriodicReminder([string]$Description) {
         # Не вызываем UI/probe/Activity/instrumentation/ручной JobScheduler run.
         $notifications = Invoke-ReleaseTool $adb @('-s', $serial, 'shell', 'dumpsys', 'notification', '--noredact') 'periodic-notifications-poll.log'
         $record = [regex]::Match($notifications, $pattern)
-        $when = [regex]::Match($record.Value, '(?m)^\s*when=(\d+)/')
+        $when = [regex]::Match($record.Value, '(?m)^\s*when=(\d+)(?:/|\r?$)')
         # Один и тот же активный record не считается новым повтором. Каждый новый
         # when должен отстоять минимум на штатные 15 минут от предыдущей отправки.
         if ($record.Success -and $record.Value.Contains("android.text=String ($Description)") -and $when.Success -and [long]$when.Groups[1].Value -ge $previousPost + 900000) {
-            if ($record.Value -match 'actions=[1-9]\d*|actions=\{' -or $record.Value -notmatch '(?m)^\s*pri=-1\s*$' -or $record.Value -notmatch 'vibrate=null sound=null defaults=0' -or $record.Value -notmatch 'flags=[^\r\n]*SILENT' -or $record.Value -notmatch '(?m)^\s*groupAlertBehavior=1\s*$') { throw 'Repeat is not a quiet notification without ACK' }
+            Assert-ReleaseQuietNotification $record.Value
             $post = [long]$when.Groups[1].Value
             $posts += @{ when = $post; gapSeconds = ($post - $previousPost) / 1000.0 }
             $previousPost = $post
@@ -423,7 +437,7 @@ function Assert-ReleasePeriodicReminder([string]$Description) {
     Set-Content (Join-Path $run 'periodic-logcat.log') $log -Encoding UTF8
     if ($observationError) { throw $observationError }
     if (-not $delivered) { throw 'Natural release worker notification timed out; inspect platform scheduling before blaming application' }
-    if ($record.Value -match 'actions=[1-9]\d*|actions=\{' -or $record.Value -notmatch '(?m)^\s*pri=-1\s*$' -or $record.Value -notmatch 'vibrate=null sound=null defaults=0' -or $record.Value -notmatch 'flags=[^\r\n]*SILENT' -or $record.Value -notmatch '(?m)^\s*groupAlertBehavior=1\s*$') { throw 'Repeat is not a quiet notification without ACK' }
+    Assert-ReleaseQuietNotification $record.Value
     # Logcat читаем только после всего окна. Для двух повторов нужны две записи
     # SUCCESS настоящего worker; одно уведомление/один SUCCESS нельзя засчитать дважды.
     $successes = [regex]::Matches($log, '(?m)^.*Worker result SUCCESS for Work[^\r\n]*TaskNotificationWorker[^\r\n]*$')

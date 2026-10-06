@@ -1,5 +1,87 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Два естественных quiet periodic периода в release/R8 на API 33 — 6 октября 2026
+
+**PASSED, 11/11 host-фаз**, exit 0:
+`.test-tools/runs/20261006-131742-release-smoke/summary.json`.
+Свежий UI bootstrap — **3/3**, без ошибок и пропусков:
+`.test-tools/runs/20261006-131508-ea2af0d6/summary.json`.
+Существующий Google APIs API 33 (`Intime_Test_API33`, emulator-5582), fingerprint
+`google/sdk_gphone64_x86_64/emu64x:13/TE1A.240213.009/12342917:userdebug/dev-keys`.
+Профиль этого успешного запуска: 2 CPU, 4096 МБ RAM, host GPU, Emulator 37.2.12.
+Прежний signed non-debuggable code 25/2.0.0-rc1 APK с иконками не пересобирался,
+SHA-256 4F5911443EF3D9A18645C2285E1D1BD2F7B26566F51E7448D2A6D39C40B9D056;
+mapping 7B5DEBF5DCCE8160A40A2F0B0442B722CA9DA511984806B7981587E4DC2E2E23.
+
+CRUD/JSON, reboot 9 → 10 и первый минутный alarm с ACK прошли. После Home/am kill
+процесс отсутствовал, stopped=false подтверждён. Первый alarm
+`when=1791282131353`; первый quiet repeat `1791283902409` пришёл через
+**1771.056 с (29 минут 31 секунда)**, следующий `1791285057363` — ещё через
+**1154.954 с (19 минут 15 секунд)**. Оба снимка сохранены отдельно; каждый имеет
+то же уникальное описание, LOW (-1), без actions/ACK, sound/vibrate=null,
+defaults=0x0, flags=0x18, groupKey=silent и groupAlertBehavior=1.
+`mSound` сохраняет адрес звука канала; его null и физический звук не утверждаются.
+Будущий alarm отсутствует.
+
+В logcat **три** SUCCESS TaskNotificationWorker, один work id
+`46ffaa3e-c46c-4d06-8a18-5a41316b761f`, новый PID 5231:
+10:33:20.034, 10:51:42.416 и 11:10:57.371 UTC (13:33, 13:51 и 14:10 по Москве).
+Ранний SUCCESS через примерно 11 минут после alarm не обновил активное уведомление;
+это согласуется с 15-минутной паузой NotificationHelper, но private LAST_POST
+и фактическая ветка раннего worker этим сценарием не читались.
+Последние два SUCCESS соответствуют двум новым quiet when;
+`periodicWorkerSuccessCount=3`, `naturalDispatchValidated=true`.
+
+Перед ожиданием собственное задание Ready:false, future TIMING_DELAY, bucket ACTIVE.
+Между повторами Activity/probe/instrumentation не запускались, JobScheduler не
+читался; ручного dispatch/doWork и изменения batching/периода/часов не было.
+Uptime вырос с 178.26 до 3104.37 с, в согласии с host 13:22:16 → 14:11:02.
+Контроль разрывов не сработал; latest показывают питание от сети, заряд 100%,
+ACTIVE для deep/light idle. В финальных health-checks нет ANR/FATAL.
+Этот успешный запуск не доказывает устранение прежней системной ANR; две
+предыдущие неудачные попытки сохранены отдельно ниже. Defaults AVD не менялись.
+
+Runner удалил свою production-установку, probe и уникальный JSON; отсутствие
+production-пакета дополнительно подтверждено. PID/StartTime/AVD проверены,
+выделенный эмулятор остановлен, маркер удалён. Успешный release-отчёт — 27.4 МиБ;
+три release-отчёта этого этапа суммарно — около 69.2 МиБ. SDK/system images не
+скачивались, пользовательские main*.db не читались. Host-проверки parser/assertions
+описаны ниже. Локальная suite не повторялась: код приложения не менялся.
+Обычный Doze/OEM, точный срок 15 минут, private Room и прочие API не покрыты.
+
+## Адаптация periodic runner к формату API 33 — 6 октября 2026
+
+Первая попытка `.test-tools/runs/20261006-130224-release-smoke/summary.json`
+завершилась **FAILED** после девяти прошедших фаз, включая настоящий reboot
+6 → 7 и доставку минутного alarm. Сообщение `Initial alarm record with ACK missing`
+вызвано host-parser: активная запись содержит нужное описание и actions=1,
+но API 33 печатает `when=1791281246907` без `/postingTime`. Периодическое ожидание
+в этом запуске не начиналось; это не подтверждение сбоя worker или natural pass.
+Runner удалил свою установку/probe/JSON; исходный результат сохранён.
+
+Разбор учитывает оба формата when. Общий helper тихого уведомления принимает
+hex defaults API 33, проверяет null sound/vibrate, LOW, отсутствие ACK и
+groupAlertBehavior=1. На API 33 дополнительно требуются флаги ONLY_ALERT_ONCE и
+AUTO_CANCEL (биты 0x18); на API 35/36 сохраняется требование текстового SILENT.
+Код приложения не менялся. До повторного device-прогона host-проверка прошла
+на реальной исходной записи API 33 и синтетических quiet-записях: одинаковый
+record/слишком ранний when не считаются вторым периодом, нехватка SUCCESS и семь
+испорченных вариантов уведомления отвергаются. Результат:
+`.test-tools/runs/20261006-api33-format-validation/validation.txt`.
+Прежний fixture API 36 также повторно прошёл; эти проверки не заменяют доставку ОС.
+
+Вторая попытка `.test-tools/runs/20261006-131019-release-smoke/summary.json`
+завершилась **FAILED** после семи фаз: reboot 7 → 8 восстановил тот же alarm,
+BootReceiver зарегистрирован, но health-check обнаружил ANR Google Search/Launcher.
+В `reboot-1-logcat-after.log` 10:13:12.283 UTC — WindowManager ANR окна
+NexusLauncherActivity; 10:13:14.381 — ActivityManager ANR
+`com.google.android.googlequicksearchbox:search`, input dispatch/focus timeout 5008 мс.
+Это сбой системного окружения, не обнаруженная ANR InTime; сырые FAILED/exit 1
+сохранены. Периодическое ожидание ещё не начиналось. Исходный профиль — 2 CPU,
+2048 МБ RAM, software GPU. Его эмулятор остановлен после проверки владельца
+и отсутствия production-пакета; для следующей попытки выбран host GPU/4096 МБ.
+Изменение ресурсов само по себе не считается доказанным устранением ANR.
+
 ## Два естественных quiet periodic периода в release/R8 на API 35 — 6 октября 2026
 
 **PASSED, 11/11 host-фаз**, exit 0:

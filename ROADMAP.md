@@ -357,7 +357,11 @@ release/R8 и оставшаяся Android-матрица проверяются
   Расширение на существующий AOSP API 35 также прошло 11/11: два естественных
   тихих повтора через 21:14 и ещё 26:15, два SUCCESS одного work id; UI 3/3.
   Код приложения/период/batching не менялись, AVD после проверки остановлен.
-  Следующий шаг — расширить natural periodic smoke на существующий API 33;
+  API 33 после исправления host-parser when/hex и отдельного сбоя Google
+  Search/Launcher прошёл 11/11 на host GPU/4 ГБ: тихие повторы через 29:31
+  и ещё 19:15, три SUCCESS одного work id; ранний SUCCESS не обновил уведомление.
+  UI 3/3, прежние FAILED сохранены, устранение системной ANR не утверждается.
+  Следующий шаг — расширить natural periodic smoke на существующий API 31;
   матрица ОС, Doze/OEM и Play upgrade остаются открытыми, R5.3 целиком не закрыт.
   Артефакты/логи — DEVICE_TEST_RESULTS.md, команды — RELEASE.md.
 - [ ] R5.4: согласовать README, PLAN, TECH_NOTES, RELEASE, privacy и Play-декларации

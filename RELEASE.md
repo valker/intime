@@ -262,10 +262,10 @@ run identifiers, initial conditions and coverage limits.
 | Signed AAB | October 4: R8/lint, Upload key, bundletool validate and actual manifest; embedded mapping matches | Play-generated APKs/installation update; final version |
 | API 24 | Runner/test support prepared | No device run: new image exceeds authorized 100 MB disk budget |
 | API 31 | Upload-signed APK smoke 14/14, plus three reboot repeats | Earlier isolated reboot failure unexplained; full matrix not closed |
-| API 33 | Upload-signed APK smoke 14/14 | Remaining shared coverage and Play upgrade |
+| API 33 | Upload-signed APK smoke 14/14 and two natural release periodic repeats, 11/11 on host GPU/4 GB | Natural Doze/OEM, system ANR stability and Play upgrade |
 | API 35 | Upload-signed APK smoke 14/14 and two natural release periodic repeats, 11/11; synthetic debug upgrade separately | Natural Doze/OEM, real production upgrade/data |
 | API 36 | Upload-signed APK smoke 14/14, forced deep Doze scenario and two natural release periodic repeats, 11/11 | Natural Doze/quotas, inexact fallback coverage, remaining matrix |
-| WorkManager | Debug execution/KEEP; October 6 release/R8 two natural quiet repeats after process exit on API 35 and 36, each 11/11; earlier controlled run kept separately | Timing guarantees, other API/OEM and Play upgrade coverage open |
+| WorkManager | Debug execution/KEEP; October 6 release/R8 two natural quiet repeats after process exit on API 33, 35 and 36, each 11/11; earlier controlled run kept separately | Timing guarantees, other API/OEM and Play upgrade coverage open |
 | 16 KB pages | Fresh AAB contains no native `.so` files | Separate device/platform verification not performed |
 | CI | Configuration and local checks recorded | Successful new remote pipelines not confirmed |
 
@@ -283,6 +283,13 @@ from the alarm and another 26m15s, two SUCCESS entries for the same worker id.
 The observation was continuous, without intervening UI or scheduler dumps;
 the dedicated AVD was stopped after cleanup. Ordinary Doze/OEM and other API
 periodic delivery remain outside these two active-emulator checks.
+API 33 subsequently passed 11/11 with quiet gaps 29m31s and another 19m15s,
+three SUCCESS entries for the same worker id (the early execution did not update
+the notification). The runner now parses API 33's single when and hex fields;
+LOW/no ACK/null sound-vibrate/zero defaults/group suppression remain required.
+The successful run used the existing Google APIs AVD with host GPU/4 GB after
+a separate Google Search/Launcher ANR under software GPU/2 GB. Failed attempts
+are preserved; this does not prove the system ANR is fixed. See DEVICE_TEST_RESULTS.md.
 The earlier October 4 periodic result uses PASSED_CONTROLLED_PLATFORM_DISPATCH, not a natural
 delivery pass. The scheduler remained Ready:true; host then dispatched its ready
 job with -s. The APK's WorkManager returned SUCCESS and posted the quiet repeat.
