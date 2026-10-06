@@ -40,14 +40,31 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.p
 ```
 
 В PeriodicOnly снимки `periodic-diagnostic-{before,latest,after}-*.log`
-содержат очередь JobScheduler, power, deviceidle и battery. Before снимается
+содержат power, deviceidle, battery и `/proc/uptime`. Полная очередь JobScheduler
+сохраняется только в before/after, вне интервала ожидания: установленный API 36
+в `dumpInternal` вызывает пересчёт Ready, который может менять TimeController.
+Промежуточный dumpsys jobscheduler способен влиять на проверяемое планирование;
+его не следует выполнять во время natural-прогона. Before снимается
 после завершения процесса, latest обновляется раз в пять минут, after — после
 ожидания, в том числе при тайм-ауте. Фиксированные имена ограничивают число
-файлов; отдельно сохраняются время и fingerprint сборки Android. Это чтение
-состояния ОС, без запуска работы или изменения настроек. Ready:true сам по себе
+файлов; отдельно сохраняются время и fingerprint сборки Android. Настройки не
+меняются; stateful scheduler dump ограничен границами наблюдения. Ready:true сам по себе
 не доказывает доставку; наличие batch threshold не доказывает причину задержки.
 
+Компьютер должен непрерывно работать на протяжении ожидания. Разрыв между
+опросами свыше 180 секунд или перевод host-часов назад приводит к
+`INFRASTRUCTURE_INTERRUPTED` и `naturalDispatchValidated=false`, с exit 1.
+Финальные снимки/logcat и очистка выполняются; это не обычный 65-минутный
+тайм-аут JobScheduler. Runner не отключает сон компьютера и не меняет питание.
+
 Этот режим принимает только API 36 и не совмещается с RebootOnly/DozeOnly.
+
+Перед reboot на API 36 runner ждёт `cmd package wait-for-handler` и
+`wait-for-background-handler` с лимитом 30 секунд для каждой очереди.
+Это подготовка host после force-stop/повторного запуска, а не принудительное
+снятие stopped или вызов BootReceiver. Однажды перед reboot было stopped=false,
+а после — stopped=true и alarm не восстановился; причина этого перехода
+не доказана. Успех последующего прогона не закрывает нестабильность всей матрицы.
 Требует прежнего разрешённого Intime_Test_API36/5584 с маркером владельца,
 подписанного non-debuggable production APK code 25 и соседнего mapping.txt
 с переименованным R8 TaskRepository. Новые образы/зависимости не скачиваются.

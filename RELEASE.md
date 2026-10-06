@@ -264,14 +264,19 @@ run identifiers, initial conditions and coverage limits.
 | API 31 | Upload-signed APK smoke 14/14, plus three reboot repeats | Earlier isolated reboot failure unexplained; full matrix not closed |
 | API 33 | Upload-signed APK smoke 14/14 | Remaining shared coverage and Play upgrade |
 | API 35 | Upload-signed APK smoke 14/14; synthetic debug upgrade separately | Real production upgrade/data |
-| API 36 | Upload-signed APK smoke 14/14 and a separate forced deep Doze scenario | Natural Doze/quotas, inexact fallback coverage, release worker |
-| WorkManager | Debug execution/KEEP; release/R8 quiet repeat after process exit with controlled JobScheduler run -s, 10/10 phases | Natural release delivery was not observed during 52 minutes; default dispatch/timing, other API and repeated-period coverage open |
+| API 36 | Upload-signed APK smoke 14/14, forced deep Doze scenario and natural release periodic smoke 10/10 | Natural Doze/quotas, inexact fallback coverage, remaining matrix |
+| WorkManager | Debug execution/KEEP; October 6 release/R8 natural quiet repeat after process exit, 10/10 phases, 21m59s; earlier controlled run kept separately | Next natural period, timing guarantees, other API/OEM and Play upgrade coverage open |
 | 16 KB pages | Fresh AAB contains no native `.so` files | Separate device/platform verification not performed |
 | CI | Configuration and local checks recorded | Successful new remote pipelines not confirmed |
 
 Use the release-smoke runner and commands in [TESTING.md](TESTING.md), only on
 the dedicated project AVDs. Do not install or clear a personal device implicitly.
-Release periodic result uses PASSED_CONTROLLED_PLATFORM_DISPATCH, not a natural
+The October 6 release periodic result is PASSED, 10/10, without manual job run
+or live jobscheduler dumps during the wait. Installed framework bytecode showed
+that textual scheduler dumps can recompute TimeController readiness; those dumps
+are now limited to before/after the observation. Natural quiet repeat arrived
+after 21m59s; this does not promise a fixed 15-minute delivery time.
+The earlier October 4 periodic result uses PASSED_CONTROLLED_PLATFORM_DISPATCH, not a natural
 delivery pass. The scheduler remained Ready:true; host then dispatched its ready
 job with -s. The APK's WorkManager returned SUCCESS and posted the quiet repeat.
 No batching threshold, interval or clock changes were made; no direct doWork call.

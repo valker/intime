@@ -298,18 +298,38 @@ function Prepare-ReleaseMinuteAlarm([string]$Description) {
     return $alarm
 }
 
-# Сохраняем только чтение состояния ОС: очередь/слоты/ограничения задания,
-# питание, Doze и сборку Android. Не запускаем работу и не меняем настройки.
+# Сохраняем питание, Doze, сборку и uptime Android. Полную очередь JobScheduler
+# читаем только перед ожиданием и после фиксации его результата: установленный
+# API 36 при dumpsys пересчитывает Ready и может менять TimeController.
+# Между началом и концом ожидания эту диагностику вызывать нельзя.
 # Три фиксированных набора (before/latest/after) ограничивают расход диска;
 # latest перезаписывается раз в пять минут, after снимается и при тайм-ауте.
 # Эти dumpsys показывают состояние в момент снимка, но не доказывают причину
 # решения планировщика между снимками и могут содержать другие системные пакеты.
 function Save-ReleasePeriodicDiagnostics([ValidateSet('before', 'latest', 'after')][string]$Stage) {
-    foreach ($service in @('jobscheduler', 'power', 'deviceidle', 'battery')) {
+    $services = @('power', 'deviceidle', 'battery')
+    if ($Stage -ne 'latest') { $services = @('jobscheduler') + $services }
+    foreach ($service in $services) {
         Invoke-ReleaseTool $adb @('-s', $serial, 'shell', 'dumpsys', $service) "periodic-diagnostic-$Stage-$service.log" | Out-Null
     }
+    Invoke-ReleaseTool $adb @('-s', $serial, 'shell', 'cat', '/proc/uptime') "periodic-diagnostic-$Stage-uptime.log" | Out-Null
     Invoke-ReleaseTool $adb @('-s', $serial, 'shell', 'getprop', 'ro.build.fingerprint') 'periodic-build-fingerprint.log' | Out-Null
     Set-Content (Join-Path $run "periodic-diagnostic-$Stage-time.txt") ([datetimeoffset]::Now.ToString('o')) -Encoding UTF8
+}
+
+# Опрос выполняется каждые 30 секунд. Разрыв свыше трёх минут или перевод
+# часов назад означает, что непрерывность наблюдения потеряна. Причину (сон,
+# приостановку VM или изменение часов) эта проверка не устанавливает.
+# Проверяем и последнюю паузу после выхода из цикла: из-за скачка часов
+# условие while может завершить цикл раньше следующего опроса.
+function Assert-ReleasePeriodicPollContinuity([datetimeoffset]$Previous, [datetimeoffset]$Current) {
+    $gap = ($Current - $Previous).TotalSeconds
+    if ($gap -lt 0 -or $gap -gt 180) {
+        $summary.periodicObservationInterrupted = $true
+        $summary.periodicHostPollGapSeconds = $gap
+        $summary.naturalDispatchValidated = $false
+        throw 'Periodic observation interrupted by host polling gap; continuous device wait not validated'
+    }
 }
 
 # Чистая release-установка уже прошла CRUD/JSON/reboot и доставила настоящий
@@ -346,13 +366,20 @@ function Assert-ReleasePeriodicReminder([string]$Description) {
     Set-Content (Join-Path $run 'periodic-package-after-kill.log') $state -Encoding UTF8
     if ($state -notmatch 'User 0:.*stopped=false') { throw 'Release package stopped after kill' }
     $summary.periodicProcessAbsentAfterKill = $true
+    $summary.periodicLiveJobDumps = $false
     Save-ReleasePeriodicDiagnostics 'before'
     $limit = (Get-Date).AddMinutes($PeriodicWaitMinutes)
     $timer = [Diagnostics.Stopwatch]::StartNew()
     $nextDiagnosticSeconds = 300
+    $lastPollAt = [datetimeoffset]::UtcNow
+    $observationError = $null
     $delivered = $false
     Write-Output "Waiting for natural release worker (up to $PeriodicWaitMinutes minutes, unchanged batching)..."
     do {
+        $pollAt = [datetimeoffset]::UtcNow
+        try { Assert-ReleasePeriodicPollContinuity $lastPollAt $pollAt }
+        catch { $observationError = $_.Exception.Message; break }
+        $lastPollAt = $pollAt
         # Перезаписываем снимок опроса, чтобы длительное ожидание не раздувало диск.
         # Не вызываем UI/probe/Activity/instrumentation/ручной JobScheduler run.
         $notifications = Invoke-ReleaseTool $adb @('-s', $serial, 'shell', 'dumpsys', 'notification', '--noredact') 'periodic-notifications-poll.log'
@@ -366,10 +393,15 @@ function Assert-ReleasePeriodicReminder([string]$Description) {
         Write-Output ("Worker wait: {0:N1} minutes" -f $timer.Elapsed.TotalMinutes)
         Start-Sleep -Seconds 30
     } while ((Get-Date) -lt $limit)
+    if (-not $observationError) {
+        try { Assert-ReleasePeriodicPollContinuity $lastPollAt ([datetimeoffset]::UtcNow) }
+        catch { $observationError = $_.Exception.Message }
+    }
     Save-ReleasePeriodicDiagnostics 'after'
     Set-Content (Join-Path $run 'periodic-jobs-after.log') (Invoke-ReleaseAdb @('shell', 'dumpsys', 'jobscheduler')) -Encoding UTF8
     $log = Invoke-ReleaseAdb @('logcat', '-d', '-T', $since)
     Set-Content (Join-Path $run 'periodic-logcat.log') $log -Encoding UTF8
+    if ($observationError) { throw $observationError }
     if (-not $delivered) { throw 'Natural release worker notification timed out; inspect platform scheduling before blaming application' }
     if ($record.Value -match 'actions=[1-9]\d*|actions=\{' -or $record.Value -notmatch '(?m)^\s*pri=-1\s*$' -or $record.Value -notmatch 'vibrate=null sound=null defaults=0' -or $record.Value -notmatch 'flags=[^\r\n]*SILENT' -or $record.Value -notmatch '(?m)^\s*groupAlertBehavior=1\s*$') { throw 'Repeat is not a quiet notification without ACK' }
     if ($log -notmatch 'Worker result SUCCESS for Work.*TaskNotificationWorker') { throw 'Actual WorkManager SUCCESS not found after process termination' }
@@ -689,6 +721,17 @@ try {
     # пакета перед reboot. Отсутствие BOOT_COMPLETED однажды наблюдалось, но связь
     # с отложенной записью PackageManager не доказана; сохраняем состояние для диагностики.
     if ($TestApi -eq 31 -and $RebootSettleSeconds -gt 0) { Start-Sleep -Seconds $RebootSettleSeconds }
+    # API 36: после force-stop/повторного запуска однажды наблюдалось
+    # stopped=false до reboot и stopped=true после него, без вызова BootReceiver.
+    # Дожидаемся штатных очередей PackageManager перед reboot, чтобы отделить
+    # подготовку host от проверки восстановления. Команды подтверждены справкой
+    # этого AVD. Они не снимают stopped принудительно и не вызывают receiver.
+    # Ожидание очередей не доказывает причину прежнего сбоя или запись всех файлов.
+    if ($TestApi -eq 36) {
+        Set-Content (Join-Path $run "$bootPrefix-package-handler-wait.log") (Invoke-ReleaseAdb @('shell', 'cmd', 'package', 'wait-for-handler', '--timeout', '30000')) -Encoding UTF8
+        Set-Content (Join-Path $run "$bootPrefix-package-background-handler-wait.log") (Invoke-ReleaseAdb @('shell', 'cmd', 'package', 'wait-for-background-handler', '--timeout', '30000')) -Encoding UTF8
+        $summary.packageManagerHandlersWaited = $true
+    }
     $beforeBootPackage = Invoke-ReleaseAdb @('shell', 'dumpsys', 'package', $package)
     Set-Content (Join-Path $run 'package-before-reboot.log') $beforeBootPackage -Encoding UTF8
     Set-Content (Join-Path $run "$bootPrefix-package-before.log") $beforeBootPackage -Encoding UTF8
@@ -861,6 +904,7 @@ try {
     # планирования, а не доказанное падение приложения/R8. Остальные assertions
     # и ошибки диагностики/очистки по-прежнему считаются FAILED.
     if ($summary.message -like 'Natural release worker notification timed out*') { $summary.status = 'INCONCLUSIVE' }
+    if ($summary.message -like 'Periodic observation interrupted*') { $summary.status = 'INFRASTRUCTURE_INTERRUPTED' }
     Write-Output $summary.message
 } finally {
     if ($dozeChanged) {

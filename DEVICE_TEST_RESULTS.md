@@ -1,5 +1,144 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Естественный quiet periodic worker в release/R8 — 6 октября 2026
+
+**PASSED, 10/10 host-фаз**, exit 0:
+`.test-tools/runs/20261006-002602-release-smoke/summary.json`.
+Использован тот же подписанный non-debuggable code 25/2.0.0-rc1 APK с иконками,
+SHA-256 4F5911443EF3D9A18645C2285E1D1BD2F7B26566F51E7448D2A6D39C40B9D056;
+mapping 7B5DEBF5DCCE8160A40A2F0B0442B722CA9DA511984806B7981587E4DC2E2E23.
+Приложение не пересобиралось. Свежий UI bootstrap этого этапа — 3/3,
+`.test-tools/runs/20261005-234316-c07e7559/summary.json`.
+
+CRUD/JSON, reboot 34 → 35 и первое минутное уведомление с ACK прошли.
+После Home/am kill процесс отсутствовал, stopped=false подтверждён.
+Далее Activity/probe/instrumentation не запускались; период/batching/часы
+не менялись, ручного jobscheduler run и прямого doWork не было.
+periodicLiveJobDumps=false: полная очередь читалась только до ожидания
+(собственное задание Ready:false с будущим TIMING_DELAY) и после обнаружения
+нового уведомления. Между ними — notifications/power/deviceidle/battery/uptime.
+Контроль host-разрывов не сработал; guest uptime вырос с 118.96 до 1445.31 с,
+в согласии с временными отметками host 00:29:18 → 00:51:25 (Москва).
+
+Первый Notification.when=1791235751256, quiet repeat=1791237070337:
+**1319.081 секунды, 21 минута 59 секунд**. Новый процесс PID 3142 выполнил
+настоящий WorkManager: SUCCESS для TaskNotificationWorker,
+id 97e37ab6-59a8-4c44-9cc9-6237be7d67ae. В logcat время UTC 21:51:10
+5 октября соответствует 00:51:10 6 октября по Москве.
+Повтор имеет то же уникальное описание, LOW (-1), без actions/ACK,
+Notification sound/vibrate=null, defaults=0, SILENT и groupAlertBehavior=1.
+Будущий alarm для единственной просрочки отсутствует. Физический звук,
+private UUID/wasNotified и другие private поля этим сценарием не измеряются.
+
+Сравнение с прерванным диагностическим прогоном и установленный байткод
+подтверждают необходимость убрать stateful dumpsys из интервала ожидания.
+Свежая естественная доставка на этом API 36 подтверждена; точный срок 15 минут,
+следующий период после данного повтора, обычный Doze/OEM и остальные API — нет.
+Неуспешный reboot и прерванное наблюдение сохранены отдельно ниже.
+Java/Room/scheduling/R8 приложения не менялись; unit suite не повторялась.
+
+Runner удалил свои APK/probe/JSON; host проверил отсутствие production-пакета,
+PID/StartTime/имя AVD и остановил его. Маркер удалён. Новых образов/AVD нет.
+Архив успешного прогона около 27.2 МиБ; три release-архива этого этапа
+после удаления временных JAR/DEX занимают около 69.3 МиБ логических файлов.
+Следующий локальный шаг R5.3 — следующий естественный periodic-период после
+первого тихого повтора; матрица ОС/Play upgrade остаются открытыми.
+
+## Stateful-диагностика JobScheduler и подготовка reboot — 5–6 октября 2026
+
+Свежий UI bootstrap **3/3**:
+`.test-tools/runs/20261005-234316-c07e7559/summary.json`.
+Первый повтор PeriodicOnly остановился до ожидания worker: **FAILED**, семь
+CRUD/JSON-фаз прошли, reboot 32 → 33 не восстановил alarm.
+`.test-tools/runs/20261005-234542-release-smoke/summary.json`.
+Пакет до reboot stopped=false, после stopped=true, actualAlarm=0;
+вызов собственного BootReceiver не зарегистрирован. Это отдельный неуспешный
+результат подготовки/восстановления, не скрытый последующим успехом.
+Сходный случай ранее наблюдался на API 31; причина перехода stopped не доказана.
+
+Справка API 36 подтвердила wait-for-handler/wait-for-background-handler.
+Runner теперь ждёт обе очереди PackageManager перед reboot, по 30 секунд
+максимум; никаких принудительных set-stopped/receiver broadcast нет.
+Следующий запуск прошёл reboot и первое уведомление (девять фаз), но выявил
+влияние собственной диагностики на состояние планирования:
+`.test-tools/runs/20261005-235317-release-smoke/summary.json`,
+**ABORTED_STATEFUL_DIAGNOSTICS**. Уникальный host-процесс PID 34888 остановлен
+после проверки команды и времени создания; runner finally не выполнялся.
+Host отдельно проверил PID/StartTime/имя AVD и SHA-256 установленного APK,
+сохранил логи и удалил только свою установку/probe/уникальный synthetic JSON.
+Summary составлен host после остановки, а не выдан завершившимся runner.
+
+В снимке 00:12:37 одновременно Unsatisfied TIMING_DELAY и Ready:true;
+в следующем снимке history фиксирует удовлетворение TIMING_DELAY именно
+в момент предыдущего dumpsys. Снимок сохранён как periodic-jobs-timing-transition.log.
+Для проверки скопирован публичный `/system/framework/services.jar` установленного
+API 36, SHA-256 D82D6412C5843131F6992F53021DBCFBD368695BF5FD440EDFB2C8A2046A0B5A.
+SDK dexdump на извлечённом DEX подтвердил цепочку: dumpInternal печатает Ready
+через isReadyToBeExecutedLocked; при неготовом job вызывается
+evaluateControllerStatesLocked; TimeController может отметить TIMING_DELAY
+выполненным и удалить job из mTrackedJobs. В этой timing-ветке нет немедленного
+сигнала планировщику. Таким образом текстовый dumpsys не является чисто пассивной
+диагностикой установленной системы. Само влияние на поля подтверждено;
+полную причинность прежних задержек без сравнения прогонов не утверждаем.
+Дизассемблированные классы сохранены в classes2.dex.job-methods.log (около 1 МиБ).
+Временные JAR/три DEX (около 42 МиБ суммарно) удалены после сверки.
+
+Механизм также виден в [AOSP JobSchedulerService](https://android.googlesource.com/platform/frameworks/base/+/749650c2cb0c1ab68221ec86f86027d5bd48d634/apex/jobscheduler/service/java/com/android/server/job/JobSchedulerService.java)
+и [TimeController](https://android.googlesource.com/platform/frameworks/base/+/main/apex/jobscheduler/service/java/com/android/server/job/controllers/TimeController.java).
+Сверка установленного байткода важнее предположения о точном исходном commit.
+
+Промежуточный jobscheduler dumpsys удалён из runner: latest содержит только
+power/deviceidle/battery/uptime/fingerprint/time; очередь — before/after,
+вне интервала наблюдения. Host-проверка новых вызовов прошла: 17 чтений,
+только два scheduler dump, без команд изменения настроек или запуска работы.
+`.test-tools/runs/20261006-passive-periodic-validation/validation.txt`.
+Код Java/Room/WorkManager/R8 APK не менялся и не пересобирался.
+
+## Диагностический periodic-прогон: разрыв окружения — 5 октября 2026
+
+Свежий UI bootstrap **3/3**, failures/errors/skipped=0:
+`.test-tools/runs/20261005-085250-06fc8e73/summary.json`.
+Release/R8 PeriodicOnly использовал прежний APK с SHA-256
+4F5911443EF3D9A18645C2285E1D1BD2F7B26566F51E7448D2A6D39C40B9D056;
+**9 подготовительных фаз прошли**, включая reboot 30 → 31, доставку первого
+уведомления, Home/am kill и stopped=false. Ручного job run, изменения batching,
+периода или часов не было. Новых образов/AVD/загрузок нет.
+
+**Итог INFRASTRUCTURE_INTERRUPTED, не natural PASS и не обычный timeout:**
+`.test-tools/runs/20261005-085517-release-smoke/summary.json`.
+Снимки host: before 08:58:26, latest 09:03:28, after 23:38:29 (Москва).
+Между latest/after прошло 52500.925 секунды — более 14 часов;
+guest elapsed clock за это время вырос лишь с 427131 до 453563 мс,
+то есть на 26.432 секунды. Между before/after guest прошёл 328.234 секунды.
+Факт разрыва подтверждён, конкретная причина (сон компьютера/приостановка VM/
+другая задержка окружения) не устанавливалась. Непрерывных 65 минут не было.
+В after собственное задание всё ещё Ready:false, Unsatisfied TIMING_DELAY,
+до earliest оставалось 6 минут 30 секунд. Отсутствие повтора ожидаемо при
+таком состоянии и не воспроизводит вчерашнее удержание Ready:true.
+
+Исходный summary runner со статусом INCONCLUSIVE сохранён отдельно в
+summary-runner-before-interruption-assessment.json; новый статус выставлен
+после разбора временных отметок и guest elapsed. Справка shell/get-job-state
+сохранена: первоначально waiting; get-pending-job-reasons команды в справке нет.
+Команда help напечатала справку с ненулевым кодом, это не падение приложения.
+Сборка Android: Android/sdk_phone64_x86_64/emu64x:16/BE2A.250530.026.D1/13818094:userdebug/test-keys.
+
+Runner теперь обнаруживает разрыв между опросами свыше 180 секунд либо ход
+часов назад, сохраняет финальную диагностику и выставляет
+INFRASTRUCTURE_INTERRUPTED, naturalDispatchValidated=false. Проверяется также
+последняя пауза при выходе из while, чтобы скачок времени не стал timeout.
+Host-проверка: обычные 30/180 секунд допускаются, реальные временные отметки
+этого прогона и перевод часов назад обнаружены; parser прошёл.
+Результат poll-continuity-validation.txt находится в каталоге прогона.
+Это проверка host-логики; после исправления длительный device-прогон не повторялся.
+
+Собственные APK/probe/JSON удалены, отсутствие production-пакета проверено.
+AVD остановлен после проверки PID/StartTime/имени, маркер удалён.
+Логи release около 23.4 МиБ; данных пользователя main*.db не касались.
+Следующий шаг — повторить наблюдение на существующем API 36 при непрерывно
+работающем компьютере. Автоматически отключать сон/менять питание не стали.
+Причина вчерашнего ожидания Ready:true и R5.3 остаются открытыми.
+
 ## Диагностика очереди по сохранённым логам — 5 октября 2026
 
 Нового device-прогона не было. Разобран снимок
