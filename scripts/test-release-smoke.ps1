@@ -7,7 +7,7 @@ APK должен быть подписан подтверждённым upload k
 Используются только новые синтетические задачи. Если production-пакет уже установлен,
 скрипт отказывается продолжать; данные существующей установки не очищаются.
 После проверки удаляется только APK, установленный этим запуском. Эмулятор остаётся работать.
-PeriodicOnly (API 33/35/36) проходит подготовку/boot/первый alarm и ждёт тихий
+PeriodicOnly (API 31/33/35/36) проходит подготовку/boot/первый alarm и ждёт тихий
 повтор после am kill фонового процесса. Обычный полный режим сохраняет 14 фаз;
 periodic-режим содержит 10 фаз (11 при PeriodicRepeats=2) и не меняет batching/период/часы Android.
 #>
@@ -57,7 +57,7 @@ $summary.dozeOnly = [bool]$DozeOnly
 $summary.periodicOnly = [bool]$PeriodicOnly
 if (-not $PeriodicOnly -and $PeriodicRepeats -ne 1) { throw 'PeriodicRepeats requires PeriodicOnly' }
 $summary.periodicRepeats = $PeriodicRepeats
-if ($PeriodicOnly -and ($RebootOnly -or $DozeOnly -or $TestApi -notin @(33, 35, 36))) { throw 'PeriodicOnly requires API 33/35/36 and cannot be combined with other modes.' }
+if ($PeriodicOnly -and ($RebootOnly -or $DozeOnly -or $TestApi -notin @(31, 33, 35, 36))) { throw 'PeriodicOnly requires API 31/33/35/36 and cannot be combined with other modes.' }
 # API 24 не имеет notification channels и новых Settings intents. Пока эти фазы
 # не адаптированы, отказываем до установки APK вместо ложного полного smoke.
 if ($TestApi -eq 24 -and -not $RebootOnly) { throw 'API 24 currently requires RebootOnly; notification phases are not supported yet.' }
@@ -351,16 +351,16 @@ function Assert-ReleasePeriodicPollContinuity([datetimeoffset]$Previous, [dateti
 # поэтому сопоставление work UUID с private Room и wasNotified не утверждаем.
 # PeriodicRepeats=2 проверяет следующий период без вмешательства между повторами.
 # Doze/OEM и точное время запуска этой проверкой не покрываются.
-# Проверяем именно объект Notification, а не настройки канала. API 33 печатает
-# defaults/flags в hex, API 35/36 — ноль и символические флаги. На API 33 нет
+# Проверяем именно объект Notification, а не настройки канала. API 31/33 печатают
+# defaults/flags в hex, API 35/36 — ноль и символические флаги. На API 31/33 нет
 # текстового SILENT: требуем ONLY_ALERT_ONCE (0x8), AUTO_CANCEL (0x10),
 # groupAlertBehavior=1 и null sound/vibrate с нулевыми defaults. Звук динамика
 # не измеряется; значение mSound канала не подменяет эти проверки.
 function Assert-ReleaseQuietNotification([string]$Record) {
     if ($Record -match 'actions=[1-9]\d*|actions=\{' -or $Record -notmatch '(?m)^\s*pri=-1\s*$' -or $Record -notmatch 'vibrate=null sound=null defaults=(?:0x0|0)(?=\s)' -or $Record -notmatch '(?m)^\s*groupAlertBehavior=1\s*$') { throw 'Repeat is not a quiet notification without ACK' }
-    if ($TestApi -eq 33) {
+    if ($TestApi -le 33) {
         $flags = [regex]::Match($Record, '\bflags=0x([0-9a-fA-F]+)\b')
-        if (-not $flags.Success -or ([Convert]::ToInt64($flags.Groups[1].Value, 16) -band 0x18) -ne 0x18) { throw 'Quiet notification flags missing on API 33' }
+        if (-not $flags.Success -or ([Convert]::ToInt64($flags.Groups[1].Value, 16) -band 0x18) -ne 0x18) { throw "Quiet notification flags missing on API $TestApi" }
     } elseif ($Record -notmatch 'flags=[^\r\n]*SILENT') { throw 'Quiet notification SILENT flag missing' }
 }
 

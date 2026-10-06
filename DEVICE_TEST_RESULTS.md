@@ -1,5 +1,65 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Два естественных quiet periodic периода в release/R8 на API 31 — 6 октября 2026
+
+**PASSED, 11/11 host-фаз**, exit 0:
+`.test-tools/runs/20261006-155137-release-smoke/summary.json`.
+Свежий UI bootstrap — **3/3**, без ошибок и пропусков:
+`.test-tools/runs/20261006-154834-2a77eeaf/summary.json`.
+Существующий Google APIs API 31 (`Intime_Test_API31`, emulator-5586), fingerprint
+`google/sdk_gphone64_x86_64/emulator64_x86_64_arm64:12/SE1A.220826.008/10564458:userdebug/dev-keys`.
+Профиль: 2 CPU, 4096 МБ RAM, host GPU, Emulator 37.2.12; defaults AVD не менялись.
+Прежний signed non-debuggable code 25/2.0.0-rc1 APK с иконками не пересобирался,
+SHA-256 4F5911443EF3D9A18645C2285E1D1BD2F7B26566F51E7448D2A6D39C40B9D056;
+mapping 7B5DEBF5DCCE8160A40A2F0B0442B722CA9DA511984806B7981587E4DC2E2E23.
+
+CRUD/JSON, reboot 12 → 13 и первый минутный alarm с ACK прошли. Сохранилась
+штатная 15-секундная пауза runner перед reboot API 31; прошлый редкий сбой
+восстановления этим успехом не считается исправленным. После Home/am kill
+процесс отсутствовал, stopped=false подтверждён. Первый alarm
+`when=1791291347271`; первый quiet repeat `1791292943490` пришёл через
+**1596.219 с (26 минут 36 секунд)**, следующий `1791293843648` — ещё через
+**900.158 с (15 минут)**. Оба снимка сохранены отдельно; каждый имеет то же
+уникальное описание, LOW (-1), без actions/ACK, sound/vibrate=null,
+defaults=0x0, flags=0x18, groupKey=silent и groupAlertBehavior=1.
+`mSound` сохраняет адрес звука канала; физический звук не измеряется.
+Будущий alarm отсутствует. Runtime POST_NOTIFICATIONS на API 31 не требуется.
+
+В logcat **три** SUCCESS TaskNotificationWorker, один work id
+`53df4126-09f3-42db-80e3-75e415eef1b7`, новый PID 5393:
+13:07:23.373, 13:22:23.529 и 13:37:23.654 UTC (16:07, 16:22, 16:37 по Москве).
+Ранний SUCCESS не обновил активное уведомление; это согласуется с 15-минутной
+паузой NotificationHelper, но private LAST_POST/ветка раннего worker не читались.
+Последние два SUCCESS соответствуют двум quiet when;
+`periodicWorkerSuccessCount=3`, `naturalDispatchValidated=true`.
+
+Перед ожиданием собственное задание Ready:false, future TIMING_DELAY, bucket ACTIVE.
+Между повторами Activity/probe/instrumentation не запускались, JobScheduler не
+читался; ручного dispatch/doWork и изменения batching/периода/часов не было.
+Uptime вырос с 160.45 до 2665.48 с, в согласии с host 15:55:55 → 16:37:40.
+Контроль разрывов не сработал; latest показывают питание от сети, заряд 100%,
+ACTIVE для deep/light idle. Финальные health-checks не обнаружили ANR/FATAL.
+
+Runner удалил свою production-установку, probe и уникальный JSON; отсутствие
+production-пакета дополнительно подтверждено. PID/StartTime/AVD проверены,
+выделенный эмулятор остановлен, маркер удалён. Release-отчёт — 20.5 МиБ;
+SDK/system images не скачивались, пользовательские main*.db не читались.
+Host-fixture ветки API 31 прошёл на исходной записи формата API 33 и синтетических
+hex-повторах, включая отрицательные случаи; это не отдельная доставка ОС.
+Локальная suite не повторялась: код приложения не менялся.
+
+Матрица двух естественных тихих повторов на активных проектных AVD подтверждена:
+
+| API | Release-фазы | Свежий UI bootstrap | Первый quiet после alarm | Следующий quiet | SUCCESS worker |
+| --- | --- | --- | --- | --- | --- |
+| 31 | 11/11 | 3/3 | 26:36 | 15:00 | 3 |
+| 33 | 11/11 | 3/3 | 29:31 | 19:15 | 3 |
+| 35 | 11/11 | 3/3 | 21:14 | 26:15 | 2 |
+| 36 | 11/11 | 3/3 | 21:40 | 26:15 | 2 |
+
+Это не гарантия срока 15 минут, не обычный Doze/OEM, private Room, API 24–30,
+16 КБ или обновление реальной установки из Play. R5.3 целиком остаётся открытым.
+
 ## Два естественных quiet periodic периода в release/R8 на API 33 — 6 октября 2026
 
 **PASSED, 11/11 host-фаз**, exit 0:

@@ -32,7 +32,7 @@ ScreenPlatformTest использует AndroidX WindowInsetsCompat и Display.g
 
 ## Commands
 
-### Тихий periodic worker в production release/R8 (API 33/35/36)
+### Тихий periodic worker в production release/R8 (API 31/33/35/36)
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 36 -Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline -KeepEmulator
@@ -75,10 +75,15 @@ namespace JobScheduler; natural-режим не вызывает ручной з
 -EmulatorRamMb 4096`: прежний software/2048 дал системную ANR Google Search/Launcher.
 Это параметры нового процесса; уже запущенный принадлежащий runner AVD сначала
 нужно остановить. Defaults не изменены, устранение ANR не гарантируется.
-Этот режим принимает API 33/35/36 и не совмещается с RebootOnly/DozeOnly.
+Для API 31 укажите `-TestApi 31` в обеих командах: используется существующий
+проектный `Intime_Test_API31`, порт 5586. Здесь нет runtime POST_NOTIFICATIONS
+и namespace JobScheduler. Параметры нового процесса для текущей проверки:
+`-EmulatorGpu host -EmulatorRamMb 4096`; поддержку режима нужно отличать от
+успешного device-прогона, результаты сохраняются отдельно для каждого API.
+Этот режим принимает API 31/33/35/36 и не совмещается с RebootOnly/DozeOnly.
 
 Разбор `when` учитывает одиночное число на API 33 и формат `when/postingTime`
-на новых платформах. Для тихого повтора API 33 требуются hex defaults=0x0,
+на новых платформах. Для тихого повтора API 31/33 требуются hex defaults=0x0,
 null sound/vibrate, LOW, отсутствие ACK, groupAlertBehavior=1 и биты
 ONLY_ALERT_ONCE/AUTO_CANCEL (0x18). На API 35/36 дополнительно проверяется
 текстовый SILENT. Это системные свойства Notification, а не измерение звука.
