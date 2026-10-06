@@ -39,6 +39,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode devic
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -TestApi 36 -ApkPath '.test-tools/runs/release-icons-20261004-221247/intime-25-2.0.0-rc1-icons.apk' -PeriodicOnly -PeriodicWaitMinutes 65
 ```
 
+Для двух последовательных естественных тихих повторов добавьте `-PeriodicRepeats 2`.
+`PeriodicWaitMinutes` задаёт общий срок ожидания обоих повторов. Второй `when`
+должен быть минимум на 15 минут позже первого; одинаковый record не засчитывается
+повторно. Проверяется тишина каждого уведомления и минимум две записи SUCCESS
+worker после смерти процесса. Между повторами JobScheduler не опрашивается;
+снимки обоих уведомлений сохраняются отдельно. Такой запуск содержит 11 фаз.
+
 В PeriodicOnly снимки `periodic-diagnostic-{before,latest,after}-*.log`
 содержат power, deviceidle, battery и `/proc/uptime`. Полная очередь JobScheduler
 сохраняется только в before/after, вне интервала ожидания: установленный API 36

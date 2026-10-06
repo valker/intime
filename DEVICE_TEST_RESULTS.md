@@ -1,5 +1,47 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Два естественных quiet periodic периода в release/R8 — 6 октября 2026
+
+**PASSED, 11/11 host-фаз**, exit 0:
+`.test-tools/runs/20261006-083041-release-smoke/summary.json`.
+Свежий UI bootstrap — **3/3**, без ошибок и пропусков:
+`.test-tools/runs/20261006-082806-016a9e9f/summary.json`.
+Использован прежний signed non-debuggable code 25/2.0.0-rc1 APK с иконками,
+SHA-256 4F5911443EF3D9A18645C2285E1D1BD2F7B26566F51E7448D2A6D39C40B9D056;
+mapping 7B5DEBF5DCCE8160A40A2F0B0442B722CA9DA511984806B7981587E4DC2E2E23.
+Приложение не пересобиралось; новый runner запущен с `-PeriodicRepeats 2`.
+
+CRUD/JSON, reboot 36 → 37 и первый минутный alarm с ACK прошли.
+После Home/am kill процесс отсутствовал, stopped=false подтверждён.
+Первый alarm `when=1791264837869`; первый quiet repeat `1791266138325`
+пришёл через **1300.456 с (21 минута 40 секунд)**, следующий `1791267713459`
+— ещё через **1575.134 с (26 минут 15 секунд)**. Оба активных уведомления
+сохранены в `periodic-notifications-repeat-1.log` и `-2.log`; каждое имеет
+то же уникальное описание, LOW (-1), без actions/ACK, sound/vibrate=null,
+defaults=0, SILENT и groupAlertBehavior=1. Будущий alarm отсутствует.
+
+В logcat две записи SUCCESS настоящего TaskNotificationWorker, один work id
+`14fb8f2e-4e12-4821-9baf-7a950e5ccc00`, новый PID 3118:
+05:55:38.341 и 06:21:53.472 UTC (08:55 и 09:21 по Москве).
+`periodicWorkerSuccessCount=2`, `naturalDispatchValidated=true`.
+Между повторами Activity/probe/instrumentation не запускались; JobScheduler
+не читался, ручного dispatch/doWork и изменения batching/периода/часов не было.
+Uptime вырос с 132.28 до 3028.57 с; host 08:34:05 → 09:22:21 согласуется
+с непрерывным временем guest. Контроль разрывов опроса не сработал.
+
+Таким образом, на существующем AOSP API 36 проверены два последовательных
+естественных тихих периода после завершения исходного процесса. Это не гарантия
+доставки ровно через 15 минут. Физический звук, сопоставление work id с приватными
+данными Room, обычный Doze, OEM и другие API не проверялись. R5.3 остаётся
+открытым по оставшейся матрице.
+Host-проверка нового сценария также отклоняет повторное чтение того же record,
+изменение when на 1 мс и два уведомления при только одной записи SUCCESS;
+она использует синтетические снимки и не заменяет описанный device-прогон.
+Runner удалил свою production-установку, probe и уникальный JSON; отсутствие
+production-пакета дополнительно подтверждено. PID/StartTime/AVD проверены,
+выделенный эмулятор остановлен, маркер владельца удалён. Release-отчёт — 33.7 МиБ;
+новые SDK/system images не скачивались, пользовательские main*.db не читались.
+
 ## Естественный quiet periodic worker в release/R8 — 6 октября 2026
 
 **PASSED, 10/10 host-фаз**, exit 0:

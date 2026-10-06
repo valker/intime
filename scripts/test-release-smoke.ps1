@@ -9,7 +9,7 @@ APK должен быть подписан подтверждённым upload k
 После проверки удаляется только APK, установленный этим запуском. Эмулятор остаётся работать.
 PeriodicOnly (только API 36) проходит подготовку/boot/первый alarm и ждёт тихий
 повтор после am kill фонового процесса. Обычный полный режим сохраняет 14 фаз;
-periodic-режим содержит 10 фаз и не меняет batching/период/часы Android.
+periodic-режим содержит 10 фаз (11 при PeriodicRepeats=2) и не меняет batching/период/часы Android.
 #>
 [CmdletBinding()]
 param(
@@ -23,7 +23,10 @@ param(
     # После реального первого alarm ждём тихого повторного worker в release/R8.
     # Никакого ручного job run, ускорения часов/периода или изменения batching.
     [switch]$PeriodicOnly,
+    # Общий срок ожидания всех повторов, а не отдельный срок на каждый повтор.
     [ValidateRange(16, 75)][int]$PeriodicWaitMinutes = 65,
+    # Два повтора проверяют также следующий естественный период после первого worker.
+    [ValidateRange(1, 2)][int]$PeriodicRepeats = 1,
     [ValidateRange(1, 10)][int]$RebootRepeats = 1,
     # Ноль позволяет проверить гипотезу о задержке записи stopped после force-stop.
     [ValidateRange(0, 60)][int]$RebootSettleSeconds = 15
@@ -52,6 +55,8 @@ if (-not $RebootOnly -and $RebootRepeats -ne 1) { throw 'RebootRepeats requires 
 if ($RebootOnly -and $DozeOnly) { throw 'RebootOnly and DozeOnly are mutually exclusive' }
 $summary.dozeOnly = [bool]$DozeOnly
 $summary.periodicOnly = [bool]$PeriodicOnly
+if (-not $PeriodicOnly -and $PeriodicRepeats -ne 1) { throw 'PeriodicRepeats requires PeriodicOnly' }
+$summary.periodicRepeats = $PeriodicRepeats
 if ($PeriodicOnly -and ($RebootOnly -or $DozeOnly -or $TestApi -ne 36)) { throw 'PeriodicOnly requires API 36 and cannot be combined with other modes.' }
 # API 24 не имеет notification channels и новых Settings intents. Пока эти фазы
 # не адаптированы, отказываем до установки APK вместо ложного полного smoke.
@@ -344,7 +349,8 @@ function Assert-ReleasePeriodicPollContinuity([datetimeoffset]$Previous, [dateti
 # dispatch, он обязан сохранить маркер и вывод команды; итог будет PASSED_CONTROLLED,
 # а не подтверждением естественной доставки. Не читаем private Room/preferences,
 # поэтому UUID work и wasNotified не утверждаем.
-# Нет проверки повторного периода после worker, Doze/OEM или точного времени запуска.
+# PeriodicRepeats=2 проверяет следующий период без вмешательства между повторами.
+# Doze/OEM и точное время запуска этой проверкой не покрываются.
 function Assert-ReleasePeriodicReminder([string]$Description) {
     $dump = Get-Content (Join-Path $run 'notifications-delivered.log') -Raw -Encoding UTF8
     $pattern = '(?ms)^\s*NotificationRecord\([^\r\n]*pkg=com\.vpe_soft\.intime\.intime [^\r\n]*\r?\n(?:(?!^\s*NotificationRecord\().)*'
@@ -374,6 +380,8 @@ function Assert-ReleasePeriodicReminder([string]$Description) {
     $lastPollAt = [datetimeoffset]::UtcNow
     $observationError = $null
     $delivered = $false
+    $posts = @()
+    $previousPost = $firstPost
     Write-Output "Waiting for natural release worker (up to $PeriodicWaitMinutes minutes, unchanged batching)..."
     do {
         $pollAt = [datetimeoffset]::UtcNow
@@ -385,7 +393,19 @@ function Assert-ReleasePeriodicReminder([string]$Description) {
         $notifications = Invoke-ReleaseTool $adb @('-s', $serial, 'shell', 'dumpsys', 'notification', '--noredact') 'periodic-notifications-poll.log'
         $record = [regex]::Match($notifications, $pattern)
         $when = [regex]::Match($record.Value, '(?m)^\s*when=(\d+)/')
-        if ($record.Success -and $record.Value.Contains("android.text=String ($Description)") -and $when.Success -and [long]$when.Groups[1].Value -ge $firstPost + 900000) { $delivered = $true; break }
+        # Один и тот же активный record не считается новым повтором. Каждый новый
+        # when должен отстоять минимум на штатные 15 минут от предыдущей отправки.
+        if ($record.Success -and $record.Value.Contains("android.text=String ($Description)") -and $when.Success -and [long]$when.Groups[1].Value -ge $previousPost + 900000) {
+            if ($record.Value -match 'actions=[1-9]\d*|actions=\{' -or $record.Value -notmatch '(?m)^\s*pri=-1\s*$' -or $record.Value -notmatch 'vibrate=null sound=null defaults=0' -or $record.Value -notmatch 'flags=[^\r\n]*SILENT' -or $record.Value -notmatch '(?m)^\s*groupAlertBehavior=1\s*$') { throw 'Repeat is not a quiet notification without ACK' }
+            $post = [long]$when.Groups[1].Value
+            $posts += @{ when = $post; gapSeconds = ($post - $previousPost) / 1000.0 }
+            $previousPost = $post
+            # Сохраняем оба доказательства; остальные опросы перезаписываем.
+            Set-Content (Join-Path $run ("periodic-notifications-repeat-{0}.log" -f $posts.Count)) $notifications -Encoding UTF8
+            $summary.periodicObservedRepeats = $posts
+            Write-Output ("Natural quiet repeat {0}/{1}, gap {2:N1} seconds" -f $posts.Count, $PeriodicRepeats, $posts[-1].gapSeconds)
+            if ($posts.Count -eq $PeriodicRepeats) { $delivered = $true; break }
+        }
         if ($timer.Elapsed.TotalSeconds -ge $nextDiagnosticSeconds) {
             Save-ReleasePeriodicDiagnostics 'latest'
             $nextDiagnosticSeconds = $timer.Elapsed.TotalSeconds + 300
@@ -404,11 +424,17 @@ function Assert-ReleasePeriodicReminder([string]$Description) {
     if ($observationError) { throw $observationError }
     if (-not $delivered) { throw 'Natural release worker notification timed out; inspect platform scheduling before blaming application' }
     if ($record.Value -match 'actions=[1-9]\d*|actions=\{' -or $record.Value -notmatch '(?m)^\s*pri=-1\s*$' -or $record.Value -notmatch 'vibrate=null sound=null defaults=0' -or $record.Value -notmatch 'flags=[^\r\n]*SILENT' -or $record.Value -notmatch '(?m)^\s*groupAlertBehavior=1\s*$') { throw 'Repeat is not a quiet notification without ACK' }
-    if ($log -notmatch 'Worker result SUCCESS for Work.*TaskNotificationWorker') { throw 'Actual WorkManager SUCCESS not found after process termination' }
+    # Logcat читаем только после всего окна. Для двух повторов нужны две записи
+    # SUCCESS настоящего worker; одно уведомление/один SUCCESS нельзя засчитать дважды.
+    $successes = [regex]::Matches($log, '(?m)^.*Worker result SUCCESS for Work[^\r\n]*TaskNotificationWorker[^\r\n]*$')
+    if ($successes.Count -lt $PeriodicRepeats) { throw 'Actual WorkManager SUCCESS count is below requested repeats after process termination' }
+    $summary.periodicWorkerSuccessCount = $successes.Count
     if ((Read-ReleaseAlarm) -ne 0) { throw 'Unexpected future alarm after overdue repeat' }
     $summary.periodicQuietNotificationWhen = [long]$when.Groups[1].Value
     $summary.periodicGapSeconds = ($summary.periodicQuietNotificationWhen - $firstPost) / 1000.0
     Complete-ReleasePhase 'release-periodic-quiet-after-process-exit'
+    if ($PeriodicRepeats -eq 2) { Complete-ReleasePhase 'release-periodic-next-natural-period' }
+    $summary.naturalDispatchValidated = $true
 }
 
 # Метаданные отдельного host-dispatch не запускают команды. Они только уточняют

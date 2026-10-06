@@ -264,8 +264,8 @@ run identifiers, initial conditions and coverage limits.
 | API 31 | Upload-signed APK smoke 14/14, plus three reboot repeats | Earlier isolated reboot failure unexplained; full matrix not closed |
 | API 33 | Upload-signed APK smoke 14/14 | Remaining shared coverage and Play upgrade |
 | API 35 | Upload-signed APK smoke 14/14; synthetic debug upgrade separately | Real production upgrade/data |
-| API 36 | Upload-signed APK smoke 14/14, forced deep Doze scenario and natural release periodic smoke 10/10 | Natural Doze/quotas, inexact fallback coverage, remaining matrix |
-| WorkManager | Debug execution/KEEP; October 6 release/R8 natural quiet repeat after process exit, 10/10 phases, 21m59s; earlier controlled run kept separately | Next natural period, timing guarantees, other API/OEM and Play upgrade coverage open |
+| API 36 | Upload-signed APK smoke 14/14, forced deep Doze scenario and two natural release periodic repeats, 11/11 | Natural Doze/quotas, inexact fallback coverage, remaining matrix |
+| WorkManager | Debug execution/KEEP; October 6 release/R8 two natural quiet repeats after process exit, 11/11 phases, gaps 21m40s and 26m15s; earlier controlled run kept separately | Timing guarantees, other API/OEM and Play upgrade coverage open |
 | 16 KB pages | Fresh AAB contains no native `.so` files | Separate device/platform verification not performed |
 | CI | Configuration and local checks recorded | Successful new remote pipelines not confirmed |
 
@@ -274,8 +274,10 @@ the dedicated project AVDs. Do not install or clear a personal device implicitly
 The October 6 release periodic result is PASSED, 10/10, without manual job run
 or live jobscheduler dumps during the wait. Installed framework bytecode showed
 that textual scheduler dumps can recompute TimeController readiness; those dumps
-are now limited to before/after the observation. Natural quiet repeat arrived
-after 21m59s; this does not promise a fixed 15-minute delivery time.
+are now limited to before/after the observation. The subsequent two-repeat run
+passed 11/11 with two worker SUCCESS entries and quiet notification gaps of
+21m40s from the first alarm and another 26m15s, without intervening scheduler dumps.
+This does not promise a fixed 15-minute delivery time.
 The earlier October 4 periodic result uses PASSED_CONTROLLED_PLATFORM_DISPATCH, not a natural
 delivery pass. The scheduler remained Ready:true; host then dispatched its ready
 job with -s. The APK's WorkManager returned SUCCESS and posted the quiet repeat.
