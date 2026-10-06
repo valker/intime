@@ -39,8 +39,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode devic
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -TestApi 36 -ApkPath '.test-tools/runs/release-icons-20261004-221247/intime-25-2.0.0-rc1-icons.apk' -InexactOnly
 ```
 
-InexactOnly работает только на выделенном API 36 и не совмещается с RebootOnly,
-DozeOnly или PeriodicOnly. 11 host-фаз включают CRUD/JSON, reboot, самостоятельную
+InexactOnly работает только на выделенном API 36 и не совмещается с RebootOnly
+или PeriodicOnly. Совместное использование с DozeOnly описано ниже. 11 host-фаз включают CRUD/JSON, reboot, самостоятельную
 доставку fallback и ACK из уведомления с перезапуском приложения. Runner задаёт
 SCHEDULE_EXACT_ALARM=deny только собственной новой production-установке, проверяет
 положительное окно собственного AlarmReceiver и совпадение срока. До доставки
@@ -252,6 +252,28 @@ in-memory Room/preferences. Остаточная штатная periodic work т
 MainActivity, release/R8, выживание после убийства процесса и Doze не покрыты.
 Полный NotificationDeliveryTest также содержит отдельный условный тест отказа
 POST_NOTIFICATIONS; его precondition по Assume требует отсутствующего разрешения.
+
+### Неточный release alarm в принудительном deep Doze (API 36)
+
+После успешного UI bootstrap на существующем проектном API 36:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -TestApi 36 -ApkPath '.test-tools/runs/release-icons-20261004-221247/intime-25-2.0.0-rc1-icons.apk' -InexactOnly -DozeOnly
+```
+
+Совместный режим содержит 12 host-фаз. Exact appop остаётся deny, собственный
+alarm должен иметь положительное окно. Перед ожиданием проверяется отсутствие
+production package в постоянном whitelist, имитируется отключение зарядки,
+экран выключается и включается forced deep idle. При каждом опросе и после
+доставки требуется IDLE; уведомление с уникальным описанием/action ACK,
+logcat настоящего AlarmReceiver и исчезновение alarm обязательны.
+UI/receiver вручную во время ожидания не запускаются. Лимит — 15 минут,
+тайм-аут — INCONCLUSIVE; разрыв опросов более 180 секунд — INFRASTRUCTURE_INTERRUPTED.
+После доставки питание/исходное enabled deep idle восстанавливаются до открытия
+шторки и ACK; при ошибке это также выполняется в finally. Проверяется новый
+inexact alarm после ACK/restart и сохранение deny. Естественный вход в Doze,
+квоты нескольких alarm, OEM и повторная доставка после ACK не покрываются.
+Успех режима фиксируется только по свежему DEVICE_TEST_RESULTS.md.
 
 ### Точечный release Doze smoke на существующем API 36
 

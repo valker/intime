@@ -370,9 +370,13 @@ release/R8 и оставшаяся Android-матрица проверяются
   после срока; настоящий receiver, ACK из шторки и новый inexact alarm после
   restart подтверждены. UI 3/3 на host GPU/4 ГБ/2 CPU; прежние системные ANR
   сохранены отдельно, их постоянное исправление не утверждается.
-  Следующий шаг — проверить inexact fallback при принудительном deep Doze
-  на существующем API 36; обычная доставка не подтверждает Doze/квоты.
-  матрица ОС, Doze/OEM и Play upgrade остаются открытыми, R5.3 целиком не закрыт.
+  InexactOnly + DozeOnly на API 36 также прошёл 12/12: deny, окно +44s864ms,
+  настоящий receiver/ACK notification через 44.941 с после срока при IDLE;
+  питание восстановлено, ACK/restart сохранил новый inexact alarm. UI 3/3.
+  Проверен один forced deep idle alarm; естественный вход и квоты не покрыты.
+  Следующий шаг — расширить inexact/forced deep Doze на существующий API 35,
+  без загрузки новых образов. Матрица ОС, Doze/OEM и Play upgrade открыты.
+  R5.3 целиком не закрыт.
   Артефакты/логи — DEVICE_TEST_RESULTS.md, команды — RELEASE.md.
 - [ ] R5.4: согласовать README, PLAN, TECH_NOTES, RELEASE, privacy и Play-декларации
   с проверенным поведением; убрать неподтверждённые утверждения о готовности.

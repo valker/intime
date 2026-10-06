@@ -1,5 +1,45 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Неточный release/R8 alarm в forced deep Doze на API 36 — 6 октября 2026
+
+**PASSED, 12/12 host-фаз**, exit 0:
+`.test-tools/runs/20261006-223935-release-smoke/summary.json`.
+Свежий UI bootstrap — **3/3**, без ошибок и пропусков:
+`.test-tools/runs/20261006-223650-909e9e04/summary.json`.
+Существующий AOSP `Intime_Test_API36`, emulator-5584, Emulator 37.2.12,
+2 CPU/4096 МБ/host GPU. Прежний signed non-debuggable code 25/2.0.0-rc1 APK
+с иконками не пересобирался; SHA-256
+`4F5911443EF3D9A18645C2285E1D1BD2F7B26566F51E7448D2A6D39C40B9D056`,
+mapping `7B5DEBF5DCCE8160A40A2F0B0442B722CA9DA511984806B7981587E4DC2E2E23`.
+
+Восемь подготовительных фаз CRUD/JSON/reboot прошли, boot count 43 → 44.
+Exact appop=deny, собственный AlarmReceiver: deadline `1791315793055`,
+положительное окно `+44s864ms`. Пакет отсутствовал в постоянном whitelist;
+исходный deep enabled=false временно включён, зарядка отключена через battery
+simulation, экран выключен, ОС переведена в forced deep IDLE. Каждый опрос и
+финальная проверка после доставки требовали IDLE; UI/receiver вручную не запускались.
+
+Настоящий AlarmReceiver зарегистрирован в logcat в **19:43:57.992 UTC**.
+Уведомление задачи с action ACK имело when `1791315837996`, то есть пришло
+**через 44.941 секунды после срока**, до выхода из IDLE. Сработавший alarm исчез.
+После восстановления питания ACK из системной шторки убрал уведомление,
+назначил alarm `1791315907920`; после force-stop/restart срок сохранился,
+exact appop остался deny, положительное окно нового alarm `+42s469ms`.
+Повторная доставка после ACK не проверялась.
+
+Восстановление подтверждено отдельным `cleanup-confirmed.log`: deep ACTIVE,
+enabled=0 как до сценария, AC powered=true, battery simulation отсутствует,
+production package удалён. Probe/созданный JSON удалены runner, собственный AVD
+остановлен. Release-отчёт занимает около **20.7 МиБ**, новый образ не загружался.
+Host-fixture `.test-tools/runs/20261006-inexact-doze-validation/validation.txt`
+дополнительно подтверждает отказ при ACTIVE до чтения уведомлений и принятие
+IDLE с receiver/ACK; это синтетическая проверка runner, не доставка Android.
+
+Подтверждён один inexact-and-allow-while-idle alarm на API 36 с принудительным
+deep idle. Естественный вход в Doze, квоты последовательных alarm, другие API/OEM,
+физические звук/вибрация и Play upgrade остаются открытыми. Причина прежних
+системных ANR не установлена; этот успех не доказывает их постоянное устранение.
+
 ## Неточный alarm в release/R8 при запрете exact на API 36 — 6 октября 2026
 
 **PASSED, 11/11 host-фаз**, exit 0:
