@@ -32,7 +32,7 @@ ScreenPlatformTest использует AndroidX WindowInsetsCompat и Display.g
 
 ## Commands
 
-### Тихий periodic worker в production release/R8 (API 36)
+### Тихий periodic worker в production release/R8 (API 35/36)
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 36 -Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline -KeepEmulator
@@ -64,7 +64,11 @@ worker после смерти процесса. Между повторами J
 Финальные снимки/logcat и очистка выполняются; это не обычный 65-минутный
 тайм-аут JobScheduler. Runner не отключает сон компьютера и не меняет питание.
 
-Этот режим принимает только API 36 и не совмещается с RebootOnly/DozeOnly.
+Для API 35 укажите `-TestApi 35` в обеих командах: используется только
+существующий проектный `Intime_Test_API35`, порт 5580. Поддержка режима в runner
+сама по себе не подтверждает успешную доставку; результат записывается отдельно
+для каждой платформы в DEVICE_TEST_RESULTS.md.
+Этот режим принимает API 35/36 и не совмещается с RebootOnly/DozeOnly.
 
 Перед reboot на API 36 runner ждёт `cmd package wait-for-handler` и
 `wait-for-background-handler` с лимитом 30 секунд для каждой очереди.

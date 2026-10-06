@@ -1,5 +1,46 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Два естественных quiet periodic периода в release/R8 на API 35 — 6 октября 2026
+
+**PASSED, 11/11 host-фаз**, exit 0:
+`.test-tools/runs/20261006-110045-release-smoke/summary.json`.
+Свежий UI bootstrap — **3/3**, без ошибок и пропусков:
+`.test-tools/runs/20261006-105754-2306e139/summary.json`.
+Существующий AOSP API 35 (`Intime_Test_API35`, emulator-5580), fingerprint
+`Android/sdk_phone64_x86_64/emu64x:15/AE3A.240806.019/12368160:userdebug/test-keys`.
+Использован прежний signed non-debuggable code 25/2.0.0-rc1 APK с иконками,
+SHA-256 4F5911443EF3D9A18645C2285E1D1BD2F7B26566F51E7448D2A6D39C40B9D056;
+mapping 7B5DEBF5DCCE8160A40A2F0B0442B722CA9DA511984806B7981587E4DC2E2E23.
+Приложение не пересобиралось; PeriodicOnly теперь допускает API 35/36,
+в этом прогоне использован `-TestApi 35 -PeriodicRepeats 2`.
+
+CRUD/JSON, reboot 3 → 4 и первый минутный alarm с ACK прошли. После Home/am kill
+процесс отсутствовал, stopped=false подтверждён. Первый alarm
+`when=1791273858277`; первый quiet repeat `1791275132431` пришёл через
+**1274.154 с (21 минута 14 секунд)**, следующий `1791276707488` — ещё через
+**1575.057 с (26 минут 15 секунд)**. Оба уведомления имеют то же уникальное
+описание, LOW (-1), без actions/ACK, sound/vibrate=null, defaults=0, SILENT
+и groupAlertBehavior=1; снимки сохранены отдельно. Будущий alarm отсутствует.
+
+В logcat две записи SUCCESS настоящего TaskNotificationWorker, один work id
+`1353bec6-0c3e-4c88-b63f-5a9aa1c403b1`, новый PID 2938:
+08:25:32.439 и 08:51:47.493 UTC (11:25 и 11:51 по Москве).
+`periodicWorkerSuccessCount=2`, `naturalDispatchValidated=true`.
+Между повторами Activity/probe/instrumentation не запускались, JobScheduler
+не читался; ручного dispatch/doWork и изменения batching/периода/часов не было.
+Uptime вырос с 130.72 до 2994.57 с, в согласии с host 11:04:23 → 11:52:07.
+Контроль разрывов опроса не сработал; latest-снимки показывают питание от сети,
+заряд 100%, ACTIVE для deep/light idle. Это обычный активный AVD, не Doze/OEM.
+
+Тестовая production-установка, probe и уникальный JSON удалены runner;
+отсутствие production-пакета дополнительно подтверждено. PID/StartTime/AVD
+проверены, выделенный эмулятор остановлен, маркер удалён. Release-отчёт — 17.0 МиБ.
+Новые SDK/system images не скачивались; пользовательские main*.db не читались.
+Host-проверка подсчёта повторов повторно прошла до device-прогона.
+Локальная suite не повторялась: изменены допуск API в host-сценарии и документация,
+код приложения не менялся. Точный срок 15 минут, физический звук, сопоставление
+work id с private Room, другие API и обычный Doze/OEM этой проверкой не покрыты.
+
 ## Два естественных quiet periodic периода в release/R8 — 6 октября 2026
 
 **PASSED, 11/11 host-фаз**, exit 0:

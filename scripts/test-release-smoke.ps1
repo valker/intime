@@ -7,7 +7,7 @@ APK должен быть подписан подтверждённым upload k
 Используются только новые синтетические задачи. Если production-пакет уже установлен,
 скрипт отказывается продолжать; данные существующей установки не очищаются.
 После проверки удаляется только APK, установленный этим запуском. Эмулятор остаётся работать.
-PeriodicOnly (только API 36) проходит подготовку/boot/первый alarm и ждёт тихий
+PeriodicOnly (API 35/36) проходит подготовку/boot/первый alarm и ждёт тихий
 повтор после am kill фонового процесса. Обычный полный режим сохраняет 14 фаз;
 periodic-режим содержит 10 фаз (11 при PeriodicRepeats=2) и не меняет batching/период/часы Android.
 #>
@@ -57,7 +57,7 @@ $summary.dozeOnly = [bool]$DozeOnly
 $summary.periodicOnly = [bool]$PeriodicOnly
 if (-not $PeriodicOnly -and $PeriodicRepeats -ne 1) { throw 'PeriodicRepeats requires PeriodicOnly' }
 $summary.periodicRepeats = $PeriodicRepeats
-if ($PeriodicOnly -and ($RebootOnly -or $DozeOnly -or $TestApi -ne 36)) { throw 'PeriodicOnly requires API 36 and cannot be combined with other modes.' }
+if ($PeriodicOnly -and ($RebootOnly -or $DozeOnly -or $TestApi -notin @(35, 36))) { throw 'PeriodicOnly requires API 35/36 and cannot be combined with other modes.' }
 # API 24 не имеет notification channels и новых Settings intents. Пока эти фазы
 # не адаптированы, отказываем до установки APK вместо ложного полного smoke.
 if ($TestApi -eq 24 -and -not $RebootOnly) { throw 'API 24 currently requires RebootOnly; notification phases are not supported yet.' }
