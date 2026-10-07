@@ -375,8 +375,12 @@ delivery passes. Both deliveries, automatic rescheduling, and subsequent ACK /
 restart were verified on 31/33. Specific quota enforcement remains unverified;
 PowerManager idle=true was measured on 31, but not separately on 33. No application
 code or APK changed. See DEVICE_TEST_RESULTS.md for retained evidence and failures.
-The prepared reset of dedicated API 36/35 AVD data was rejected by automatic
-approval review and has not run; explicit user consent is required to proceed.
+On 7 October, after explicit user consent, only dedicated API 36/35 AVD data
+was reset. Fresh UI tests passed 3/3 each, but both release retries again failed
+after seven phases: SystemUI failed to complete startup during reboot. Neither
+retry reached the two-delivery check. Reset did not fix the infrastructure;
+the next step is SystemUI startup diagnosis and stabilization before a full
+retry. Existing images were reused; owned emulators were stopped after cleanup.
 
 - [ ] Remaining device coverage and release worker verified (R4.3/R5.3).
 - [ ] Real-data upgrade through Play-compatible signature verified (R4.2).
