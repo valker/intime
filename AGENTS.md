@@ -27,6 +27,9 @@ See TESTING.md for commands and environment requirements.
 - On this Windows host, use -EmulatorGpu host -DisableEmulatorVulkan
   -EmulatorRamMb 4096 for dedicated API 35/36 checks. This configuration is
   recorded in TESTING.md and DEVICE_TEST_RESULTS.md; keep ANR checks enabled.
+- Before claiming Doze quota coverage, verify DeviceIdleController, PowerManager
+  and AlarmManager idle-until state with scripts/test-doze-policy.ps1. A ready
+  idle policy does not itself prove quota enforcement for application alarms.
 - In a restricted execution environment Gradle may require an approved escalation
   for the user cache and downloads. These instructions do not override sandbox
   access controls. Report infrastructure failures separately from failing tests.

@@ -383,8 +383,15 @@ A subsequent sequential retry with host GPU and Vulkan disabled passed 14/14
 on both API 36/35, with fresh UI tests 3/3 each and no detected ANR. This completes
 the observed two-delivery matrix across API 31/33/35/36. It does not establish
 the sole cause of earlier ANRs, long-term emulator stability, or quota enforcement.
-The next step is validating AlarmManager idle policy before checking frequency
-limits. Existing images were reused; owned emulators were stopped after cleanup.
+Fresh idle-policy diagnostics then ran sequentially across all four existing
+AVDs, with UI tests 3/3 each. API 35/36 had active AlarmManager idle-until in two
+snapshots; API 31/33 had controller IDLE and PowerManager idle=true but no
+idle-until. Observed compat quota/window settings were 7/hour and 1/9 minutes,
+respectively; none of these diagnostics exhausted a quota. Earlier delivery
+passes remain valid observations, but API 31/33 idle-quota coverage is unconfirmed.
+The next step is restoring genuine AlarmManager idle-until on existing API 31/33
+without changing quotas, then checking application alarm deferral at the limit.
+Existing images were reused; owned emulators were stopped after cleanup.
 
 - [ ] Remaining device coverage and release worker verified (R4.3/R5.3).
 - [ ] Real-data upgrade through Play-compatible signature verified (R4.2).

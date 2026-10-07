@@ -306,6 +306,41 @@ UI 3/3; API 36 ранее прошёл 12/12. Первый API 33 FAILED до Do
 runner повторяет tap только по SAF android:id/title до focused=true (30 секунд),
 не вводя имя без фокуса; затем проверяет точное имя и реальный JSON. Повтор прошёл.
 
+### Сверка idle-политики перед проверкой квот
+
+После bootstrap того же выделенного API с `-KeepEmulator`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-doze-policy.ps1 -TestApi 36
+```
+
+Сценарий поддерживает API 31/33/35/36 и требует совпадения serial, PID,
+времени запуска, имени AVD и версии Android с записью владения проекта.
+При уже симулированной батарее или forced idle отказывается менять питание.
+Сохраняет исходный enabled deep, включает forced deep IDLE и делает два
+снимка deviceidle/power/alarm с паузой 20 секунд. Для IDLE_POLICY_READY
+в обоих снимках требуются controller IDLE, PowerManager idle=true,
+действующий idle-until alarm и tag DeviceIdleController.deep.
+IDLE_POLICY_NOT_CONFIRMED — измерение завершено, но эти признаки не совпали;
+это не падение теста InTime. Ошибка окружения/восстановления —
+INFRASTRUCTURE_ERROR, код 2. Код 0 означает завершённую диагностику,
+а не успешное применение квоты. Снимки и summary находятся в отдельном
+каталоге `.test-tools/runs/*-doze-policy`.
+
+В finally снимаются внесённый force idle и симуляция батареи, пробуждается
+экран, восстанавливается исходный enabled deep; результат проверяется чтением.
+Сценарий не устанавливает APK, не вызывает receiver и не меняет квоты,
+системный образ или данные AVD. Он записывает наблюдаемые compat quota/window,
+но всегда оставляет quotaEnforcementValidated=false. Даже готовая политика
+не доказывает отсрочку alarm приложения после исчерпания лимита. После
+диагностики остановить только собственный AVD по записи владения.
+7 октября свежие UI bootstrap прошли 3/3 каждого API. Диагностика дала READY
+на API 35/36 и NOT_CONFIRMED на 31/33: на последних controller/power idle=true,
+но idle-until отсутствует. На 35/36 записаны compat 7/час, на 31/33 — 1/9 минут;
+квоты не изменялись и их исчерпание не проверялось. Для будущей проверки квот
+на 31/33 сначала требуется восстановить настоящую idle-политику AlarmManager.
+Подробности и сохранённые raw dump — DEVICE_TEST_RESULTS.md.
+
 ### Два заранее назначенных inexact alarm без выхода из Doze
 
 После свежего UI bootstrap того же API:

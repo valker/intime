@@ -1,5 +1,65 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Сверка idle-политики на API 36/35/33/31 — 7 октября 2026
+
+Все четыре существующих AVD проверены последовательно одним этапом. Свежие
+экранные тесты каждого API прошли 3/3. Новый scripts/test-doze-policy.ps1
+сверил DeviceIdleController, PowerManager и AlarmManager до forced deep idle,
+в двух снимках после включения и после восстановления питания. Новый APK
+не собирался и не устанавливался этим диагностическим сценарием; bootstrap
+использовал обычные debug экранные тесты. Квоты, часы, образы и данные AVD
+не изменялись. Режим запуска: host GPU, Vulkan выключен, RAM 4096 МБ;
+API 36/35/31 — четыре CPU, API 33 — два CPU.
+
+| API | Свежие UI тесты | Контроллер / PowerManager idle | Idle-until AlarmManager | Диагностический результат | Compat quota/window из dump |
+| --- | --- | --- | --- | --- | --- |
+| 36 | 3/3 | true / true | Есть в обоих снимках | IDLE_POLICY_READY | 7 за 1 час |
+| 35 | 3/3 | true / true | Есть в обоих снимках | IDLE_POLICY_READY | 7 за 1 час |
+| 33 | 3/3 | true / true | Нет в обоих снимках | IDLE_POLICY_NOT_CONFIRMED | 1 за 9 минут |
+| 31 | 3/3 | true / true | Нет в обоих снимках | IDLE_POLICY_NOT_CONFIRMED | 1 за 9 минут |
+
+Везде наблюдается mUseMotionSensor=true и mMotionSensor=null, поэтому это
+не объясняет различие само по себе. Его точная причина пока не установлена.
+На API 31/33 отсутствует также текущий DeviceIdleController.deep alarm.
+Прежние успешные доставки в IDLE остаются наблюдениями работы приложения,
+но не доказывают его поведение при действующей idle-политике AlarmManager.
+
+Уточнение прежнего отчёта API 35/36: отдельное поле device_idle=-- нельзя
+использовать как общий признак выключенной политики. В сохранённых
+inexact-repeat-alarm-before.log обоих API уже есть действующий idle-until
+и запись InTime в Allow while idle compat history. Свежая диагностика
+подтвердила готовность службы. Два уведомления не исчерпывают наблюдаемый
+лимит 7/час; ограничение после исчерпания не проверено.
+В [исходниках AOSP AlarmManagerService](https://android.googlesource.com/platform/frameworks/base/+/296c28979c5b212e9e32be397901f93e15b60bf3/apex/jobscheduler/service/java/com/android/server/alarm/AlarmManagerService.java)
+idle-ветка зависит от mPendingIdleUntil и истории соответствующего вида alarm.
+Это обоснование диагностических признаков, не сверка точного исходного кода
+каждого установленного образа. quotaEnforcementValidated=false во всех отчётах.
+
+Отчёты:
+
+- API 36: `.test-tools/runs/20261007-123218-doze-policy/summary.json`.
+- API 35: `.test-tools/runs/20261007-123459-doze-policy/summary.json`.
+- API 33: `.test-tools/runs/20261007-123856-doze-policy/summary.json`.
+- API 31: `.test-tools/runs/20261007-124138-doze-policy/summary.json`.
+- Общая матрица: `.test-tools/runs/20261007-122934-policy-matrix/policy-matrix.json`.
+  Поле release в этой обвязке указывает на диагностический summary, не APK smoke.
+
+После device-этапа проверен разбор 12 реальных dump и двух отрицательных
+примеров: tag из removal history не подменяет tag текущего idle-until,
+неизвестный флаг питания не считается true. Проверки прошли;
+`parser-validation.ps1` и `parser-validation.txt` сохранены в общем каталоге.
+Это host-проверки parser, не дополнительные доставки на Android.
+
+Во всех summary и общей матрице cleanup=true: внесённая симуляция батареи
+и force idle сняты, исходный enabled deep восстановлен; собственные AVD
+остановлены, marker отсутствует. Отчёты сжаты NTFS. Новых образов нет,
+пользовательские main*.db, телефон и личные AVD не использовались.
+
+Следующий шаг — восстановить настоящий idle-until на существующих API 31/33,
+не меняя квот, затем отдельно проверить насыщение лимита и отсрочку alarm
+приложения. API 35/36 готовы к такой проверке, но её ещё не прошли.
+Естественный Doze, OEM, API 24 и Play upgrade открыты; R5.3 целиком не закрыт.
+
 ## Host GPU без Vulkan: полный повтор API 36/35 — 7 октября 2026
 
 Недостающие проверки двух заранее назначенных inexact alarm завершились:
@@ -56,8 +116,9 @@ Cleanup=true обоих API: приложение и синтетические 
 телефон и личные AVD не использовались.
 
 `quotaEnforcementValidated=false` остаётся у обоих успешных прогонов:
-gap около пяти минут и `device_idle=--` в dump AlarmManager не доказывают
-применение конкретной idle-квоты. Следующий шаг — сверить активацию политики
+gap около пяти минут не доказывает исчерпание конкретной idle-квоты.
+Последующая сверка выше уточнила: на API 35/36 idle-until и история активны.
+На момент этого прогона следующий шаг — сверить активацию политики
 Doze в AlarmManager на выделенных AVD, затем отдельно проверять ограничения
 частоты. Естественный вход в Doze, OEM, API 24 и Play upgrade открыты;
 R5.3 целиком не закрыт.
