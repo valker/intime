@@ -4,6 +4,27 @@ The Windows runner works with Windows PowerShell 5.1 and JDK 17. Android Studio
 does not need to be open. Use the repository's Gradle Wrapper (8.11.1), AGP 8.9.1
 and installed compile SDK 36. Device API 24/31/33/35/36 is independent of compile/target SDK.
 
+### Диагностика графического backend эмулятора
+
+Для существующих выделенных AVD можно явно выбрать host GPU и отключить
+Vulkan, не сбрасывая данные и не меняя системный образ:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 36 -Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline -EmulatorGpu host -DisableEmulatorVulkan -EmulatorRamMb 4096 -BootTimeoutSeconds 600 -KeepEmulator
+```
+
+Это диагностический вариант, описанный в
+[Android Emulator troubleshooting](https://developer.android.com/studio/run/emulator-troubleshooting),
+а не установленная причина или универсальное исправление SystemUI ANR.
+Флаг добавляет `-feature -Vulkan` только к новому собственному процессу.
+В summary записывается `emulatorVulkanDisabled`, в записи владения —
+`vulkanDisabled`. При повторном использовании runner сверяет явно запрошенный
+режим с записью запуска; смена требует остановки собственного AVD. Старая
+запись без поля означает неизвестный режим, а не подтверждённый false.
+Без нового параметра режим нового процесса остаётся прежним. Проверки
+ANR/FATAL EXCEPTION не отключаются. Результаты конкретных прогонов см.
+DEVICE_TEST_RESULTS.md.
+
 ### Подготовка API 24
 
 Runner поддерживает отдельный `Intime_Test_API24`, порт `5588`, образ
@@ -320,8 +341,10 @@ API 35/36 не завершены из-за SystemUI ANR. Подробности
 7 октября после явного разрешения пользователя данные только проектных
 API 36/35 сброшены. UI тесты прошли 3/3 каждого; оба release-повтора вновь
 остановились на SystemUI ANR при reboot после семи фаз, до доставки в Doze.
-Сброс не исправил инфраструктуру; требуется диагностика системного запуска,
-а не отключение проверки ANR. Все попытки сохранены. Если AVD запущен внешней
+Сброс не исправил инфраструктуру. Последующий запуск с host GPU и
+-DisableEmulatorVulkan прошёл 14/14 на API 36/35, UI 3/3 каждого. Полная
+матрица двух доставок подтверждена, квоты остаются непроверенными; проверки
+ANR сохранены. Все попытки сохранены. Если AVD запущен внешней
 обвязкой с записью владения, до вызова runner следует дождаться его serial
 в adb: иначе runner безопасно отклоняет ещё не подключённый процесс.
 

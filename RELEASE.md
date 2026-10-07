@@ -261,10 +261,10 @@ run identifiers, initial conditions and coverage limits.
 | --- | --- | --- |
 | Signed AAB | October 4: R8/lint, Upload key, bundletool validate and actual manifest; embedded mapping matches | Play-generated APKs/installation update; final version |
 | API 24 | Runner/test support prepared | No device run: new image exceeds authorized 100 MB disk budget |
-| API 31 | Upload-signed APK smoke 14/14, three reboot repeats, two natural periodic repeats (11/11) and inexact forced deep Doze (12/12) | Earlier isolated reboot failure unexplained; Doze/OEM and full matrix open |
-| API 33 | Upload-signed APK smoke 14/14 and two natural periodic repeats (11/11) and inexact forced deep Doze (12/12), after SAF focus retry fix | Natural Doze/OEM, system ANR stability and Play upgrade |
-| API 35 | Upload-signed APK smoke 14/14 and two natural periodic repeats (11/11) and inexact forced deep Doze (12/12); synthetic debug upgrade separately | Natural Doze/OEM, real production upgrade/data |
-| API 36 | Upload-signed APK smoke 14/14, forced exact deep Doze and two natural periodic repeats (11/11); inexact ordinary delivery 11/11 and forced deep Doze 12/12 with exact denied | OEM inexact Doze, natural Doze/quotas, system ANR stability and remaining matrix |
+| API 31 | Upload-signed APK smoke 14/14, three reboot repeats, two natural periodic repeats (11/11), single inexact forced deep Doze (12/12) and two deliveries (14/14) | Earlier isolated reboot failure unexplained; quotas, natural Doze/OEM and full matrix open |
+| API 33 | Upload-signed APK smoke 14/14, two natural periodic repeats (11/11), single inexact forced deep Doze (12/12) and two deliveries (14/14) | PowerManager idle not separately measured in two-delivery run; quotas, natural Doze/OEM, system ANR stability and Play upgrade |
+| API 35 | Upload-signed APK smoke 14/14, two natural periodic repeats (11/11), single inexact forced deep Doze (12/12) and two deliveries (14/14, host GPU/Vulkan disabled); synthetic debug upgrade separately | Quotas, natural Doze/OEM, long-term system ANR stability and real production upgrade/data |
+| API 36 | Upload-signed APK smoke 14/14, forced exact deep Doze, two natural periodic repeats (11/11), ordinary inexact 11/11, single inexact forced deep Doze 12/12 and two deliveries (14/14, host GPU/Vulkan disabled) | OEM inexact Doze, natural Doze/quotas, long-term system ANR stability and remaining matrix |
 | WorkManager | Debug execution/KEEP; October 6 release/R8 two natural quiet repeats after process exit on API 31, 33, 35 and 36, each 11/11; earlier controlled run kept separately | Timing guarantees, other API/OEM and Play upgrade coverage open |
 | 16 KB pages | Fresh AAB contains no native `.so` files | Separate device/platform verification not performed |
 | CI | Configuration and local checks recorded | Successful new remote pipelines not confirmed |
@@ -378,9 +378,13 @@ code or APK changed. See DEVICE_TEST_RESULTS.md for retained evidence and failur
 On 7 October, after explicit user consent, only dedicated API 36/35 AVD data
 was reset. Fresh UI tests passed 3/3 each, but both release retries again failed
 after seven phases: SystemUI failed to complete startup during reboot. Neither
-retry reached the two-delivery check. Reset did not fix the infrastructure;
-the next step is SystemUI startup diagnosis and stabilization before a full
-retry. Existing images were reused; owned emulators were stopped after cleanup.
+retry reached the two-delivery check. Reset did not fix the infrastructure.
+A subsequent sequential retry with host GPU and Vulkan disabled passed 14/14
+on both API 36/35, with fresh UI tests 3/3 each and no detected ANR. This completes
+the observed two-delivery matrix across API 31/33/35/36. It does not establish
+the sole cause of earlier ANRs, long-term emulator stability, or quota enforcement.
+The next step is validating AlarmManager idle policy before checking frequency
+limits. Existing images were reused; owned emulators were stopped after cleanup.
 
 - [ ] Remaining device coverage and release worker verified (R4.3/R5.3).
 - [ ] Real-data upgrade through Play-compatible signature verified (R4.2).

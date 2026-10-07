@@ -24,6 +24,9 @@ See TESTING.md for commands and environment requirements.
 - Use scripts/test.ps1. Default online mode can fetch dependencies; -Offline is
   appropriate after a successful bootstrap. Do not interpret old reports as a
   current pass. A zero test count is not a pass.
+- On this Windows host, use -EmulatorGpu host -DisableEmulatorVulkan
+  -EmulatorRamMb 4096 for dedicated API 35/36 checks. This configuration is
+  recorded in TESTING.md and DEVICE_TEST_RESULTS.md; keep ANR checks enabled.
 - In a restricted execution environment Gradle may require an approved escalation
   for the user cache and downloads. These instructions do not override sandbox
   access controls. Report infrastructure failures separately from failing tests.
