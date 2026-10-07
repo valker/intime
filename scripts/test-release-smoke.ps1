@@ -12,6 +12,7 @@ PeriodicOnly (API 31/33/35/36) проходит подготовку/boot/пер
 periodic-режим содержит 10 фаз (11 при PeriodicRepeats=2) и не меняет batching/период/часы Android.
 InexactOnly (API 31/33/35/36) содержит 11 фаз: подготовка, доставка fallback и ACK/restart.
 InexactOnly + DozeOnly содержит 12 фаз: дополнительно подтверждается deep IDLE.
+DozeSequence добавляет подготовку второй задачи и её доставку: 14 фаз.
 #>
 [CmdletBinding()]
 param(
@@ -24,6 +25,8 @@ param(
     [switch]$DozeOnly,
     # На API 31/33/35/36 запрещаем exact своей установке и проверяем inexact delivery/ACK.
     [switch]$InexactOnly,
+    # Две заранее созданные задачи доставляются без выхода из IDLE между ними.
+    [switch]$DozeSequence,
     # После реального первого alarm ждём тихого повторного worker в release/R8.
     # Никакого ручного job run, ускорения часов/периода или изменения batching.
     [switch]$PeriodicOnly,
@@ -59,6 +62,8 @@ if (-not $RebootOnly -and $RebootRepeats -ne 1) { throw 'RebootRepeats requires 
 if ($RebootOnly -and $DozeOnly) { throw 'RebootOnly and DozeOnly are mutually exclusive' }
 $summary.dozeOnly = [bool]$DozeOnly
 $summary.inexactOnly = [bool]$InexactOnly
+$summary.dozeSequence = [bool]$DozeSequence
+if ($DozeSequence -and (-not $InexactOnly -or -not $DozeOnly)) { throw 'DozeSequence requires InexactOnly and DozeOnly' }
 if ($InexactOnly -and ($RebootOnly -or $PeriodicOnly -or $TestApi -notin @(31, 33, 35, 36))) { throw 'InexactOnly requires API 31/33/35/36 and can only be combined with DozeOnly.' }
 $summary.periodicOnly = [bool]$PeriodicOnly
 if (-not $PeriodicOnly -and $PeriodicRepeats -ne 1) { throw 'PeriodicRepeats requires PeriodicOnly' }
@@ -219,18 +224,18 @@ function Complete-ReleasePhase([string]$Name) {
 # до 15 минут без Activity/probe/ручного receiver. Фиксированные файлы опроса
 # ограничивают расход диска. Требуем ACK, запись receiver и потребление alarm;
 # один тихий periodic worker не может подменить успех. При RequireDeepIdle
-# каждый опрос и финальный снимок требуют IDLE; квоты/естественный вход не проверяются.
-function Assert-ReleaseInexactDelivery([string]$Description, [long]$Deadline, [string]$Since, [bool]$RequireDeepIdle = $false) {
+# каждый опрос и финальный снимок требуют IDLE; конкретная квота не утверждается.
+function Assert-ReleaseInexactDelivery([string]$Description, [long]$Deadline, [string]$Since, [bool]$RequireDeepIdle = $false, [long]$ExpectedNextDeadline = 0, [string]$EvidencePrefix = 'inexact', [int]$WaitMinutes = 15) {
     $ops = Invoke-ReleaseAdb @('shell', 'appops', 'get', $package, 'SCHEDULE_EXACT_ALARM')
-    Set-Content (Join-Path $run 'inexact-appops.log') $ops -Encoding UTF8
+    Set-Content (Join-Path $run "$EvidencePrefix-appops.log") $ops -Encoding UTF8
     if ($ops -notmatch 'SCHEDULE_EXACT_ALARM: deny') { throw 'Exact alarm denial not confirmed' }
     $alarms = Invoke-ReleaseAdb @('shell', 'dumpsys', 'alarm')
-    Set-Content (Join-Path $run 'inexact-alarm-before.log') $alarms -Encoding UTF8
+    Set-Content (Join-Path $run "$EvidencePrefix-alarm-before.log") $alarms -Encoding UTF8
     $alarm = [regex]::Match($alarms, '(?m)^\s*RTC_WAKEUP #\d+: Alarm\{\S+ type 0 origWhen (?<deadline>\d+) [^\r\n]* com\.vpe_soft\.intime\.intime\}\r?\n\s+tag=\*walarm\*:com\.vpe_soft\.intime\.intime/(?:com\.vpe_soft\.intime\.intime)?\.receiver\.AlarmReceiver\r?\n\s+type=RTC_WAKEUP[^\r\n]*?window=(?<window>\S+)')
     if (-not $alarm.Success -or [long]$alarm.Groups['deadline'].Value -ne $Deadline -or $alarm.Groups['window'].Value -notmatch '[1-9]') { throw 'Own inexact alarm with positive window missing' }
     $summary.inexactAlarmWindow = $alarm.Groups['window'].Value
     $summary.exactAlarmDenied = $true
-    $limit = (Get-Date).AddMinutes(15)
+    $limit = (Get-Date).AddMinutes($WaitMinutes)
     $delivered = $false
     $previous = [datetimeoffset]::UtcNow
     do {
@@ -239,20 +244,31 @@ function Assert-ReleaseInexactDelivery([string]$Description, [long]$Deadline, [s
         if ($gap -lt 0 -or $gap -gt 180) { throw 'Inexact observation interrupted by host polling gap' }
         $previous = $now
         if ($RequireDeepIdle) {
-            $state = (Invoke-ReleaseTool $adb @('-s', $serial, 'shell', 'cmd', 'deviceidle', 'get', 'deep') 'inexact-idle-poll.log').Trim()
+            $state = (Invoke-ReleaseTool $adb @('-s', $serial, 'shell', 'cmd', 'deviceidle', 'get', 'deep') "$EvidencePrefix-idle-poll.log").Trim()
             if ($state -ne 'IDLE') { throw "Deep idle not maintained: $state" }
+            if ($DozeSequence) {
+                # Команда deviceidle и фактический режим PowerManager — разные
+                # свидетельства. Сохраняем второй, не выдавая IDLE сам по себе
+                # за доказательство применения конкретной квоты AlarmManager.
+                $power=Invoke-ReleaseTool $adb @('-s', $serial, 'shell', 'dumpsys', 'power') "$EvidencePrefix-power-poll.log"
+                $mode=[regex]::Match($power, 'mDeviceIdleMode=(true|false)')
+                $summary.sequencePowerDeviceIdleAtDelivery=if ($mode.Success) { $mode.Groups[1].Value -eq 'true' } else { $null }
+                $summary.quotaEnforcementValidated=$false
+            }
         }
-        $dump = Invoke-ReleaseTool $adb @('-s', $serial, 'shell', 'dumpsys', 'notification', '--noredact') 'inexact-notifications-poll.log'
+        $dump = Invoke-ReleaseTool $adb @('-s', $serial, 'shell', 'dumpsys', 'notification', '--noredact') "$EvidencePrefix-notifications-poll.log"
         $record = [regex]::Match($dump, '(?ms)^\s*NotificationRecord\([^\r\n]*pkg=com\.vpe_soft\.intime\.intime [^\r\n]*\r?\n(?:(?!^\s*NotificationRecord\().)*')
         $when = [regex]::Match($record.Value, '(?m)^\s*when=(\d+)(?:/|\r?$)')
         $delivered = $record.Success -and $record.Value.Contains("android.text=String ($Description)") -and $record.Value -match 'actions=1' -and $when.Success -and [long]$when.Groups[1].Value -ge $Deadline
         if (-not $delivered) { Write-Output 'Waiting for real inexact alarm notification...'; Start-Sleep -Seconds 15 }
     } while (-not $delivered -and (Get-Date) -lt $limit)
     $log = Invoke-ReleaseAdb @('logcat', '-d', '-T', $Since)
-    Set-Content (Join-Path $run 'inexact-logcat.log') $log -Encoding UTF8
+    Set-Content (Join-Path $run "$EvidencePrefix-logcat.log") $log -Encoding UTF8
     if (-not $delivered) { throw 'Inexact alarm notification timed out; delivery not validated' }
     if ($log -notmatch 'scheduleAlarm: exact alarms are not available, using inexact alarm' -or $log -notmatch 'AlarmReceiver.*handleAlarm: trying to post notification') { throw 'Fallback scheduling or actual receiver log missing' }
-    if ((Read-ReleaseAlarm) -ne 0) { throw 'Inexact alarm was not consumed' }
+    if ($ExpectedNextDeadline -gt 0) {
+        if ((Wait-ReleaseAlarm $Deadline) -ne $ExpectedNextDeadline) { throw 'Second prearranged alarm not scheduled after first delivery' }
+    } elseif ((Read-ReleaseAlarm) -ne 0) { throw 'Inexact alarm was not consumed' }
     if ($RequireDeepIdle) {
         $state = (Invoke-ReleaseAdb @('shell', 'cmd', 'deviceidle', 'get', 'deep')).Trim()
         if ($state -ne 'IDLE') { throw "Deep idle not maintained at delivery: $state" }
@@ -261,7 +277,7 @@ function Assert-ReleaseInexactDelivery([string]$Description, [long]$Deadline, [s
     }
     $summary.inexactNotificationWhen = [long]$when.Groups[1].Value
     $summary.inexactDelaySeconds = ($summary.inexactNotificationWhen - $Deadline) / 1000.0
-    Complete-ReleasePhase 'release-inexact-fallback-delivery'
+    Complete-ReleasePhase $(if ($EvidencePrefix -eq 'inexact') { 'release-inexact-fallback-delivery' } else { 'release-inexact-repeat-delivery' })
 }
 
 # Восстанавливаем каждую изменённую настройку даже при ошибке предыдущей команды.
@@ -302,7 +318,7 @@ function Open-ReleaseDetails([string]$Description) {
 # При ожидании не открываем UI и не запускаем UIAutomator; требуем IDLE при каждом
 # опросе и активное уведомление своего пакета с уникальным описанием. Проверяем
 # реальный receiver и исчезновение сработавшего alarm, не вызываем Java вручную.
-# Покрывается один allow-while-idle alarm: exact либо inexact при InexactOnly.
+# Покрывается allow-while-idle alarm (два при DozeSequence): exact либо inexact.
 # Естественный вход, квоты повторной доставки и periodic worker не проверяются.
 function Assert-ReleaseDozeDelivery([string]$Description, [long]$Deadline, [string]$SchedulingSince) {
     $battery = Invoke-ReleaseAdb @('shell', 'dumpsys', 'battery')
@@ -327,7 +343,22 @@ function Assert-ReleaseDozeDelivery([string]$Description, [long]$Deadline, [stri
     # Fallback должен доставиться при сохранённом deny и положительном окне.
     # Общая проверка требует ACK/receiver и IDLE до пробуждения; cleanup общий.
     if ($InexactOnly) {
-        Assert-ReleaseInexactDelivery $Description $Deadline $SchedulingSince $true
+        if ($DozeSequence) {
+            # Обе задачи запланированы до IDLE. Первая доставка должна сама
+            # поставить alarm второй задачи, а вторая — обновить record новым
+            # описанием/when. Между ними не будим ОС и не вызываем ACK/UI.
+            Assert-ReleaseInexactDelivery $Description $Deadline $SchedulingSince $true $summary.sequenceSecondDeadline 'inexact' 20
+            $firstWhen = $summary.inexactNotificationWhen
+            $summary.sequenceFirst = @{ deadline=$Deadline; when=$firstWhen; window=$summary.inexactAlarmWindow; delaySeconds=$summary.inexactDelaySeconds; powerDeviceIdle=$summary.sequencePowerDeviceIdleAtDelivery }
+            Assert-ReleaseInexactDelivery $summary.sequenceSecondDescription $summary.sequenceSecondDeadline $SchedulingSince $true 0 'inexact-repeat' 20
+            $summary.sequenceSecond = @{ deadline=$summary.sequenceSecondDeadline; when=$summary.inexactNotificationWhen; window=$summary.inexactAlarmWindow; delaySeconds=$summary.inexactDelaySeconds; powerDeviceIdle=$summary.sequencePowerDeviceIdleAtDelivery }
+            $summary.sequenceGapSeconds = ($summary.inexactNotificationWhen - $firstWhen) / 1000.0
+            $sequenceLog=Get-Content (Join-Path $run 'inexact-repeat-logcat.log') -Raw -Encoding UTF8
+            $summary.sequenceReceiverCount = [regex]::Matches($sequenceLog, 'AlarmReceiver.*handleAlarm: trying to post notification').Count
+            if ($summary.sequenceReceiverCount -lt 2 -or $summary.sequenceGapSeconds -le 0) { throw 'Two distinct receiver deliveries not confirmed' }
+        } else {
+            Assert-ReleaseInexactDelivery $Description $Deadline $SchedulingSince $true
+        }
         Complete-ReleasePhase 'release-doze-delivery'
         Restore-ReleaseDoze
         return
@@ -902,6 +933,37 @@ try {
     # InexactOnly сохраняет запрет exact; остальные режимы проверяют разрешённый exact.
     $inexactSince = (Invoke-ReleaseAdb @('shell', "date '+%m-%d %H:%M:%S.000'")).Trim()
     Invoke-ReleaseAdb @('shell', 'appops', 'set', $package, 'SCHEDULE_EXACT_ALARM', $(if ($InexactOnly) { 'deny' } else { 'allow' })) | Out-Null
+    if ($DozeSequence) {
+        # Пока исходная задача имеет часовой период, создаём вторую на пять минут:
+        # её срок сейчас ближайший, поэтому читаем его непосредственно из AlarmManager.
+        # Вводим amount только в NumberPicker этой формы; перед Save требуем 5.
+        Launch-Release
+        $secondDescription = "$edited-Second"
+        Click-ReleaseId 'fab_add_task'
+        Focus-ReleaseDescription
+        Invoke-ReleaseAdb @('shell', 'input', 'text', $secondDescription) | Out-Null
+        Close-ReleaseKeyboard
+        Click-ReleaseId 'spinner_interval'
+        Click-ReleaseNode "//node[@text='Минута']"
+        # Accessibility NumberPicker не экспортирует ID контейнера на API 31.
+        # В этой форме два picker: amount первым, quant вторым; проверяем структуру.
+        if ((Read-ReleaseUi).SelectNodes("//node[@class='android.widget.NumberPicker']").Count -ne 2) { throw 'Unexpected number picker structure' }
+        $amountXpath="(//node[@class='android.widget.NumberPicker'])[1]//node[@resource-id='android:id/numberpicker_input']"
+        Click-ReleaseNode $amountXpath
+        Wait-ReleaseNode ($amountXpath + "[@focused='true']") | Out-Null
+        Invoke-ReleaseAdb @('shell', 'input', 'keyevent', 'KEYCODE_MOVE_END', 'KEYCODE_DEL') | Out-Null
+        Invoke-ReleaseAdb @('shell', 'input', 'text', '5') | Out-Null
+        Invoke-ReleaseAdb @('shell', 'input', 'keyevent', 'KEYCODE_ENTER') | Out-Null
+        Close-ReleaseKeyboard
+        Wait-ReleaseNode ($amountXpath + "[@text='5']") | Out-Null
+        Click-ReleaseId 'btn_save_task'
+        Assert-ReleaseText $secondDescription
+        $summary.sequenceSecondDeadline = Wait-ReleaseAlarm
+        $secondNow = [long](Invoke-ReleaseAdb @('shell', 'date', '+%s')).Trim() * 1000
+        if ($summary.sequenceSecondDeadline - $secondNow -lt 240000 -or $summary.sequenceSecondDeadline - $secondNow -gt 360000) { throw 'Five-minute second task deadline not confirmed' }
+        $summary.sequenceSecondDescription = $secondDescription
+        Complete-ReleasePhase 'release-doze-sequence-preparation'
+    }
     Launch-Release
     Assert-ReleaseText $edited
     Open-ReleaseDetails $edited
@@ -912,11 +974,17 @@ try {
     Click-ReleaseId 'btnAckTask'
     Assert-ReleaseText $edited
     $notificationDeadline = Wait-ReleaseAlarm
+    if ($DozeSequence -and $summary.sequenceSecondDeadline -le $notificationDeadline + 60000) { throw 'Second task deadline is too close to first alarm' }
     $summary.notificationAlarm = $notificationDeadline
     Write-Output "Waiting for real AlarmManager notification (deadline $notificationDeadline)..."
     Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '3') | Out-Null
     if ($InexactOnly -and -not $DozeOnly) { Assert-ReleaseInexactDelivery $edited $notificationDeadline $inexactSince }
     if ($DozeOnly) { Assert-ReleaseDozeDelivery $edited $notificationDeadline $inexactSince }
+    if ($DozeSequence) {
+        # Шторка теперь показывает вторую задачу; её ACK проверяем штатным путём.
+        $edited = $summary.sequenceSecondDescription
+        $notificationDeadline = $summary.sequenceSecondDeadline
+    }
     Invoke-ReleaseAdb @('shell', 'cmd', 'statusbar', 'expand-notifications') | Out-Null
     $notificationLimit = (Get-Date).AddSeconds(150)
     $notificationVisible = $false

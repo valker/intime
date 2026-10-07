@@ -367,6 +367,11 @@ fastboot.forceColdBoot=yes
     else { $summary.message = 'Gradle failed or no fresh test results were produced.' }
     # При проблемах на устройстве дополнительно сохраняем последние сообщения Android.
     if ($Mode -eq 'device' -and $exitCode -ne 0) {
+        # Снимок после падения сохраняет фактический фокус окна: boot-window
+        # может быть уже устаревшим, если System UI зависла во время тестов.
+        # Диагностика только читает состояние и не закрывает системные диалоги.
+        try { $null = Invoke-LoggedProcess $script:adb @('-s', $serial, 'shell', 'dumpsys', 'window') 'failure-window' 30 } catch { }
+        try { $null = Invoke-LoggedProcess $script:adb @('-s', $serial, 'shell', 'dumpsys', 'power') 'failure-power' 20 } catch { }
         try { $null = Invoke-LoggedProcess $script:adb @('-s', $serial, 'logcat', '-d', '-t', '2000') 'logcat' 20 } catch { }
     }
 } catch {

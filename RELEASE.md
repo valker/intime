@@ -367,6 +367,17 @@ background delivery. The real-data/Play update remains R4.2.
 - [x] Bounded upload-signed APK smoke on API 31/33/35/36 documented.
 - [x] Local privacy/declaration/changelog drafts reviewed against current behavior.
 - [x] Launcher/adaptive icons replace DEV artwork (R5.2), API 36 visual check recorded.
+Two prearranged inexact deliveries without leaving forced deep IDLE were checked
+across existing API 31/33/35/36 on 6–7 October. API 31/33 passed 14/14 host phases
+and fresh UI bootstrap 3/3 each; API 35/36 could not complete because of SystemUI
+ANRs during boot/reboot. This is partial coverage, separate from earlier single
+delivery passes. Both deliveries, automatic rescheduling, and subsequent ACK /
+restart were verified on 31/33. Specific quota enforcement remains unverified;
+PowerManager idle=true was measured on 31, but not separately on 33. No application
+code or APK changed. See DEVICE_TEST_RESULTS.md for retained evidence and failures.
+The prepared reset of dedicated API 36/35 AVD data was rejected by automatic
+approval review and has not run; explicit user consent is required to proceed.
+
 - [ ] Remaining device coverage and release worker verified (R4.3/R5.3).
 - [ ] Real-data upgrade through Play-compatible signature verified (R4.2).
 - [ ] Public privacy page and actual Console declarations verified (R5.4).
