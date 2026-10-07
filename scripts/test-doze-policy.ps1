@@ -5,7 +5,13 @@
 Подтверждает готовность idle-политики, но не её применение к alarm приложения.
 #>
 [CmdletBinding()]
-param([ValidateSet(31,33,35,36)][int]$TestApi = 36)
+param(
+    [ValidateSet(31,33,35,36)][int]$TestApi = 36,
+    # Только при отсутствующем idle-until в уже подтверждённом forced IDLE:
+    # один переход через maintenance может восстановить системный alarm.
+    # Это управляемая подготовка, а не естественный вход в Doze.
+    [switch]$RepairMissingIdleUntil
+)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $run = Join-Path $root ('.test-tools/runs/' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-doze-policy')
@@ -71,6 +77,21 @@ try {
     Invoke-PolicyAdb -Arguments @('shell','input','keyevent','223') | Out-Null
     Invoke-PolicyAdb -Arguments @('shell','cmd','deviceidle','force-idle','deep') | Out-Null
     Start-Sleep -Seconds 5
+    $summary.initialForced = Read-PolicySnapshot 'initial-forced'
+    $summary.controlledMaintenanceCycle = $false
+    if ($RepairMissingIdleUntil -and -not $summary.initialForced.idleUntilPresent) {
+        # Не вмешиваемся в неизвестное состояние и не повторяем цикл в ожидании.
+        # Сохраняем исходные доказательства; после одного шага maintenance может
+        # закончиться сама, поэтому перед вторым шагом читаем актуальное состояние.
+        if (-not ($summary.initialForced.controllerIdle -and $summary.initialForced.powerIdle)) { throw 'Missing idle-until outside confirmed forced IDLE' }
+        $summary.controlledMaintenanceCycle = $true
+        $summary.maintenanceStep = (Invoke-PolicyAdb -Arguments @('shell','cmd','deviceidle','step','deep')).Trim()
+        $transition = (Invoke-PolicyAdb -Arguments @('shell','cmd','deviceidle','get','deep')).Trim()
+        if ($transition -eq 'IDLE_MAINTENANCE') {
+            $summary.idleStep = (Invoke-PolicyAdb -Arguments @('shell','cmd','deviceidle','step','deep')).Trim()
+        } elseif ($transition -ne 'IDLE') { throw "Unexpected maintenance transition: $transition" }
+        Start-Sleep -Seconds 5
+    }
     $summary.forced = Read-PolicySnapshot 'forced'
     Start-Sleep -Seconds 20
     $summary.repeated = Read-PolicySnapshot 'repeated'

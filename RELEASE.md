@@ -389,8 +389,14 @@ snapshots; API 31/33 had controller IDLE and PowerManager idle=true but no
 idle-until. Observed compat quota/window settings were 7/hour and 1/9 minutes,
 respectively; none of these diagnostics exhausted a quota. Earlier delivery
 passes remain valid observations, but API 31/33 idle-quota coverage is unconfirmed.
-The next step is restoring genuine AlarmManager idle-until on existing API 31/33
-without changing quotas, then checking application alarm deferral at the limit.
+An opt-in controlled maintenance cycle then restored idle-until on existing
+API 31/33 without changing quotas; API 35/36 skipped the cycle because their
+policy was already ready. Fresh UI tests passed 3/3 each; all four diagnostic
+results were IDLE_POLICY_READY. The diagnostic restores power afterwards and
+does not establish application alarm deferral or natural Doze. The next step
+is integrating bounded preparation before the release delivery wait and
+checking second-alarm deferral at 1/9 minutes on API 31/33. API 35/36 require
+a separate scenario exhausting the observed 7/hour limit.
 Existing images were reused; owned emulators were stopped after cleanup.
 
 - [ ] Remaining device coverage and release worker verified (R4.3/R5.3).

@@ -30,6 +30,11 @@ See TESTING.md for commands and environment requirements.
 - Before claiming Doze quota coverage, verify DeviceIdleController, PowerManager
   and AlarmManager idle-until state with scripts/test-doze-policy.ps1. A ready
   idle policy does not itself prove quota enforcement for application alarms.
+- When forced IDLE lacks idle-until, -RepairMissingIdleUntil provides an opt-in
+  controlled preparation check on the dedicated AVD. Record the intervention;
+  never step through maintenance between deliveries in a continuous-idle test.
+  The diagnostic restores power afterwards, so release delivery tests must
+  perform their own preparation before observing alarms.
 - In a restricted execution environment Gradle may require an approved escalation
   for the user cache and downloads. These instructions do not override sandbox
   access controls. Report infrastructure failures separately from failing tests.
