@@ -397,6 +397,15 @@ does not establish application alarm deferral or natural Doze. The next step
 is integrating bounded preparation before the release delivery wait and
 checking second-alarm deferral at 1/9 minutes on API 31/33. API 35/36 require
 a separate scenario exhausting the observed 7/hour limit.
+The bounded preparation is now integrated as opt-in DozeQuota for API 31/33.
+Both passed 15/15 release phases and fresh UI tests 3/3 each. Own compat history,
+restricted second alarm with positive device_idle deferral, and independent
+second delivery after 539.983/540.018 seconds establish the observed 1/9-minute
+quota on these forced Doze AVDs. ACK/restart and cleanup passed. API 33 first had
+two retained infrastructure failures (SystemUI, then Google launcher/search ANR);
+the complete retry passed with 4 CPU instead of 2, unchanged 4 GB/host GPU/Vulkan
+disabled, without data reset. This does not establish lasting emulator stability.
+API 35/36 quota saturation, natural Doze and physical OEM coverage remain open.
 Existing images were reused; owned emulators were stopped after cleanup.
 
 - [ ] Remaining device coverage and release worker verified (R4.3/R5.3).

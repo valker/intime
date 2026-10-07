@@ -13,6 +13,7 @@ periodic-режим содержит 10 фаз (11 при PeriodicRepeats=2) и 
 InexactOnly (API 31/33/35/36) содержит 11 фаз: подготовка, доставка fallback и ACK/restart.
 InexactOnly + DozeOnly содержит 12 фаз: дополнительно подтверждается deep IDLE.
 DozeSequence добавляет подготовку второй задачи и её доставку: 14 фаз.
+DozeQuota (API 31/33) добавляет подтверждённую отсрочку по квоте: 15 фаз.
 #>
 [CmdletBinding()]
 param(
@@ -27,6 +28,9 @@ param(
     [switch]$InexactOnly,
     # Две заранее созданные задачи доставляются без выхода из IDLE между ними.
     [switch]$DozeSequence,
+    # Подготовка настоящего idle-until и проверка квоты 1/window на API 31/33.
+    # Шаги maintenance разрешены только до ожидания первой доставки.
+    [switch]$DozeQuota,
     # После реального первого alarm ждём тихого повторного worker в release/R8.
     # Никакого ручного job run, ускорения часов/периода или изменения batching.
     [switch]$PeriodicOnly,
@@ -63,6 +67,8 @@ if ($RebootOnly -and $DozeOnly) { throw 'RebootOnly and DozeOnly are mutually ex
 $summary.dozeOnly = [bool]$DozeOnly
 $summary.inexactOnly = [bool]$InexactOnly
 $summary.dozeSequence = [bool]$DozeSequence
+$summary.dozeQuota = [bool]$DozeQuota
+if ($DozeQuota -and (-not $DozeSequence -or -not $InexactOnly -or -not $DozeOnly -or $TestApi -notin @(31,33))) { throw 'DozeQuota requires API 31/33 and InexactOnly + DozeOnly + DozeSequence' }
 if ($DozeSequence -and (-not $InexactOnly -or -not $DozeOnly)) { throw 'DozeSequence requires InexactOnly and DozeOnly' }
 if ($InexactOnly -and ($RebootOnly -or $PeriodicOnly -or $TestApi -notin @(31, 33, 35, 36))) { throw 'InexactOnly requires API 31/33/35/36 and can only be combined with DozeOnly.' }
 $summary.periodicOnly = [bool]$PeriodicOnly
@@ -219,6 +225,78 @@ function Complete-ReleasePhase([string]$Name) {
     Write-Output "PASSED: $Name"
 }
 
+# Читаем подписанную длительность dumpsys без предположения о фиксированной
+# длине окна. Неизвестное «--» не превращается в ноль и не подтверждает отсрочку.
+function Convert-ReleaseDurationMs([string]$Text) {
+    if ($Text -eq '0') { return [long]0 }
+    $match=[regex]::Match($Text,'^(?<sign>[+-])(?:(?<d>\d+)d)?(?:(?<h>\d+)h)?(?:(?<m>\d+)m(?!s))?(?:(?<s>\d+)s)?(?:(?<ms>\d+)ms)?$')
+    if (-not $match.Success -or $Text -notmatch '\d') { throw "Unknown alarm duration: $Text" }
+    $value=[long]$match.Groups['d'].Value*86400000+[long]$match.Groups['h'].Value*3600000+[long]$match.Groups['m'].Value*60000+[long]$match.Groups['s'].Value*1000+[long]$match.Groups['ms'].Value
+    if ($match.Groups['sign'].Value -eq '-') { $value=-$value }
+    return $value
+}
+
+# Три независимых службы подтверждают подготовку до первой доставки. Tag должен
+# принадлежать текущему idle-until, а не истории отменённых alarm. Квоту читаем,
+# но не меняем. Raw dump сохраняется отдельно, не раздувая summary.
+function Read-ReleaseIdlePolicy([string]$Prefix) {
+    $idle=Invoke-ReleaseTool $adb @('-s',$serial,'shell','dumpsys','deviceidle') "$Prefix-idle.log"
+    $power=Invoke-ReleaseTool $adb @('-s',$serial,'shell','dumpsys','power') "$Prefix-power.log"
+    $alarm=Invoke-ReleaseTool $adb @('-s',$serial,'shell','dumpsys','alarm') "$Prefix-alarm.log"
+    $quota=[regex]::Match($alarm,'(?m)^\s*allow_while_idle_compat_quota=(\d+)')
+    $window=[regex]::Match($alarm,'(?m)^\s*allow_while_idle_compat_window=([^\r\n]+)')
+    if (-not $quota.Success -or -not $window.Success) { throw 'Quota settings missing from AlarmManager' }
+    return @{
+        controllerIdle=($idle -match '(?m)^\s*mState=IDLE(?:\s|$)')
+        powerIdle=($power -match '(?m)^\s*mDeviceIdleMode=true\s*$')
+        idleUntilPresent=($alarm -match '(?m)^\s*(?:Idling until|Pending idle until):\s*Alarm\{[^\r\n]*\r?\n\s*tag=\*walarm\*:DeviceIdleController\.deep(?:\s|$)')
+        compatQuota=[int]$quota.Groups[1].Value
+        compatWindowMs=(Convert-ReleaseDurationMs $window.Groups[1].Value.Trim())
+    }
+}
+
+# Подготовка выполняется один раз до ожидания первой доставки. При отсутствии
+# idle-until используем проверенный цикл IDLE → maintenance → IDLE, сохраняя
+# исходный снимок и ответы. Между доставками эта функция не вызывается.
+function Initialize-ReleaseQuotaIdle {
+    Start-Sleep -Seconds 5
+    $summary.quotaInitialPolicy=Read-ReleaseIdlePolicy 'quota-initial'
+    $summary.quotaControlledMaintenanceCycle=$false
+    if (-not $summary.quotaInitialPolicy.idleUntilPresent) {
+        if (-not ($summary.quotaInitialPolicy.controllerIdle -and $summary.quotaInitialPolicy.powerIdle)) { throw 'Quota setup outside confirmed forced IDLE' }
+        $summary.quotaControlledMaintenanceCycle=$true
+        $summary.quotaMaintenanceStep=(Invoke-ReleaseAdb @('shell','cmd','deviceidle','step','deep')).Trim()
+        $state=(Invoke-ReleaseAdb @('shell','cmd','deviceidle','get','deep')).Trim()
+        if ($state -eq 'IDLE_MAINTENANCE') { $summary.quotaIdleStep=(Invoke-ReleaseAdb @('shell','cmd','deviceidle','step','deep')).Trim() }
+        elseif ($state -ne 'IDLE') { throw "Unexpected quota preparation state: $state" }
+        Start-Sleep -Seconds 5
+    }
+    $summary.quotaPreparedPolicy=Read-ReleaseIdlePolicy 'quota-prepared'
+    $policy=$summary.quotaPreparedPolicy
+    if (-not ($policy.controllerIdle -and $policy.powerIdle -and $policy.idleUntilPresent) -or $policy.compatQuota -ne 1 -or $policy.compatWindowMs -le 0) { throw 'Quota setup requires active idle-until and compat quota 1' }
+    if ($policy.compatQuota -ne $summary.quotaInitialPolicy.compatQuota -or $policy.compatWindowMs -ne $summary.quotaInitialPolicy.compatWindowMs) { throw 'Quota settings changed during preparation' }
+}
+
+# После первой настоящей доставки тот же receiver поставил вторую задачу.
+# Требуем её действующий alarm, compat-флаг без unrestricted, запись своего
+# пакета в истории и device_idle позже requester. Большой gap без этих признаков
+# не считается квотой. Проверка ничего не запускает и не меняет настройки.
+function Assert-ReleaseQuotaDeferral([long]$Deadline) {
+    $summary.quotaAfterFirst=Read-ReleaseIdlePolicy 'quota-after-first'
+    $policy=$summary.quotaAfterFirst
+    if (-not ($policy.controllerIdle -and $policy.powerIdle -and $policy.idleUntilPresent) -or $policy.compatQuota -ne $summary.quotaPreparedPolicy.compatQuota -or $policy.compatWindowMs -ne $summary.quotaPreparedPolicy.compatWindowMs) { throw 'Idle policy or quota changed after first delivery' }
+    $dump=Get-Content (Join-Path $run 'quota-after-first-alarm.log') -Raw -Encoding UTF8
+    $own=[regex]::Match($dump,'(?m)^\s*RTC_WAKEUP #\d+: Alarm\{\S+ type 0 origWhen (?<deadline>\d+) [^\r\n]* com\.vpe_soft\.intime\.intime\}\r?\n\s+tag=\*walarm\*:com\.vpe_soft\.intime\.intime/(?:com\.vpe_soft\.intime\.intime)?\.receiver\.AlarmReceiver\r?\n\s+type=RTC_WAKEUP[^\r\n]*flags=0x(?<flags>[a-fA-F0-9]+)\r?\n\s+policyWhenElapsed: requester=(?<requester>\S+)[^\r\n]*device_idle=(?<idle>\S+)')
+    $history=[regex]::Match($dump,'(?ms)^\s*Allow while idle compat history:\s*\r?\n(?<entries>.*?)(?=^\s*Removal history:|\z)')
+    if (-not $own.Success -or [long]$own.Groups['deadline'].Value -ne $Deadline -or -not $history.Success -or $history.Groups['entries'].Value -notmatch '(?m)^\s*com\.vpe_soft\.intime\.intime, u0:\s*[+-]') { throw 'Own second alarm or first quota history missing' }
+    $flags=[Convert]::ToInt64($own.Groups['flags'].Value,16)
+    if (($flags -band 0x20) -eq 0 -or ($flags -band 0x8) -ne 0) { throw 'Second alarm is not restricted compat allow-while-idle' }
+    $requester=Convert-ReleaseDurationMs $own.Groups['requester'].Value
+    $idle=Convert-ReleaseDurationMs $own.Groups['idle'].Value
+    if ($idle -le $requester+1000) { throw 'Second alarm has no positive idle-policy deferral' }
+    $summary.quotaDeferral=@{deadline=$Deadline; requesterRemainingMs=$requester; idleRemainingMs=$idle; deferredBeyondRequestedMs=($idle-$requester); compatFlags=$flags; firstHistoryConfirmed=$true}
+}
+
 # Задача сохранена UI, exact appop запрещён. Проверяем собственный активный
 # AlarmReceiver с тем же deadline и ненулевым окном, затем ждём настоящую доставку
 # до 15 минут без Activity/probe/ручного receiver. Фиксированные файлы опроса
@@ -254,6 +332,14 @@ function Assert-ReleaseInexactDelivery([string]$Description, [long]$Deadline, [s
                 $mode=[regex]::Match($power, 'mDeviceIdleMode=(true|false)')
                 $summary.sequencePowerDeviceIdleAtDelivery=if ($mode.Success) { $mode.Groups[1].Value -eq 'true' } else { $null }
                 $summary.quotaEnforcementValidated=$false
+                if ($DozeQuota) {
+                    # На каждом опросе проверяем реальную idle-политику; её утрату
+                    # не исправляем шагами во время наблюдения двух доставок.
+                    $queue=Invoke-ReleaseTool $adb @('-s',$serial,'shell','dumpsys','alarm') "$EvidencePrefix-alarm-poll.log"
+                    $pending=$queue -match '(?m)^\s*(?:Idling until|Pending idle until):\s*Alarm\{[^\r\n]*\r?\n\s*tag=\*walarm\*:DeviceIdleController\.deep(?:\s|$)'
+                    if ($summary.sequencePowerDeviceIdleAtDelivery -ne $true -or -not $pending) { throw 'Quota observation lost active AlarmManager or PowerManager idle' }
+                    $summary.sequenceAlarmManagerIdleAtDelivery=$true
+                }
             }
         }
         $dump = Invoke-ReleaseTool $adb @('-s', $serial, 'shell', 'dumpsys', 'notification', '--noredact') "$EvidencePrefix-notifications-poll.log"
@@ -262,6 +348,10 @@ function Assert-ReleaseInexactDelivery([string]$Description, [long]$Deadline, [s
         $delivered = $record.Success -and $record.Value.Contains("android.text=String ($Description)") -and $record.Value -match 'actions=1' -and $when.Success -and [long]$when.Groups[1].Value -ge $Deadline
         if (-not $delivered) { Write-Output 'Waiting for real inexact alarm notification...'; Start-Sleep -Seconds 15 }
     } while (-not $delivered -and (Get-Date) -lt $limit)
+    # Последняя пауза тоже учитывается: сон хоста может завершить while сразу
+    # после пробуждения. Такой результат не подтверждает непрерывное наблюдение.
+    $finalGap=([datetimeoffset]::UtcNow-$previous).TotalSeconds
+    if ($finalGap -lt 0 -or $finalGap -gt 180) { throw 'Inexact observation interrupted by host polling gap' }
     $log = Invoke-ReleaseAdb @('logcat', '-d', '-T', $Since)
     Set-Content (Join-Path $run "$EvidencePrefix-logcat.log") $log -Encoding UTF8
     if (-not $delivered) { throw 'Inexact alarm notification timed out; delivery not validated' }
@@ -340,6 +430,7 @@ function Assert-ReleaseDozeDelivery([string]$Description, [long]$Deadline, [stri
     Invoke-ReleaseAdb @('shell', 'dumpsys', 'battery', 'unplug') | Out-Null
     Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '223') | Out-Null
     Invoke-ReleaseAdb @('shell', 'cmd', 'deviceidle', 'force-idle', 'deep') | Out-Null
+    if ($DozeQuota) { Initialize-ReleaseQuotaIdle }
     # Fallback должен доставиться при сохранённом deny и положительном окне.
     # Общая проверка требует ACK/receiver и IDLE до пробуждения; cleanup общий.
     if ($InexactOnly) {
@@ -350,12 +441,22 @@ function Assert-ReleaseDozeDelivery([string]$Description, [long]$Deadline, [stri
             Assert-ReleaseInexactDelivery $Description $Deadline $SchedulingSince $true $summary.sequenceSecondDeadline 'inexact' 20
             $firstWhen = $summary.inexactNotificationWhen
             $summary.sequenceFirst = @{ deadline=$Deadline; when=$firstWhen; window=$summary.inexactAlarmWindow; delaySeconds=$summary.inexactDelaySeconds; powerDeviceIdle=$summary.sequencePowerDeviceIdleAtDelivery }
+            if ($DozeQuota) { Assert-ReleaseQuotaDeferral $summary.sequenceSecondDeadline }
             Assert-ReleaseInexactDelivery $summary.sequenceSecondDescription $summary.sequenceSecondDeadline $SchedulingSince $true 0 'inexact-repeat' 20
             $summary.sequenceSecond = @{ deadline=$summary.sequenceSecondDeadline; when=$summary.inexactNotificationWhen; window=$summary.inexactAlarmWindow; delaySeconds=$summary.inexactDelaySeconds; powerDeviceIdle=$summary.sequencePowerDeviceIdleAtDelivery }
             $summary.sequenceGapSeconds = ($summary.inexactNotificationWhen - $firstWhen) / 1000.0
             $sequenceLog=Get-Content (Join-Path $run 'inexact-repeat-logcat.log') -Raw -Encoding UTF8
             $summary.sequenceReceiverCount = [regex]::Matches($sequenceLog, 'AlarmReceiver.*handleAlarm: trying to post notification').Count
             if ($summary.sequenceReceiverCount -lt 2 -or $summary.sequenceGapSeconds -le 0) { throw 'Two distinct receiver deliveries not confirmed' }
+            if ($DozeQuota) {
+                # Timestamp уведомления чуть позже системной записи dispatch;
+                # допускаем 2 с этой разницы, но требуем отдельное доказательство
+                # положительной idle-отсрочки выше, а не только большой gap.
+                $summary.quotaDeliveryToleranceMs=2000
+                if ($summary.sequenceGapSeconds*1000 -lt $summary.quotaPreparedPolicy.compatWindowMs-$summary.quotaDeliveryToleranceMs) { throw 'Second delivery arrived before the confirmed quota window' }
+                $summary.quotaEnforcementValidated=$true
+                Complete-ReleasePhase 'release-idle-quota-deferral'
+            }
         } else {
             Assert-ReleaseInexactDelivery $Description $Deadline $SchedulingSince $true
         }
