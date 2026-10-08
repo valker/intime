@@ -326,6 +326,25 @@ PASS естественного перехода или доставки: оба
 
 Это подготовленный порядок следующей проверки, а не выполненный тест телефона.
 
+После отдельного согласия владельца первый шаг выполняет `scripts/read-phone-doze.ps1`.
+Передайте явный USB serial из списка `adb devices -l`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/read-phone-doze.ps1 -Serial 'SERIAL_ТЕЛЕФОНА'
+```
+
+Скрипт отказывается работать с emulator serial и qemu-устройством. Читает модель/API,
+versionCode/versionName InTime и перечисленные системные службы, не запускает
+Activity/receiver/worker, не меняет battery/appops/Doze/настройки отладки и не
+читает базы задач. `READ_ONLY_DIAGNOSTICS_COLLECTED` означает собранные сведения,
+а не PASS теста: naturalEntryValidated, notificationDeliveryValidated и
+candidateApkIdentityValidated остаются false. Совпадение номера версии не
+доказывает идентичности release APK. Не подключает телефон по сети автоматически.
+
+Для подключения по USB может понадобиться уже настроенная отладка и подтверждение
+доступа на самом телефоне. Без подключённого/авторизованного устройства диагностика
+не выполняется; не заменять этот шаг чтением старых снимков эмуляторов.
+
 Матрица 8 октября: UI 3/3 API 31/33/35/36 (36 после сохранённого отказа ожидания
 фокуса), все preflight NATURAL_DEEP_UNAVAILABLE. Контроллер каждого требует
 motion sensor, но сообщает null; deep/light включены на 31/33 и выключены
