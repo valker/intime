@@ -49,6 +49,12 @@ runtime не изменялся; ранее проверенный APK и нов
 Разрешены только `:app:assembleRelease` и `:app:bundleRelease`; совмещение с upgradeSmoke
 отклоняется. Release использует R8. Код 25 и имя 2.0.0-rc1 — локальный кандидат;
 перед загрузкой проверить все использованные коды Console и согласовать финальную версию.
+Диагностика рабочего телефона 8 октября показала Play v1 1.1.12/versionCode 25.
+Код 25 уже занят и не подходит для новой загрузки в Play:
+[правило versionCode](https://developer.android.com/studio/publish/versioning).
+Следующий финальный код должен быть выше 25 и не использоваться в Console;
+свободность 26 и выше пока не установлена. Команды с кодом 25 ниже описывают
+исторический тестовый кандидат, а не готовую к публикации новую сборку.
 
 Неподписанный кандидат для проверки упаковки (PowerShell, JDK 17 и SDK настроены):
 
@@ -431,6 +437,11 @@ is claimed, no power/sensor settings were changed, and owned AVDs were stopped.
 Nine parser fixtures passed. Physical-device prerequisites and candidate
 verification require separately agreed personal-device use; the procedure is
 in TESTING.md. Natural light idle on 31/33 remains a separate unchecked scenario.
+The agreed read-only phone diagnostic subsequently completed on RMX3636/API 35:
+deep/light enabled, significant-motion sensor present, force idle false,
+controller ACTIVE with USB charging. Installed Play v1 is 1.1.12/code 25;
+no app/data/settings were changed. Natural-entry, delivery and candidate APK
+identity remain unvalidated. This phone snapshot does not verify candidate v2.
 Existing images were reused; owned emulators were stopped after cleanup.
 
 - [ ] Remaining device coverage and release worker verified (R4.3/R5.3).
