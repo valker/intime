@@ -405,7 +405,23 @@ quota on these forced Doze AVDs. ACK/restart and cleanup passed. API 33 first ha
 two retained infrastructure failures (SystemUI, then Google launcher/search ANR);
 the complete retry passed with 4 CPU instead of 2, unchanged 4 GB/host GPU/Vulkan
 disabled, without data reset. This does not establish lasting emulator stability.
-API 35/36 quota saturation, natural Doze and physical OEM coverage remain open.
+API 35/36 quota saturation completed on 7–8 October with opt-in DozeQuotaSeven:
+fresh UI 3/3 and release/R8 21/21 each, using the same signed candidate APK.
+Seven own history entries inside the measured 7/hour window and positive
+device_idle deferral matching oldest-entry expiry preceded the eighth dispatch.
+Eight own package dispatches and eight own receiver callbacks were verified
+independently of retained history length (8 on API 35, 7 on API 36).
+The first Notification.when to eighth callback gaps were 3599.998/3600.002 seconds
+(2-second tolerance). API 35 used the natural worker summary's contentIntent,
+then eighth-task details ACK; API 36 used the direct notification ACK action.
+Future inexact scheduling, exact denial, process restart and cleanup passed.
+The runner now waits for the real list after contentIntent, dismisses the ordinary
+dedicated-AVD keyguard without changing lock settings, and bounds list scrolling.
+Retained failed/interrupted attempts are not promoted to PASS; the nighttime
+host polling gap required a complete retry. The final batch temporarily requested
+system wakefulness and released that request in finally without changing power settings.
+Details and the checked hourly-quota-confirmed-matrix.json are in DEVICE_TEST_RESULTS.md.
+Natural Doze, physical OEM, Play-compatible upgrade and disk-limited API 24 remain open.
 Existing images were reused; owned emulators were stopped after cleanup.
 
 - [ ] Remaining device coverage and release worker verified (R4.3/R5.3).

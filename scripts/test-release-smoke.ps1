@@ -14,6 +14,7 @@ InexactOnly (API 31/33/35/36) содержит 11 фаз: подготовка, 
 InexactOnly + DozeOnly содержит 12 фаз: дополнительно подтверждается deep IDLE.
 DozeSequence добавляет подготовку второй задачи и её доставку: 14 фаз.
 DozeQuota (API 31/33) добавляет подтверждённую отсрочку по квоте: 15 фаз.
+DozeQuotaSeven (API 35/36) проверяет восемь доставок при квоте 7/час: 21 фаза.
 #>
 [CmdletBinding()]
 param(
@@ -31,6 +32,9 @@ param(
     # Подготовка настоящего idle-until и проверка квоты 1/window на API 31/33.
     # Шаги maintenance разрешены только до ожидания первой доставки.
     [switch]$DozeQuota,
+    # Восемь задач импортируются штатным SAF до IDLE. Восьмая ждёт освобождения
+    # окна после семи реальных доставок, без ускорения часов/квот или ручного alarm.
+    [switch]$DozeQuotaSeven,
     # После реального первого alarm ждём тихого повторного worker в release/R8.
     # Никакого ручного job run, ускорения часов/периода или изменения batching.
     [switch]$PeriodicOnly,
@@ -68,6 +72,8 @@ $summary.dozeOnly = [bool]$DozeOnly
 $summary.inexactOnly = [bool]$InexactOnly
 $summary.dozeSequence = [bool]$DozeSequence
 $summary.dozeQuota = [bool]$DozeQuota
+$summary.dozeQuotaSeven = [bool]$DozeQuotaSeven
+if ($DozeQuotaSeven -and ($DozeQuota -or -not $DozeSequence -or -not $InexactOnly -or -not $DozeOnly -or $TestApi -notin @(35,36))) { throw 'DozeQuotaSeven requires API 35/36 and InexactOnly + DozeOnly + DozeSequence, without DozeQuota' }
 if ($DozeQuota -and (-not $DozeSequence -or -not $InexactOnly -or -not $DozeOnly -or $TestApi -notin @(31,33))) { throw 'DozeQuota requires API 31/33 and InexactOnly + DozeOnly + DozeSequence' }
 if ($DozeSequence -and (-not $InexactOnly -or -not $DozeOnly)) { throw 'DozeSequence requires InexactOnly and DozeOnly' }
 if ($InexactOnly -and ($RebootOnly -or $PeriodicOnly -or $TestApi -notin @(31, 33, 35, 36))) { throw 'InexactOnly requires API 31/33/35/36 and can only be combined with DozeOnly.' }
@@ -245,6 +251,7 @@ function Read-ReleaseIdlePolicy([string]$Prefix) {
     $alarm=Invoke-ReleaseTool $adb @('-s',$serial,'shell','dumpsys','alarm') "$Prefix-alarm.log"
     $quota=[regex]::Match($alarm,'(?m)^\s*allow_while_idle_compat_quota=(\d+)')
     $window=[regex]::Match($alarm,'(?m)^\s*allow_while_idle_compat_window=([^\r\n]+)')
+    $until=[regex]::Match($alarm,'(?m)^\s*(?:Idling until|Pending idle until):\s*Alarm\{[^\r\n]*\r?\n\s*tag=\*walarm\*:DeviceIdleController\.deep\r?\n\s*type=ELAPSED_WAKEUP origWhen=(?<remaining>\S+)')
     if (-not $quota.Success -or -not $window.Success) { throw 'Quota settings missing from AlarmManager' }
     return @{
         controllerIdle=($idle -match '(?m)^\s*mState=IDLE(?:\s|$)')
@@ -252,12 +259,14 @@ function Read-ReleaseIdlePolicy([string]$Prefix) {
         idleUntilPresent=($alarm -match '(?m)^\s*(?:Idling until|Pending idle until):\s*Alarm\{[^\r\n]*\r?\n\s*tag=\*walarm\*:DeviceIdleController\.deep(?:\s|$)')
         compatQuota=[int]$quota.Groups[1].Value
         compatWindowMs=(Convert-ReleaseDurationMs $window.Groups[1].Value.Trim())
+        idleUntilRemainingMs=$(if($until.Success){Convert-ReleaseDurationMs $until.Groups['remaining'].Value}else{$null})
     }
 }
 
-# Подготовка выполняется один раз до ожидания первой доставки. При отсутствии
-# idle-until используем проверенный цикл IDLE → maintenance → IDLE, сохраняя
-# исходный снимок и ответы. Между доставками эта функция не вызывается.
+# Подготовка выполняется только до ожидания первой доставки. При отсутствии
+# idle-until используем проверенный цикл IDLE → maintenance → IDLE; для часового
+# окна дополнительно ограничиваем число циклов и проверяем горизонт. Исходные
+# снимки и ответы сохраняются. Между доставками эта функция не вызывается.
 function Initialize-ReleaseQuotaIdle {
     Start-Sleep -Seconds 5
     $summary.quotaInitialPolicy=Read-ReleaseIdlePolicy 'quota-initial'
@@ -272,20 +281,43 @@ function Initialize-ReleaseQuotaIdle {
         Start-Sleep -Seconds 5
     }
     $summary.quotaPreparedPolicy=Read-ReleaseIdlePolicy 'quota-prepared'
+    if ($DozeQuotaSeven) {
+        if($null -eq $summary.quotaPreparedPolicy.idleUntilRemainingMs){throw 'Unknown idle-until horizon before hourly preparation'}
+        # Короткий idle-until закончится раньше часового окна. До первого ожидания
+        # допускаем до трёх maintenance-циклов и проверяем достаточный горизонт.
+        # Это управляемая подготовка, а не естественный Doze; таймеры/квоты не меняем.
+        $summary.quotaHorizonCycles=@()
+        for($cycle=1; $cycle -le 3 -and $summary.quotaPreparedPolicy.idleUntilRemainingMs -lt 4800000; $cycle++) {
+            $p=$summary.quotaPreparedPolicy
+            if(-not ($p.controllerIdle -and $p.powerIdle -and $p.idleUntilPresent)){throw 'Quota horizon preparation outside confirmed IDLE'}
+            $maintenance=(Invoke-ReleaseAdb @('shell','cmd','deviceidle','step','deep')).Trim()
+            $state=(Invoke-ReleaseAdb @('shell','cmd','deviceidle','get','deep')).Trim()
+            $idleStep=$null
+            if($state -eq 'IDLE_MAINTENANCE'){$idleStep=(Invoke-ReleaseAdb @('shell','cmd','deviceidle','step','deep')).Trim()}
+            elseif($state -ne 'IDLE'){throw "Unexpected quota horizon state: $state"}
+            $summary.quotaHorizonCycles+=@{maintenance=$maintenance;idle=$idleStep}
+            Start-Sleep -Seconds 5
+            $summary.quotaPreparedPolicy=Read-ReleaseIdlePolicy "quota-horizon-$cycle"
+        }
+        if($null -eq $summary.quotaPreparedPolicy.idleUntilRemainingMs -or $summary.quotaPreparedPolicy.idleUntilRemainingMs -lt 4800000){throw 'Idle-until horizon insufficient for hourly quota observation'}
+    }
     $policy=$summary.quotaPreparedPolicy
-    if (-not ($policy.controllerIdle -and $policy.powerIdle -and $policy.idleUntilPresent) -or $policy.compatQuota -ne 1 -or $policy.compatWindowMs -le 0) { throw 'Quota setup requires active idle-until and compat quota 1' }
+    $expectedQuota=if($DozeQuotaSeven){7}else{1}
+    if (-not ($policy.controllerIdle -and $policy.powerIdle -and $policy.idleUntilPresent) -or $policy.compatQuota -ne $expectedQuota -or $policy.compatWindowMs -le 0) { throw 'Quota setup requires active idle-until and expected compat quota' }
+    if($DozeQuotaSeven -and $policy.compatWindowMs -ne 3600000){throw 'Hourly quota observation requires measured one-hour window'}
     if ($policy.compatQuota -ne $summary.quotaInitialPolicy.compatQuota -or $policy.compatWindowMs -ne $summary.quotaInitialPolicy.compatWindowMs) { throw 'Quota settings changed during preparation' }
 }
 
-# После первой настоящей доставки тот же receiver поставил вторую задачу.
-# Требуем её действующий alarm, compat-флаг без unrestricted, запись своего
+# После одной или семи настоящих доставок receiver поставил следующую задачу.
+# Требуем её действующий alarm, compat-флаг без unrestricted, историю своего
 # пакета в истории и device_idle позже requester. Большой gap без этих признаков
 # не считается квотой. Проверка ничего не запускает и не меняет настройки.
-function Assert-ReleaseQuotaDeferral([long]$Deadline) {
-    $summary.quotaAfterFirst=Read-ReleaseIdlePolicy 'quota-after-first'
-    $policy=$summary.quotaAfterFirst
+function Assert-ReleaseQuotaDeferral([long]$Deadline, [string]$Prefix='quota-after-first', [int]$ExpectedHistoryCount=1) {
+    $policy=Read-ReleaseIdlePolicy $Prefix
+    $summary.quotaBeforeDeferredDelivery=$policy
+    if($ExpectedHistoryCount -eq 1){$summary.quotaAfterFirst=$policy}
     if (-not ($policy.controllerIdle -and $policy.powerIdle -and $policy.idleUntilPresent) -or $policy.compatQuota -ne $summary.quotaPreparedPolicy.compatQuota -or $policy.compatWindowMs -ne $summary.quotaPreparedPolicy.compatWindowMs) { throw 'Idle policy or quota changed after first delivery' }
-    $dump=Get-Content (Join-Path $run 'quota-after-first-alarm.log') -Raw -Encoding UTF8
+    $dump=Get-Content (Join-Path $run "$Prefix-alarm.log") -Raw -Encoding UTF8
     $own=[regex]::Match($dump,'(?m)^\s*RTC_WAKEUP #\d+: Alarm\{\S+ type 0 origWhen (?<deadline>\d+) [^\r\n]* com\.vpe_soft\.intime\.intime\}\r?\n\s+tag=\*walarm\*:com\.vpe_soft\.intime\.intime/(?:com\.vpe_soft\.intime\.intime)?\.receiver\.AlarmReceiver\r?\n\s+type=RTC_WAKEUP[^\r\n]*flags=0x(?<flags>[a-fA-F0-9]+)\r?\n\s+policyWhenElapsed: requester=(?<requester>\S+)[^\r\n]*device_idle=(?<idle>\S+)')
     $history=[regex]::Match($dump,'(?ms)^\s*Allow while idle compat history:\s*\r?\n(?<entries>.*?)(?=^\s*Removal history:|\z)')
     if (-not $own.Success -or [long]$own.Groups['deadline'].Value -ne $Deadline -or -not $history.Success -or $history.Groups['entries'].Value -notmatch '(?m)^\s*com\.vpe_soft\.intime\.intime, u0:\s*[+-]') { throw 'Own second alarm or first quota history missing' }
@@ -295,6 +327,19 @@ function Assert-ReleaseQuotaDeferral([long]$Deadline) {
     $idle=Convert-ReleaseDurationMs $own.Groups['idle'].Value
     if ($idle -le $requester+1000) { throw 'Second alarm has no positive idle-policy deferral' }
     $summary.quotaDeferral=@{deadline=$Deadline; requesterRemainingMs=$requester; idleRemainingMs=$idle; deferredBeyondRequestedMs=($idle-$requester); compatFlags=$flags; firstHistoryConfirmed=$true}
+    if($ExpectedHistoryCount -gt 1) {
+        # Считаем только записи своего пакета в compat-секции. Все семь должны
+        # быть внутри окна; device_idle сверяем с освобождением самой старой записи.
+        $line=[regex]::Match($history.Groups['entries'].Value,'(?m)^\s*com\.vpe_soft\.intime\.intime, u0:\s*(?<ages>[^\r\n]+)')
+        $ages=@($line.Groups['ages'].Value.Split(',')|ForEach-Object {if($_.Trim()){Convert-ReleaseDurationMs $_.Trim()}})
+        if($ages.Count -ne $ExpectedHistoryCount -or @($ages|Where-Object {$_ -gt 0 -or $_ -le -$policy.compatWindowMs}).Count){throw 'Expected seven own dispatches inside quota window'}
+        $oldest=($ages|Measure-Object -Minimum).Minimum
+        $remaining=$policy.compatWindowMs+$oldest
+        if([math]::Abs($idle-$remaining) -gt 5000){throw 'Idle policy does not match oldest quota entry expiry'}
+        $summary.quotaDeferral.historyCount=$ages.Count
+        $summary.quotaDeferral.oldestExpiryRemainingMs=$remaining
+        $summary.quotaDeferral.oldestExpiryMatched=$true
+    }
 }
 
 # Задача сохранена UI, exact appop запрещён. Проверяем собственный активный
@@ -304,6 +349,9 @@ function Assert-ReleaseQuotaDeferral([long]$Deadline) {
 # один тихий periodic worker не может подменить успех. При RequireDeepIdle
 # каждый опрос и финальный снимок требуют IDLE; конкретная квота не утверждается.
 function Assert-ReleaseInexactDelivery([string]$Description, [long]$Deadline, [string]$Since, [bool]$RequireDeepIdle = $false, [long]$ExpectedNextDeadline = 0, [string]$EvidencePrefix = 'inexact', [int]$WaitMinutes = 15) {
+    # Часовое ожидание может вытеснить ранние строки из кольцевого logcat.
+    # Сохраняем настоящий журнал до ожидания; при проверке объединяем с новым.
+    $beforeLog=if($DozeQuotaSeven){Invoke-ReleaseTool $adb @('-s',$serial,'logcat','-d','-T',$Since) "$EvidencePrefix-logcat-before.log"}else{''}
     $ops = Invoke-ReleaseAdb @('shell', 'appops', 'get', $package, 'SCHEDULE_EXACT_ALARM')
     Set-Content (Join-Path $run "$EvidencePrefix-appops.log") $ops -Encoding UTF8
     if ($ops -notmatch 'SCHEDULE_EXACT_ALARM: deny') { throw 'Exact alarm denial not confirmed' }
@@ -332,7 +380,7 @@ function Assert-ReleaseInexactDelivery([string]$Description, [long]$Deadline, [s
                 $mode=[regex]::Match($power, 'mDeviceIdleMode=(true|false)')
                 $summary.sequencePowerDeviceIdleAtDelivery=if ($mode.Success) { $mode.Groups[1].Value -eq 'true' } else { $null }
                 $summary.quotaEnforcementValidated=$false
-                if ($DozeQuota) {
+                if ($DozeQuota -or $DozeQuotaSeven) {
                     # На каждом опросе проверяем реальную idle-политику; её утрату
                     # не исправляем шагами во время наблюдения двух доставок.
                     $queue=Invoke-ReleaseTool $adb @('-s',$serial,'shell','dumpsys','alarm') "$EvidencePrefix-alarm-poll.log"
@@ -353,6 +401,7 @@ function Assert-ReleaseInexactDelivery([string]$Description, [long]$Deadline, [s
     $finalGap=([datetimeoffset]::UtcNow-$previous).TotalSeconds
     if ($finalGap -lt 0 -or $finalGap -gt 180) { throw 'Inexact observation interrupted by host polling gap' }
     $log = Invoke-ReleaseAdb @('logcat', '-d', '-T', $Since)
+    if($DozeQuotaSeven){$log=$beforeLog+"`n"+$log}
     Set-Content (Join-Path $run "$EvidencePrefix-logcat.log") $log -Encoding UTF8
     if (-not $delivered) { throw 'Inexact alarm notification timed out; delivery not validated' }
     if ($log -notmatch 'scheduleAlarm: exact alarms are not available, using inexact alarm' -or $log -notmatch 'AlarmReceiver.*handleAlarm: trying to post notification') { throw 'Fallback scheduling or actual receiver log missing' }
@@ -367,7 +416,7 @@ function Assert-ReleaseInexactDelivery([string]$Description, [long]$Deadline, [s
     }
     $summary.inexactNotificationWhen = [long]$when.Groups[1].Value
     $summary.inexactDelaySeconds = ($summary.inexactNotificationWhen - $Deadline) / 1000.0
-    Complete-ReleasePhase $(if ($EvidencePrefix -eq 'inexact') { 'release-inexact-fallback-delivery' } else { 'release-inexact-repeat-delivery' })
+    Complete-ReleasePhase $(if($DozeQuotaSeven){"release-inexact-quota-delivery-$EvidencePrefix"}elseif ($EvidencePrefix -eq 'inexact') { 'release-inexact-fallback-delivery' } else { 'release-inexact-repeat-delivery' })
 }
 
 # Восстанавливаем каждую изменённую настройку даже при ошибке предыдущей команды.
@@ -403,13 +452,162 @@ function Open-ReleaseDetails([string]$Description) {
     throw 'Task details did not open'
 }
 
-# Будущая минутная задача уже сохранена UI и запланирована приложением, открыт Home.
-# На собственном AVD имитируем отключение зарядки, гасим экран, включаем deep idle.
-# При ожидании не открываем UI и не запускаем UIAutomator; требуем IDLE при каждом
-# опросе и активное уведомление своего пакета с уникальным описанием. Проверяем
-# реальный receiver и исчезновение сработавшего alarm, не вызываем Java вручную.
-# Покрывается allow-while-idle alarm (два при DozeSequence): exact либо inexact.
-# Естественный вход, квоты повторной доставки и periodic worker не проверяются.
+# После ACK последняя задача становится будущей и уходит ниже семи просроченных.
+# Проверяем её реальное присутствие через ограниченную прокрутку RecyclerView,
+# а не требуем видимости на первой странице. Скролл допустим только после
+# завершения доставки; он не меняет задачи и не заменяет проверку срока alarm.
+function Assert-ReleaseListTask([string]$Description) {
+    # После contentIntent или restart SystemUI ещё может перекрывать Activity.
+    # Ждём реальный список с обычным 30-секундным пределом до первой прокрутки.
+    Wait-ReleaseNode "//node[@resource-id='${package}:id/recyclerView']" | Out-Null
+    for($page=0;$page -lt 8;$page++) {
+        $ui=Read-ReleaseUi
+        if($ui.SelectSingleNode("//node[@resource-id='${package}:id/textDescription' and @text='$Description']")){return}
+        $list=$ui.SelectSingleNode("//node[@resource-id='${package}:id/recyclerView']")
+        if(-not $list){throw 'Task list missing during post-ACK verification'}
+        $bounds=[regex]::Match($list.GetAttribute('bounds'),'^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$')
+        if(-not $bounds.Success){throw 'Task list bounds unknown'}
+        $x=[int]([int]$bounds.Groups[1].Value+([int]$bounds.Groups[3].Value-[int]$bounds.Groups[1].Value)/2)
+        $top=[int]$bounds.Groups[2].Value;$height=[int]$bounds.Groups[4].Value-$top
+        if($height -lt 100){throw 'Task list too small for safe scroll'}
+        if($page -lt 7){Invoke-ReleaseAdb @('shell','input','swipe',"$x","$([int]($top+$height*0.8))","$x","$([int]($top+$height*0.2))",'400')|Out-Null}
+    }
+    throw "Task not found after bounded list scroll: $Description"
+}
+
+# Восемь синтетических задач проходят настоящий JSON parser/Room через SAF.
+# Первая назначена через две минуты, следующие с шагом три минуты.
+# Приватная база не читается; экспорт CRUD сохраняется отдельно. Заменяем
+# только собственный временный файл в Download и удаляем его в finally.
+function Prepare-ReleaseHourlyQuotaTasks([string]$DescriptionPrefix) {
+    $now=[long](Invoke-ReleaseAdb @('shell','date','+%s')).Trim()*1000
+    $rows=@();$tasks=@()
+    for($index=0;$index -lt 8;$index++) {
+        $deadline=$now+120000+$index*180000
+        $description="$DescriptionPrefix-Quota$($index+1)"
+        $rows+=,@([long]($index+1),$description,1,1,[long]$deadline,[long]($deadline-180000),[long]($deadline-3600000),1)
+        $tasks+=@{description=$description;deadline=[long]$deadline}
+    }
+    $fixture=@{meta=@{version=1;exportedAt=$now};tables=@{tasks=@{columns=@('id','description','interval','amount','next_alarm','next_caution','last_ack','quant');rows=$rows}}}
+    $path=Join-Path $run 'hourly-quota-fixture.json'
+    $fixture|ConvertTo-Json -Depth 8|Set-Content -LiteralPath $path -Encoding UTF8
+    Invoke-ReleaseAdb @('push',$path,$backupDevicePath)|Out-Null
+    Launch-Release
+    Click-ReleaseId 'btn_open_settings'
+    Click-ReleaseId 'import_from_json_btn'
+    Click-ReleaseNode "//node[@text='$backupName']"
+    Wait-ReleaseNode "//node[@resource-id='${package}:id/import_from_json_btn']"|Out-Null
+    Invoke-ReleaseAdb @('shell','input','keyevent','4')|Out-Null
+    Assert-ReleaseText $tasks[0].description
+    if((Wait-ReleaseAlarm) -ne $tasks[0].deadline){throw 'First hourly quota task not scheduled after SAF import'}
+    Invoke-ReleaseAdb @('shell','am','force-stop',$package)|Out-Null
+    Launch-Release
+    Assert-ReleaseText $tasks[0].description
+    if((Wait-ReleaseAlarm) -ne $tasks[0].deadline){throw 'Hourly quota fixture alarm lost after restart'}
+    return $tasks
+}
+
+# Перед ACK worker вправе заменить прямое уведомление новой тихой сводкой.
+# Повторно проверяем актуальные текст/when/PID/SUCCESS и contentIntent;
+# доказательство восьмой системной отправки при этом не переопределяется.
+function Assert-ReleaseQuotaNotification($Task,[long]$dispatch) {
+    $clock=(Invoke-ReleaseAdb @('shell',"date '+%Y %z'")).Trim()
+    if($clock -notmatch '^(\d{4}) ([+-]\d{2})(\d{2})$'){throw 'Device logcat timezone unknown'}
+    $year=$Matches[1];$zone=$Matches[2]+':'+$Matches[3]
+    $recent=Invoke-ReleaseTool $adb @('-s',$serial,'logcat','-d') 'quota8-notification-logcat.log'
+    $processes=Invoke-ReleaseTool $adb @('-s',$serial,'shell','ps','-A') 'quota8-notification-processes.log'
+    $releaseProcessIds=@([regex]::Matches($processes,'(?m)^\S+\s+(?<process>\d+)\s+[^\r\n]*\scom\.vpe_soft\.intime\.intime\s*$')|ForEach-Object {$_.Groups['process'].Value})
+    $releaseProcessIds+=@([regex]::Matches($recent,'Start proc (?<process>\d+):com\.vpe_soft\.intime\.intime/')|ForEach-Object {$_.Groups['process'].Value})
+    $notification=Invoke-ReleaseTool $adb @('-s',$serial,'shell','dumpsys','notification','--noredact') 'quota8-dispatch-notification.log'
+    $record=[regex]::Match($notification,'(?ms)^\s*NotificationRecord\([^\r\n]*pkg=com\.vpe_soft\.intime\.intime(?=\s)[^\r\n]*\r?\n.*?(?=^\s*NotificationRecord\(|^\s*Current Notification List:|^\s*Notification listeners:|\z)')
+    $text=[regex]::Match($record.Value,'android.text=String \((?<text>[^\r\n]+)\)')
+    $when=[regex]::Match($record.Value,'when=(\d+)')
+    if(-not $when.Success -or [long]$when.Groups[1].Value -lt $Task.deadline){throw 'Eighth due task notification missing'}
+    $direct=$text.Groups['text'].Value -eq $Task.description
+    if($direct -and $record.Value -notmatch 'actions=1'){throw 'Direct eighth notification ACK missing'}
+    if($direct -and [long]$when.Groups[1].Value -lt $dispatch-2000){throw 'Direct eighth notification predates its dispatch'}
+    $workerText=$summary.quotaTasks[0].description+' and 7 more tasks'
+    $workerConfirmed=$false
+    foreach($event in [regex]::Matches($recent,'(?m)^(?<stamp>\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s+(?<process>\d+)\s+\d+[^\r\n]*Worker result SUCCESS[^\r\n]*TaskNotificationWorker')){
+        if($releaseProcessIds -contains $event.Groups['process'].Value){$time=[datetimeoffset]::ParseExact("$year-$($event.Groups['stamp'].Value) $zone",'yyyy-MM-dd HH:mm:ss.fff zzz',[cultureinfo]::InvariantCulture);if($time.ToUnixTimeMilliseconds() -ge [long]$when.Groups[1].Value-2000){$workerConfirmed=$true}}
+    }
+    if(-not $direct -and ($text.Groups['text'].Value -ne $workerText -or -not $workerConfirmed)){throw 'Eighth notification is neither direct nor verified natural worker summary'}
+    if(-not $direct -and $record.Value -notmatch 'contentIntent=PendingIntent\{[^\r\n]*com\.vpe_soft\.intime\.intime startActivity'){throw 'Worker summary list PendingIntent missing'}
+    $summary.quotaEighthUsedWorker=-not $direct
+    $summary.quotaEighthNotificationText=$text.Groups['text'].Value
+    $summary.quotaEighthNotificationWhen=[long]$when.Groups[1].Value
+    $summary.quotaEighthWorkerBeforeDispatch=(-not $direct -and [long]$when.Groups[1].Value -lt $dispatch)
+}
+
+# Проверяем restricted alarm до ожидания, восемь доставок в счётчике пакета,
+# восемь callback собственного PID, последнюю отправку после истечения окна
+# и потребление alarm. История может сохранить семь или восемь записей.
+# Уведомление проверяем отдельно: receiver может не публиковать дубль worker.
+# Resume принимает before dump только той же установки; caller проверяет
+# владение AVD. Это внутренний режим продолжения, а не новая OS-проверка.
+function Assert-ReleaseQuotaEighthDispatch($Task,[string]$Since,[long]$FirstWhen,[bool]$Resume=$false) {
+    $beforePath=Join-Path $run 'quota8-alarm-before.log'
+    if(-not $Resume){Invoke-ReleaseTool $adb @('-s',$serial,'shell','dumpsys','alarm') 'quota8-alarm-before.log'|Out-Null}
+    $before=Get-Content $beforePath -Raw
+    $own=[regex]::Match($before,'(?m)^\s*RTC_WAKEUP #\d+: Alarm\{\S+ type 0 origWhen (?<deadline>\d+) [^\r\n]* com\.vpe_soft\.intime\.intime\}\r?\n\s+tag=\*walarm\*:com\.vpe_soft\.intime\.intime/(?:com\.vpe_soft\.intime\.intime)?\.receiver\.AlarmReceiver\r?\n\s+type=RTC_WAKEUP[^\r\n]*flags=0x(?<flags>[a-fA-F0-9]+)')
+    if(-not $own.Success -or [long]$own.Groups['deadline'].Value -ne $Task.deadline -or ([Convert]::ToInt64($own.Groups['flags'].Value,16) -band 0x28) -ne 0x20){throw 'Restricted eighth alarm before dispatch missing'}
+    if(-not $Resume){Invoke-ReleaseTool $adb @('-s',$serial,'logcat','-d','-T',$Since) 'quota8-logcat-before.log'|Out-Null}
+    $early=Get-Content (Join-Path $run 'quota8-logcat-before.log') -Raw
+    $clock=(Invoke-ReleaseAdb @('shell',"date '+%Y %z'")).Trim()
+    if($clock -notmatch '^(\d{4}) ([+-]\d{2})(\d{2})$'){throw 'Device logcat timezone unknown'}
+    $year=$Matches[1];$zone=$Matches[2]+':'+$Matches[3]
+    $limit=(Get-Date).AddMinutes(75);$previous=[datetimeoffset]::UtcNow
+    do {
+        $now=[datetimeoffset]::UtcNow
+        if(($now-$previous).TotalSeconds -lt 0 -or ($now-$previous).TotalSeconds -gt 180){throw 'Inexact observation interrupted by host polling gap'}
+        $previous=$now
+        $policy=Read-ReleaseIdlePolicy 'quota8-dispatch-poll'
+        if(-not ($policy.controllerIdle -and $policy.powerIdle -and $policy.idleUntilPresent) -or $policy.compatQuota -ne 7 -or $policy.compatWindowMs -ne 3600000){throw 'Hourly dispatch observation lost confirmed idle policy'}
+        $dump=Get-Content (Join-Path $run 'quota8-dispatch-poll-alarm.log') -Raw
+        $h=[regex]::Match($dump,'(?ms)^\s*Allow while idle compat history:\s*\r?\n(?<entries>.*?)(?=^\s*Removal history:|\z)')
+        $line=[regex]::Match($h.Groups['entries'].Value,'(?m)^\s*com\.vpe_soft\.intime\.intime, u0:\s*(?<ages>[^\r\n]+)')
+        $ages=@($line.Groups['ages'].Value.Split(',')|ForEach-Object {if($_.Trim()){Convert-ReleaseDurationMs $_.Trim()}})
+        $recent=Invoke-ReleaseTool $adb @('-s',$serial,'logcat','-d','-T',$Since) 'quota8-dispatch-logcat-poll.log'
+        # Процесс вправе умереть до alarm и запуститься снова при dispatch.
+        # PID берём из ps и записей запуска именно своего пакета; пустой ps
+        # до доставки не является отказом. Не используем readonly переменную PID.
+        $processes=Invoke-ReleaseTool $adb @('-s',$serial,'shell','ps','-A') 'quota8-processes-poll.log'
+        $releaseProcessIds=@([regex]::Matches($processes,'(?m)^\S+\s+(?<process>\d+)\s+[^\r\n]*\scom\.vpe_soft\.intime\.intime\s*$')|ForEach-Object {$_.Groups['process'].Value})
+        $releaseProcessIds+=@([regex]::Matches(($early+"`n"+$recent),'Start proc (?<process>\d+):com\.vpe_soft\.intime\.intime/')|ForEach-Object {$_.Groups['process'].Value})
+        $events=[regex]::Matches($recent,'(?m)^(?<stamp>\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s+(?<process>\d+)\s+\d+\s+D\s+AlarmReceiver\s*:\s*onReceive\s*$')
+        $dispatch=[long]0
+        foreach($event in $events){if($releaseProcessIds -notcontains $event.Groups['process'].Value){continue};$time=[datetimeoffset]::ParseExact("$year-$($event.Groups['stamp'].Value) $zone",'yyyy-MM-dd HH:mm:ss.fff zzz',[cultureinfo]::InvariantCulture);if($time.ToUnixTimeMilliseconds() -ge $FirstWhen+3600000-2000){$dispatch=$time.ToUnixTimeMilliseconds()}}
+        $consumed=$dump -notmatch '(?m)^\s*RTC_WAKEUP #\d+: Alarm\{[^\r\n]*com\.vpe_soft\.intime\.intime\}'
+        # История квоты хранит окно времени: при восьмой доставке Android вправе
+        # удалить вышедший из окна элемент и оставить семь. Подтверждаем восемь
+        # доставок отдельным счётчиком пакета и восемью callback его PID в logcat.
+        $stats=[regex]::Match($dump,'(?m)^\s*[^\r\n]*\b8 wakeups, 8 alarms: u0a\d+:com\.vpe_soft\.intime\.intime\s*$')
+        $ownCallbacks=@($events|Where-Object {$releaseProcessIds -contains $_.Groups['process'].Value})
+        $historyValid=$ages.Count -ge 7 -and $ages.Count -le 8
+        if($historyValid -and $stats.Success -and $ownCallbacks.Count -eq 8 -and $dispatch -gt 0 -and $consumed){break}
+        Write-Output 'Waiting for eighth own AlarmManager dispatch...'
+        Start-Sleep -Seconds 15
+    }while((Get-Date) -lt $limit)
+    if($dispatch -eq 0 -or -not $historyValid -or -not $stats.Success -or $ownCallbacks.Count -ne 8 -or -not $consumed){throw 'Inexact alarm notification timed out; eighth dispatch not validated'}
+    Assert-ReleaseQuotaNotification $Task $dispatch
+    $summary.quotaEighthDispatchWhen=$dispatch
+    $summary.quotaEighthHistoryCount=$ages.Count
+    $summary.quotaEighthPackageAlarmCount=8
+    $summary.quotaEighthOwnCallbackCount=$ownCallbacks.Count
+    $summary.inexactNotificationWhen=$dispatch
+    $summary.inexactDelaySeconds=($dispatch-$Task.deadline)/1000.0
+    $summary.sequencePowerDeviceIdleAtDelivery=$true
+    $summary.dozeStateAtDelivery='IDLE'
+    Set-Content (Join-Path $run 'quota8-logcat.log') ($early+"`n"+$recent) -Encoding UTF8
+    Complete-ReleasePhase 'release-inexact-quota-delivery-quota8'
+}
+
+# Задачи заранее сохранены и запланированы приложением, открыт Home.
+# На своём AVD имитируем отключение зарядки, гасим экран и включаем deep idle.
+# Во время ожидания нет UI/ручного receiver, каждый опрос подтверждает idle.
+# Обычный режим проверяет одну отправку, Sequence — две, QuotaSeven — восемь.
+# Квоту доказывают отдельные проверки history/policy/callback, большой интервал
+# сам по себе не считается доказательством. Естественный Doze/OEM не покрываются.
 function Assert-ReleaseDozeDelivery([string]$Description, [long]$Deadline, [string]$SchedulingSince) {
     $battery = Invoke-ReleaseAdb @('shell', 'dumpsys', 'battery')
     Set-Content (Join-Path $run 'doze-battery-before.log') $battery -Encoding UTF8
@@ -430,11 +628,33 @@ function Assert-ReleaseDozeDelivery([string]$Description, [long]$Deadline, [stri
     Invoke-ReleaseAdb @('shell', 'dumpsys', 'battery', 'unplug') | Out-Null
     Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '223') | Out-Null
     Invoke-ReleaseAdb @('shell', 'cmd', 'deviceidle', 'force-idle', 'deep') | Out-Null
-    if ($DozeQuota) { Initialize-ReleaseQuotaIdle }
+    if ($DozeQuota -or $DozeQuotaSeven) { Initialize-ReleaseQuotaIdle }
     # Fallback должен доставиться при сохранённом deny и положительном окне.
     # Общая проверка требует ACK/receiver и IDLE до пробуждения; cleanup общий.
     if ($InexactOnly) {
-        if ($DozeSequence) {
+        if ($DozeQuotaSeven) {
+            $summary.quotaDeliveries=@()
+            for($index=0;$index -lt 8;$index++) {
+                $task=$summary.quotaTasks[$index]
+                $next=if($index -lt 7){$summary.quotaTasks[$index+1].deadline}else{[long]0}
+                if($index -eq 7){Assert-ReleaseQuotaDeferral $task.deadline 'quota-after-seven' 7}
+                $wait=if($index -eq 7){75}else{15}
+                Write-Output "Observing quota delivery $($index+1)/8..."
+                if($index -eq 7){Assert-ReleaseQuotaEighthDispatch $task $SchedulingSince $summary.quotaDeliveries[0].when}
+                else{Assert-ReleaseInexactDelivery $task.description $task.deadline $SchedulingSince $true $next "quota$($index+1)" $wait}
+                $summary.quotaDeliveries+=@{description=$task.description;deadline=$task.deadline;when=$summary.inexactNotificationWhen;delaySeconds=$summary.inexactDelaySeconds;powerDeviceIdle=$summary.sequencePowerDeviceIdleAtDelivery}
+            }
+            $summary.sequenceFirst=$summary.quotaDeliveries[0]
+            $summary.sequenceSecond=$summary.quotaDeliveries[7]
+            $summary.sequenceGapSeconds=($summary.sequenceSecond.when-$summary.sequenceFirst.when)/1000.0
+            $summary.quotaDeliveryToleranceMs=2000
+            if($summary.sequenceGapSeconds*1000 -lt $summary.quotaPreparedPolicy.compatWindowMs-2000){throw 'Eighth delivery arrived before confirmed hourly quota expiry'}
+            $lines=@(1..8|ForEach-Object {Get-Content (Join-Path $run "quota$_-logcat.log")}|Sort-Object -Unique)
+            $summary.sequenceReceiverCount=@($lines|Where-Object {$_ -match 'AlarmReceiver.*onReceive'}).Count
+            if($summary.sequenceReceiverCount -lt 8){throw 'Eight distinct receiver deliveries not confirmed'}
+            $summary.quotaEnforcementValidated=$true
+            Complete-ReleasePhase 'release-idle-quota-seven-deferral'
+        } elseif ($DozeSequence) {
             # Обе задачи запланированы до IDLE. Первая доставка должна сама
             # поставить alarm второй задачи, а вторая — обновить record новым
             # описанием/when. Между ними не будим ОС и не вызываем ACK/UI.
@@ -1034,7 +1254,15 @@ try {
     # InexactOnly сохраняет запрет exact; остальные режимы проверяют разрешённый exact.
     $inexactSince = (Invoke-ReleaseAdb @('shell', "date '+%m-%d %H:%M:%S.000'")).Trim()
     Invoke-ReleaseAdb @('shell', 'appops', 'set', $package, 'SCHEDULE_EXACT_ALARM', $(if ($InexactOnly) { 'deny' } else { 'allow' })) | Out-Null
-    if ($DozeSequence) {
+    if ($DozeQuotaSeven) {
+        $summary.quotaTasks=@(Prepare-ReleaseHourlyQuotaTasks $edited)
+        if($summary.quotaTasks.Count -ne 8){throw 'Hourly quota fixture must contain eight tasks'}
+        $edited=$summary.quotaTasks[0].description
+        $summary.sequenceSecondDescription=$summary.quotaTasks[7].description
+        $summary.sequenceSecondDeadline=$summary.quotaTasks[7].deadline
+        $notificationDeadline=$summary.quotaTasks[0].deadline
+        Complete-ReleasePhase 'release-doze-quota-seven-preparation'
+    } elseif ($DozeSequence) {
         # Пока исходная задача имеет часовой период, создаём вторую на пять минут:
         # её срок сейчас ближайший, поэтому читаем его непосредственно из AlarmManager.
         # Вводим amount только в NumberPicker этой формы; перед Save требуем 5.
@@ -1065,6 +1293,7 @@ try {
         $summary.sequenceSecondDescription = $secondDescription
         Complete-ReleasePhase 'release-doze-sequence-preparation'
     }
+    if(-not $DozeQuotaSeven) {
     Launch-Release
     Assert-ReleaseText $edited
     Open-ReleaseDetails $edited
@@ -1076,22 +1305,27 @@ try {
     Assert-ReleaseText $edited
     $notificationDeadline = Wait-ReleaseAlarm
     if ($DozeSequence -and $summary.sequenceSecondDeadline -le $notificationDeadline + 60000) { throw 'Second task deadline is too close to first alarm' }
+    }
     $summary.notificationAlarm = $notificationDeadline
     Write-Output "Waiting for real AlarmManager notification (deadline $notificationDeadline)..."
     Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '3') | Out-Null
     if ($InexactOnly -and -not $DozeOnly) { Assert-ReleaseInexactDelivery $edited $notificationDeadline $inexactSince }
     if ($DozeOnly) { Assert-ReleaseDozeDelivery $edited $notificationDeadline $inexactSince }
     if ($DozeSequence) {
-        # Шторка теперь показывает вторую задачу; её ACK проверяем штатным путём.
+        # Шторка теперь показывает последнюю задачу последовательности:
+        # вторую либо восьмую. Её ACK проверяем штатным путём.
         $edited = $summary.sequenceSecondDescription
         $notificationDeadline = $summary.sequenceSecondDeadline
     }
+    $notificationDisplayText=if($DozeQuotaSeven){$summary.quotaEighthNotificationText}else{$edited}
+    $summary.notificationAckTaskDescription=$edited
     Invoke-ReleaseAdb @('shell', 'cmd', 'statusbar', 'expand-notifications') | Out-Null
     $notificationLimit = (Get-Date).AddSeconds(150)
     $notificationVisible = $false
     do {
+        if($DozeQuotaSeven){Assert-ReleaseQuotaNotification $summary.quotaTasks[7] $summary.quotaEighthDispatchWhen; $notificationDisplayText=$summary.quotaEighthNotificationText}
         $notificationUi = Read-ReleaseShade
-        $notificationVisible = $null -ne $notificationUi.SelectSingleNode("//node[@text='$edited']")
+        $notificationVisible = $null -ne $notificationUi.SelectSingleNode("//node[@text='$notificationDisplayText']")
         if (-not $notificationVisible) { Start-Sleep -Seconds 2 }
     } while (-not $notificationVisible -and (Get-Date) -lt $notificationLimit)
     if (-not $notificationVisible) { throw 'Release task notification not delivered to shade' }
@@ -1107,16 +1341,33 @@ try {
     # позднее сработавшего, описание остаётся в списке после нового запуска процесса.
     # Перед reboot appops не изменяли; allow/deny exact относится лишь к этой фазе
     # и исчезает вместе с удалением установленного нами APK в finally.
-    Click-ReleaseNode "//node[@text='Acknowledge' or @text='ACKNOWLEDGE']"
+    if($DozeQuotaSeven -and $summary.quotaEighthUsedWorker){
+        # Тихая сводка worker по действующему контракту не содержит ACK action.
+        # Открываем список её contentIntent и подтверждаем именно восьмую задачу
+        # в деталях; будущий alarm и его сохранение после restart проверяются ниже.
+        # Обычная блокировка выделенного AVD после часа с погашенным экраном
+        # может удерживать contentIntent. Не меняем lock settings и не сбрасываем
+        # PIN: dismiss-keyguard работает только там, где ОС разрешает снятие.
+        Invoke-ReleaseTool $adb @('-s',$serial,'shell','wm','dismiss-keyguard') 'quota-ui-dismiss-keyguard.log' | Out-Null
+        Read-ReleaseShade | Out-Null
+        Click-ReleaseNode "//node[@text='$notificationDisplayText']"
+        Assert-ReleaseListTask $edited
+        Open-ReleaseDetails $edited
+        Click-ReleaseId 'btnAckTask'
+        $summary.notificationAckMode='task-details-after-worker-summary'
+    }else{
+        Click-ReleaseNode "//node[@text='Acknowledge' or @text='ACKNOWLEDGE']"
+        $summary.notificationAckMode='notification-action'
+    }
     $notificationAckAlarm = Wait-ReleaseAlarm $notificationDeadline
     $afterNotificationAckUi = Read-ReleaseShade
-    if ($afterNotificationAckUi.SelectSingleNode("//node[@text='$edited']")) { throw 'Acknowledged notification still visible in shade' }
+    if ($afterNotificationAckUi.SelectSingleNode("//node[@text='$notificationDisplayText']")) { throw 'Acknowledged notification still visible in shade' }
     Set-Content (Join-Path $run 'notifications-after-ack.log') (Invoke-ReleaseAdb @('shell', 'dumpsys', 'notification', '--noredact')) -Encoding UTF8
     $summary.notificationAckAlarm = $notificationAckAlarm
     Invoke-ReleaseAdb @('shell', 'cmd', 'statusbar', 'collapse') | Out-Null
     Invoke-ReleaseAdb @('shell', 'am', 'force-stop', $package) | Out-Null
     Launch-Release
-    Assert-ReleaseText $edited
+    if($DozeQuotaSeven){Assert-ReleaseListTask $edited}else{Assert-ReleaseText $edited}
     if ((Wait-ReleaseAlarm) -ne $notificationAckAlarm) { throw 'Notification ACK alarm lost after restart' }
     Complete-ReleasePhase 'release-notification-ack'
     # После ACK/restart запрет должен сохраниться, новый alarm — иметь положительное

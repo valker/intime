@@ -4,6 +4,11 @@ The Windows runner works with Windows PowerShell 5.1 and JDK 17. Android Studio
 does not need to be open. Use the repository's Gradle Wrapper (8.11.1), AGP 8.9.1
 and installed compile SDK 36. Device API 24/31/33/35/36 is independent of compile/target SDK.
 
+PowerShell scripts containing Russian strings/comments must retain UTF-8 with BOM
+for Windows PowerShell 5.1. Saving without BOM can corrupt UI selectors before
+any application checks run; such a runner failure is not an application failure.
+See [PowerShell character encoding](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_character_encoding?view=powershell-5.1).
+
 ### Диагностика графического backend эмулятора
 
 Для существующих выделенных AVD можно явно выбрать host GPU и отключить
@@ -404,6 +409,89 @@ host GPU, DisableEmulatorVulkan и EmulatorRamMb=4096; API 31 также име�
 Данные не сбрасывались. Изменено только число ядер существующего API 33,
 не шаблон новых AVD; долгосрочная устойчивость режима не установлена.
 Подробные доказательства и все попытки — DEVICE_TEST_RESULTS.md.
+
+### Насыщение часовой квоты на API 35/36
+
+После свежего UI bootstrap соответствующего API:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -TestApi 36 -ApkPath '.test-tools/runs/release-icons-20261004-221247/intime-25-2.0.0-rc1-icons.apk' -InexactOnly -DozeOnly -DozeSequence -DozeQuotaSeven
+```
+
+Повторить последовательно на API 35, с отдельным bootstrap/cleanup. Режим требует
+API 35/36 и остальные три флага; DozeQuota одновременно запрещён. Ожидаются 21
+host-фаза, восемь отдельных системных alarm dispatch и последующий ACK/restart восьмой задачи.
+Приложение и release APK не модифицируются. До ожидания восемь синтетических задач
+импортируются штатным SAF/JSON parser в новую установку: первый срок через две
+минуты, следующие с шагом три минуты. Это подготовка через backup, не проверка
+создания восьми задач UI. Экспорт предыдущих CRUD-проверок сохраняется отдельно.
+Каждый receiver должен самостоятельно назначить точный срок следующей задачи.
+
+Требуются измеренные compat quota=7 и window=3600000 мс. Перед первым ожиданием
+допускаются не больше трёх управляемых maintenance-циклов для горизонта idle-until
+не меньше 80 минут; неизвестный горизонт отклоняется. Шаги и снимки сохраняются,
+квоты/часы/постоянные idle-настройки не меняются. Все вмешательства завершаются
+до наблюдения первой доставки. Во время ожидания требуются controller IDLE,
+PowerManager idle=true и текущий системный idle-until на каждом опросе.
+
+После седьмой отправки требуются ровно семь записей своего пакета внутри окна
+в compat history, restricted flags=0x20 без unrestricted и положительный перенос
+восьмой alarm. Её device_idle сверяется с освобождением самой старой записи
+с допуском 5 секунд для чтения dumpsys. Затем восьмая должна отправиться сама:
+требуются восемь доставок в счётчике пакета, восемь onReceive его процесса,
+потреблённая собственная alarm и последний callback после окончания окна.
+История вправе сохранить семь записей, удалив вышедшую из окна при восьмой отправке;
+поэтому её размер сам по себе не доказывает число доставок. PID сверяется с ps и записями
+Start proc своего пакета: остановка процесса до dispatch допускается.
+Время callback читается из logcat с измеренным годом/часовым поясом устройства;
+интервал от первого Notification.when не меньше окна минус 2 секунды.
+Только после этого quotaEnforcementValidated=true.
+В AOSP AppWakeupHistory.recordAlarmForPackage вызывает snapToWindow, который
+удаляет вышедшие из временного окна записи при добавлении новой:
+[AlarmManagerService.java](https://android.googlesource.com/platform/frameworks/base/+/296c28979c5b212e9e32be397901f93e15b60bf3/apex/jobscheduler/service/java/com/android/server/alarm/AlarmManagerService.java).
+Это объясняет наблюдаемые семь записей после восьми отправок; идентичность
+исходников конкретных SDK-образов этому commit отдельно не установлена.
+Между доставками нет UI, ACK, ручного receiver, maintenance или изменения часов.
+
+Первые семь доставок ограничены 15 минутами каждая, восьмая — 75 минутами.
+Alarm-квота не ограничивает все уведомления приложения. Естественный periodic
+worker может раньше показать тихую сводку восьми просроченных задач и отметить
+восьмую уведомлённой; receiver тогда не публикует дубль. Такой путь требует
+сводку своего пакета, корректный срок и SUCCESS worker собственного процесса.
+Прямой путь требует текст восьмой задачи и ACK action. Сводка worker по текущему
+контракту содержит contentIntent списка, но не ACK action: через неё открывается
+список, восьмая задача подтверждается в деталях. Перед действием уведомление
+повторно проверяется: worker вправе заменить прямое уведомление сводкой.
+После пробуждения выделенного AVD обычный keyguard снимается командой
+`wm dismiss-keyguard`, без изменения PIN или настроек блокировки. После нажатия
+contentIntent runner до 30 секунд ждёт настоящий recyclerView приложения,
+затем ищет задачу ограниченной прокруткой. Снимок SystemUI во время перехода
+не считается отсутствием задачи. Для короткого сценария публикации сводки
+ожидание должно покрывать положительное окно inexact alarm, а не только её срок.
+В обоих случаях проверяются
+новый inexact alarm, deny exact и тот же срок после restart. Постановка worker
+вручную и изменение его периода запрещены. Путь и два отдельных timestamp
+уведомления/dispatch сохраняются в summary; восемь alarm dispatch не означают
+восемь уникальных публикаций NotificationManager.
+quotaEighthDispatchWhen — timestamp системного callback,
+quotaEighthNotificationWhen — независимый timestamp текущего уведомления.
+Для восьмой строки quotaDeliveries поле when и служебное inexactNotificationWhen
+содержат timestamp callback; для первых семи строк — Notification.when.
+sequenceGapSeconds считается от первого Notification.when до восьмого callback.
+
+Обычный полный прогон занимает около часа с дополнительной подготовкой;
+компьютер должен оставаться активным. Разрыв опросов более 180 секунд означает
+прерванное наблюдение. Ранние строки logcat сохраняются до каждого ожидания,
+чтобы часовая пауза не потеряла доказательство постановки alarm в кольцевом буфере.
+Опросы используют фиксированные файлы и не накапливают dump каждые 15 секунд.
+Естественный Doze, OEM и долговременная устойчивость этим режимом не проверяются.
+
+Завершённая матрица 7–8 октября: API 35/36 — свежие UI 3/3 и release 21/21
+каждого; gap 3599,998/3600,002 с, ACK/restart/cleanup прошли. API 35 использовал
+сводку штатного worker и детали восьмой задачи, API 36 — action прямого
+уведомления. Семь/восемь сохранённых записей после восьмой отправки принимаются
+только вместе с независимыми восемью callback и счётчиком пакета.
+Отчёты, неудачные попытки и общий агрегат — DEVICE_TEST_RESULTS.md.
 
 ### Два заранее назначенных inexact alarm без выхода из Doze
 
