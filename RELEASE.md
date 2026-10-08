@@ -14,6 +14,22 @@ This document describes the process for building and releasing Intime.
 
 ## R6.1: Release Signing Configuration
 
+### Текущий локальный кандидат — 26/2.0.0-rc2, 8 октября 2026
+
+Пользователь подтвердил максимум использованных Console-кодов 25. Production
+guard теперь требует 26..2100000000; новый подписанный APK/AAB 26/2.0.0-rc2
+собран с R8/lint. apksigner/jarsigner, сертификаты Upload key, bundletool,
+манифесты и встроенный/внешний mapping прошли. Шесть конфигурационных случаев,
+девять APK-метаданных, свежие local 97/97, API 36 UI 3/3 и release 14/14 прошли.
+Первый smoke с прежним rc1-селектором сохранён FAILED 3/14; полный повтор
+проверил тот же APK с явными code/name, без пересборки.
+
+Архив: .test-tools/runs/20261008-224203-release-version-guard/candidate.
+Исходный commit, рабочий diff, хеши, mapping и все попытки — DEVICE_TEST_RESULTS.md.
+Это локальный Upload-key кандидат, не опубликованная или подписанная Play
+сборка. Рабочий телефон не использовался; R4.2/физический Doze и финальная
+production-версия остаются открытыми. Все APK/AAB code 25 ниже исторические.
+
 ### Актуальный AAB — 4 октября 2026
 
 После этого кандидата заменены launcher icons и собраны отдельные свежие APK/AAB:
@@ -45,7 +61,7 @@ runtime не изменялся; ранее проверенный APK и нов
 ### Production candidate — 3 октября 2026
 
 Обычные сборки остаются `.dev`/21/1.1.8. Production-режим сохраняет исходный пакет
-`com.vpe_soft.intime.intime`, требует явных releaseVersionCode (>24) и releaseVersionName.
+`com.vpe_soft.intime.intime`, требует явных releaseVersionCode (>25) и releaseVersionName.
 Разрешены только `:app:assembleRelease` и `:app:bundleRelease`; совмещение с upgradeSmoke
 отклоняется. Release использует R8. Код 25 и имя 2.0.0-rc1 — локальный кандидат;
 перед загрузкой проверить все использованные коды Console и согласовать финальную версию.
@@ -53,8 +69,22 @@ runtime не изменялся; ранее проверенный APK и нов
 Код 25 уже занят и не подходит для новой загрузки в Play:
 [правило versionCode](https://developer.android.com/studio/publish/versioning).
 Следующий финальный код должен быть выше 25 и не использоваться в Console;
-свободность 26 и выше пока не установлена. Команды с кодом 25 ниже описывают
-исторический тестовый кандидат, а не готовую к публикации новую сборку.
+Пользователь подтвердил, что наибольший использованный код Console — 25;
+следующий локальный кандидат — 26/2.0.0-rc2. Финальная production-версия ещё
+согласуется отдельно. Новые production-сборки с кодом 25 теперь отклоняются.
+Команды с кодом 25 ниже описывают исторические сборки и не проходят текущий guard.
+
+Подготовка следующего кандидата после подтверждения свободного кода:
+
+```powershell
+./gradlew.bat ':app:assembleRelease' ':app:bundleRelease' '-PproductionRelease=true' '-PreleaseVersionCode=26' '-PreleaseVersionName=2.0.0-rc2' --offline --no-daemon --no-watch-fs --no-configuration-cache
+```
+
+Для smoke нового APK передать `-ExpectedVersionCode 26 -ExpectedVersionName 2.0.0-rc2`
+вместе с его путём. Значения по умолчанию 25/2.0.0-rc1 оставлены только для
+воспроизведения исторических артефактов. Код и имя проверяются в APK до установки,
+а имя дополнительно на экране настроек. Это проверка выбранного APK на проектном AVD,
+а не самостоятельная сверка его доступности в Play Console.
 
 Неподписанный кандидат для проверки упаковки (PowerShell, JDK 17 и SDK настроены):
 
@@ -254,7 +284,9 @@ parameters in PowerShell (JDK 17, SDK and user signing properties configured):
 Outputs: `app/build/outputs/apk/release/app-release.apk` and
 `app/build/outputs/bundle/release/app-release.aab`. Archive the exact artifacts,
 SHA-256, source commit, logs and mapping.txt together before another build.
-Code 25/name 2.0.0-rc1 are provisional. Local APKs carry the Upload key;
+Code 25/name 2.0.0-rc1 refer to historical local artifacts; new production builds
+reject that code. The user confirmed Console maximum 25; next candidate is
+26/2.0.0-rc2, with the final production version still to be agreed. Local APKs carry the Upload key;
 they cannot update the differently signed Play installation.
 
 ## R6.2 / R6.7: Release Verification

@@ -44,7 +44,14 @@ param(
     [ValidateRange(1, 2)][int]$PeriodicRepeats = 1,
     [ValidateRange(1, 10)][int]$RebootRepeats = 1,
     # Ноль позволяет проверить гипотезу о задержке записи stopped после force-stop.
-    [ValidateRange(0, 60)][int]$RebootSettleSeconds = 15
+    [ValidateRange(0, 60)][int]$RebootSettleSeconds = 15,
+    # Код проверяемого APK задаётся явно для будущих кандидатов. Значение 25
+    # сохраняет воспроизводимость старых артефактов; это не разрешение новой
+    # production-сборки или публикации с уже занятым кодом.
+    [ValidateRange(25, 2100000000)][int]$ExpectedVersionCode = 25,
+    # Имя проверяется и в APK, и на экране настроек. Старое имя по умолчанию
+    # относится к архивным кандидатам; для новой сборки передаём её точное имя.
+    [ValidatePattern('^[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.]+)?$')][string]$ExpectedVersionName = '2.0.0-rc1'
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -65,7 +72,7 @@ $backupDevicePath = $null
 $oldJavaHome = $env:JAVA_HOME
 $lock = $null
 $commandNumber = 0
-$summary = @{ status = 'RUNNING'; passedPhases = @(); reports = $run; serial = $serial; testApi = $TestApi; rebootOnly = [bool]$RebootOnly; rebootResults = @(); rebootSettleSeconds = $RebootSettleSeconds }
+$summary = @{ status = 'RUNNING'; passedPhases = @(); reports = $run; serial = $serial; testApi = $TestApi; rebootOnly = [bool]$RebootOnly; rebootResults = @(); rebootSettleSeconds = $RebootSettleSeconds; expectedVersionCode = $ExpectedVersionCode; expectedVersionName = $ExpectedVersionName }
 if (-not $RebootOnly -and $RebootRepeats -ne 1) { throw 'RebootRepeats requires RebootOnly' }
 if ($RebootOnly -and $DozeOnly) { throw 'RebootOnly and DozeOnly are mutually exclusive' }
 $summary.dozeOnly = [bool]$DozeOnly
@@ -473,6 +480,17 @@ function Assert-ReleaseListTask([string]$Description) {
         if($page -lt 7){Invoke-ReleaseAdb @('shell','input','swipe',"$x","$([int]($top+$height*0.8))","$x","$([int]($top+$height*0.2))",'400')|Out-Null}
     }
     throw "Task not found after bounded list scroll: $Description"
+}
+
+# До установки проверяем метаданные aapt: исходный production-пакет, ожидаемый
+# код/имя версии и отсутствие debuggable. Подпись и mapping проверяются отдельно.
+# Совпадение кода не доказывает, что код свободен в Play Console; здесь защищаем
+# тестовый запуск от проверки другого APK вместо выбранного кандидата.
+function Assert-ReleaseApkIdentity([string]$Badging, [int]$Code, [string]$VersionName = '2.0.0-rc1') {
+    $identity = "(?m)^package: name='$([regex]::Escape($package))' versionCode='$Code' versionName='$([regex]::Escape($VersionName))'"
+    if($Badging -notmatch $identity -or $Badging -match 'application-debuggable') {
+        throw "Expected non-debuggable production candidate $Code/$VersionName"
+    }
 }
 
 # Восемь синтетических задач проходят настоящий JSON parser/Room через SAF.
@@ -989,7 +1007,8 @@ try {
     $tools = Join-Path $sdk 'build-tools\35.0.0'
     $env:JAVA_HOME = 'C:\Program Files\Java\jdk-17'
     $badging = (& (Join-Path $tools 'aapt.exe') dump badging $ApkPath) -join "`n"
-    if ($LASTEXITCODE -ne 0 -or $badging -notmatch "package: name='$package' versionCode='25'" -or $badging -match 'application-debuggable') { throw 'Expected non-debuggable production candidate code 25' }
+    if ($LASTEXITCODE -ne 0) { throw 'APK badging failed' }
+    Assert-ReleaseApkIdentity $badging $ExpectedVersionCode $ExpectedVersionName
     Set-Content (Join-Path $run 'apk-badging.log') $badging -Encoding UTF8
     $signing = (& (Join-Path $tools 'apksigner.bat') verify --print-certs $ApkPath 2>&1) -join "`n"
     if ($LASTEXITCODE -ne 0 -or $signing -notmatch '97b60110a8e894791b4770826a8d214dc5e3a551cd24bd41d646c29f64a1dd26') { throw 'APK upload signature mismatch' }
@@ -1084,7 +1103,7 @@ try {
     # Проверка настроек и Back: экран с DataBinding должен показать версию кандидата;
     # системный Back возвращает список с задачей. Внешние настройки ОС не изменяем.
     Click-ReleaseId 'btn_open_settings'
-    Wait-ReleaseNode "//node[contains(@text, '2.0.0-rc1')]" | Out-Null
+    Wait-ReleaseNode "//node[contains(@text, '$ExpectedVersionName')]" | Out-Null
     Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '4') | Out-Null
     Assert-ReleaseText $edited
     Complete-ReleasePhase 'settings-and-system-back'

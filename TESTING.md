@@ -683,7 +683,7 @@ platform android-36 с `android.jar`/`uiautomator.jar`, build-tools 35.0.0
 # Запустить и оставить принадлежащий runner проектный AVD; это debug bootstrap.
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 36 -Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline -KeepEmulator
 # Отдельная последовательная сборка подписанного production APK с R8.
-./gradlew.bat ':app:assembleRelease' '-PproductionRelease=true' '-PreleaseVersionCode=25' '-PreleaseVersionName=2.0.0-rc1' --offline --no-daemon --no-watch-fs --no-configuration-cache
+./gradlew.bat ':app:assembleRelease' '-PproductionRelease=true' '-PreleaseVersionCode=26' '-PreleaseVersionName=2.0.0-rc2' --offline --no-daemon --no-watch-fs --no-configuration-cache
 ```
 
 Сохранить APK из `app/build/outputs/apk/release` и `mapping.txt` из
@@ -693,6 +693,21 @@ Mapping должен лежать рядом с переданным APK. При
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -ApkPath '.test-tools/runs/release-permissions-20261003-225632/intime-25-2.0.0-rc1-r8.apk'
 ```
+
+Исторический APK 25 принимается при стандартном `-ExpectedVersionCode 25`.
+Новые production-сборки требуют код не ниже 26: опубликованная v1 уже имеет 25,
+пользователь подтвердил максимум 25 в Console. Для APK следующего кандидата
+26/2.0.0-rc2 явно передавать `-ExpectedVersionCode 26 -ExpectedVersionName 2.0.0-rc2`;
+значения сохраняются в summary и проверяются по aapt до установки, имя — также
+на экране настроек. Другой пакет, код/имя или debuggable
+отклоняются; подпись и mapping проверяются отдельно. Эта проверка не устанавливает
+свободность кода в Console. Для будущих загрузок её нужно сверять заново.
+
+Проверка 8 октября: candidate 26/2.0.0-rc2 — local 97/97, API 36 UI 3/3,
+release smoke 14/14. Первый FAILED 3/14 из-за старого rc1-селектора сохранён;
+после исправления имени выполнен полный повтор на том же APK. Шесть реальных
+Gradle dry-run границ и девять host-случаев badging прошли. Команды, точные
+артефакты, SHA и границы — RELEASE.md/DEVICE_TEST_RESULTS.md.
 
 Для API 35 сначала оставьте запущенным соответствующий проектный AVD, затем
 передайте тот же API release-runner (приложение и shell-probe компилируются с SDK 36):
