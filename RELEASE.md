@@ -422,6 +422,15 @@ host polling gap required a complete retry. The final batch temporarily requeste
 system wakefulness and released that request in finally without changing power settings.
 Details and the checked hourly-quota-confirmed-matrix.json are in DEVICE_TEST_RESULTS.md.
 Natural Doze, physical OEM, Play-compatible upgrade and disk-limited API 24 remain open.
+On 8 October a read-only natural-deep-Doze preflight covered dedicated API
+31/33/35/36 with fresh UI 3/3 each (API 36 after a retained focus-wait failure).
+Every controller requires a motion sensor but reports null; deep/light are
+enabled on 31/33 and disabled on 35/36. NATURAL_DEEP_UNAVAILABLE is an environment
+assessment, not an application test pass. No natural-entry or delivery coverage
+is claimed, no power/sensor settings were changed, and owned AVDs were stopped.
+Nine parser fixtures passed. Physical-device prerequisites and candidate
+verification require separately agreed personal-device use; the procedure is
+in TESTING.md. Natural light idle on 31/33 remains a separate unchecked scenario.
 Existing images were reused; owned emulators were stopped after cleanup.
 
 - [ ] Remaining device coverage and release worker verified (R4.3/R5.3).

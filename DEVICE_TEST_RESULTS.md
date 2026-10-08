@@ -1,5 +1,65 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Предпосылки естественного deep Doze — 8 октября 2026
+
+Последовательно проверены существующие проектные AVD API 31/33/35/36.
+Новый scripts/test-natural-doze-preflight.ps1 читает текущие состояния
+DeviceIdleController, PowerManager, AlarmManager, BatteryService, SensorService
+и fingerprint. Проверяется владение serial/PID/start time/AVD/API; неизвестный
+формат, existing forced idle или battery simulation отклоняются.
+Питание, режимы Doze, датчики, часы и приложение диагностикой не менялись.
+Новые образы не скачивались, данные AVD не сбрасывались, личные телефоны
+и main*.db не использовались.
+
+| API | Свежие UI | Deep enabled | Light enabled | Требуемый motion sensor | Результат диагностики |
+| --- | --- | --- | --- | --- | --- |
+| 31 | 3/3 | true | true | null | NATURAL_DEEP_UNAVAILABLE |
+| 33 | 3/3 | true | true | null | NATURAL_DEEP_UNAVAILABLE |
+| 35 | 3/3 | false | false | null | NATURAL_DEEP_UNAVAILABLE |
+| 36 | 3/3 после повтора | false | false | null | NATURAL_DEEP_UNAVAILABLE |
+
+На всех четырёх mUseMotionSensor=true, mMotionSensor=null, mForceIdle=false.
+В текущей конфигурации предпосылки естественного deep-перехода не выполнены;
+ожидание без принудительных шагов не запускалось. Это ограничение тестовой
+среды, не падение alarm/worker приложения. naturalEntryValidated и
+notificationDeliveryValidated остаются false. Включённый light на API 31/33
+записан отдельно: его естественный переход/доставка пока не проверены.
+Требования полного и облегчённого Doze описаны в
+[документации AOSP](https://source.android.com/docs/core/power/platform_mgmt);
+вывод о конкретных AVD основан на свежих снимках контроллера.
+
+Каталоги UI/preflight:
+
+| API | UI в .test-tools/runs | Preflight в .test-tools/runs |
+| --- | --- | --- |
+| 31 | 20261008-090545-d8be57ed | 20261008-090826-natural-doze-preflight |
+| 33 | 20261008-090832-d3220bb8 | 20261008-091112-natural-doze-preflight |
+| 35 | 20261008-091118-5f77bee1 | 20261008-091319-natural-doze-preflight |
+| 36 | 20261008-091741-5d3ff9ab | 20261008-091934-natural-doze-preflight |
+
+Первый UI API 36 (20261008-091324-2f6394cd) сохранён как FAILED:
+3 теста, 1 failure. settings_systemBackAndMainButton_returnToExistingList
+не дождался resumed/focused SettingsActivity; остальных два теста прошли.
+Полный повтор на новом запуске того же AVD прошёл 3/3 без изменения приложения,
+тестов или образа и без сброса данных. Точная причина первого отказа не установлена;
+один успешный повтор не доказывает долговременной устойчивости UI.
+
+Классификатор проверен 9 положительными/отрицательными host-фикстурами:
+включённый deep с датчиком, два независимых препятствия, отсутствие требуемого
+датчика, отключённое его использование, forced idle, конфликт enabled,
+неполный dump, неизвестные cmd/sensor. Это проверки разбора, не естественного Doze.
+Парсер повторно сверён с сохранёнными текущими снимками всех четырёх API.
+Общий проверенный агрегат —
+.test-tools/runs/20261008-090457-natural-doze-matrix/confirmed-matrix.json.
+Все собственные AVD остановлены, marker удалён. Журналы сжаты NTFS без удаления;
+AVD/SDK не сжимаются. Временный запрос удержания Windows активной снят в finally.
+
+Следующий шаг для deep Doze — согласованная диагностика физического устройства:
+сначала только версия установленного InTime и системные условия, затем отдельная
+проверка кандидата без зарядки и force-idle. Порядок и критерии — TESTING.md.
+Личный телефон не используется автоматически; установка/обновление/изменение
+его данных требуют отдельного согласования. R5.3 остаётся открытым.
+
 ## Насыщение idle-квоты 7/час API 35/36 — 7–8 октября 2026
 
 Добавлен явный режим DozeQuotaSeven в scripts/test-release-smoke.ps1: восемь
