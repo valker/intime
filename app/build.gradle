@@ -30,8 +30,8 @@ android {
         applicationId = "com.vpe_soft.intime.intime"
         minSdkVersion 23
         targetSdkVersion 36
-        versionCode = 24
-        versionName = "1.1.11"
+        versionCode = 25
+        versionName = "1.1.12"
         buildConfigField "String", "GIT_LAST_COMMIT_HASH", providers.provider { "\"${gitLastCommitHashProvider.get()}\"" }.get()
     }
 
