@@ -568,6 +568,15 @@ do not upload a different payload under it. Earlier host auth13/13 + candidate8/
   Owned AVDs/installations cleaned up, no new images or phone use. This is active
   AVD inexact coverage; Doze/quota/periodic worker and remaining device gaps
   are separate. Details and measured delays: DEVICE_TEST_RESULTS.md.
+  Fresh rc3 PeriodicOnly on API35/36 also passed UI3/3 + release10/10 each:
+  one natural quiet repeat after process death, WorkManager SUCCESS, gaps
+  21:31.015/21:16.175 from the first alarm. No live JobScheduler dumps/manual
+  dispatch/clock or batching changes. Matrix:
+  `.test-tools/runs/20261009-201736-rc3-periodic-matrix/confirmed-matrix.json`.
+  First API35 failed before worker (stopped flag changed across reboot);
+  retry after expanding PackageManager queue waits passed. Cause/durable fix
+  remain unproven; original FAILED preserved. App runtime unchanged, owned
+  AVDs stopped. API31/33 rc3 periodic and a second period remain separate.
 - [x] R4.2: Play-compatible25→27 upgrade verified on a separate logical copy
   of17 real tasks from the user-provided JSON, API35,9/9 phases. All original
   fields/IDs/dates preserved; source unchanged, cleanup complete. Fresh UI3/3

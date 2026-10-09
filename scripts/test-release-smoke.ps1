@@ -1256,13 +1256,17 @@ try {
     # пакета перед reboot. Отсутствие BOOT_COMPLETED однажды наблюдалось, но связь
     # с отложенной записью PackageManager не доказана; сохраняем состояние для диагностики.
     if ($TestApi -eq 31 -and $RebootSettleSeconds -gt 0) { Start-Sleep -Seconds $RebootSettleSeconds }
-    # API 36: после force-stop/повторного запуска однажды наблюдалось
+    # API 35/36: после force-stop/повторного запуска наблюдалось
     # stopped=false до reboot и stopped=true после него, без вызова BootReceiver.
     # Дожидаемся штатных очередей PackageManager перед reboot, чтобы отделить
-    # подготовку host от проверки восстановления. Команды подтверждены справкой
-    # этого AVD. Они не снимают stopped принудительно и не вызывают receiver.
+    # подготовку host от проверки восстановления. Сначала проверяем наличие
+    # команд в справке именно этого AVD. Они не снимают stopped принудительно
+    # и не вызывают receiver; неподдерживаемый формат не скрываем.
     # Ожидание очередей не доказывает причину прежнего сбоя или запись всех файлов.
-    if ($TestApi -eq 36) {
+    if ($TestApi -ge 35) {
+        $packageHelp = Invoke-ReleaseAdb @('shell', 'cmd', 'package', 'help')
+        Set-Content (Join-Path $run "$bootPrefix-package-help.log") $packageHelp -Encoding UTF8
+        if ($packageHelp -notmatch '(?m)^\s*wait-for-handler\b' -or $packageHelp -notmatch '(?m)^\s*wait-for-background-handler\b') { throw 'PackageManager queue wait commands unavailable on this AVD' }
         Set-Content (Join-Path $run "$bootPrefix-package-handler-wait.log") (Invoke-ReleaseAdb @('shell', 'cmd', 'package', 'wait-for-handler', '--timeout', '30000')) -Encoding UTF8
         Set-Content (Join-Path $run "$bootPrefix-package-background-handler-wait.log") (Invoke-ReleaseAdb @('shell', 'cmd', 'package', 'wait-for-background-handler', '--timeout', '30000')) -Encoding UTF8
         $summary.packageManagerHandlersWaited = $true

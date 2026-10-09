@@ -3160,3 +3160,53 @@ PID/starttime/AVD name и остановил только свой процес�
 пользовательский JSON и main*.db не использовались. Runtime не менялся, JVM suite
 не повторялась. Forced/natural Doze,квоты,periodic worker,OEM,API24/16КБ и release
 predictive-жесты этим этапом не покрыты; R4.3/R5.3 целиком остаются открытыми.
+
+## Rc3 natural quiet worker API35/36 — 9 октября 2026
+
+Тот же архивный Upload-key APK27/2.0.0-rc3 с R8, SHA-256
+`9BFE60C4507CC5567888AF84EF72256620CC2B1BB11FA6CB9D717C80DB231760`.
+Выбраны API35/36; выполнены последовательно,API35 повторён после отказа reboot.
+Первый batch summary остаётся FAILED,отдельный retry35 PASSED. Подтверждённый
+совместный итог текущего этапа,с указанием неудачной подготовки:
+`.test-tools/runs/20261009-201736-rc3-periodic-matrix/confirmed-matrix.json`.
+
+| API | UI summary (в .test-tools/runs) | Release summary | Результат | Тихий повтор после первого alarm |
+| --- | --- | --- | --- | --- |
+| 35,повтор | `20261009-205321-229f3542/summary.json` | `20261009-205521-release-smoke/summary.json` | 3/3 + 10/10 | 1291.015с (21:31.015) |
+| 36 | `20261009-202526-164e4233/summary.json` | `20261009-202723-release-smoke/summary.json` | 3/3 + 10/10 | 1276.175с (21:16.175) |
+
+UI failures/errors/skipped=0;release PASSED,health/cleanup ошибок нет.
+Emulator37.2.12,CPU4/RAM4096/host GPU/Vulkan disabled,ANR checks включены.
+В обоих summary naturalDispatchValidated=true,periodicProcessAbsentAfterKill=true,
+periodicWorkerSuccessCount=1,periodicObservedRepeats содержит один повтор,
+periodicLiveJobDumps=false,periodicBatchingChanged=false. Версия/hash APK и
+восстановление того же alarm до Activity (BootReceiver logged) сверены.
+
+Покрыты CRUD/ACK/settings/system Back,current JSON,process restart,reboot,реальная
+первая доставка и один тихий повтор после am kill фонового процесса. Требуются
+новое время уведомления,низкий priority,SILENT/null sound/null vibration/defaults0,
+groupAlertBehavior1 и отсутствие action ACK; настоящий WorkManager SUCCESS
+подтверждён после завершения процесса. Это программные атрибуты уведомления,
+не измерение физического звука/вибрации. JobScheduler dumpsys внутри ожидания,
+ручной dispatch,ускорение периода/часов и смена batching не использовались.
+
+Первый API35: UI3/3 `20261009-201752-4be7b8a3`,release FAILED7/10
+`20261009-202031-release-smoke`. После reboot alarm0,receiverLogged=false;
+package dump stopped=false до и stopped=true после. Worker-фаза не начиналась.
+Завершённая установка удалена,AVD остановлен; этот отказ не переписан как PASS.
+В test-release-smoke.ps1 ожидание штатных очередей PackageManager расширено с36
+на35; добавлена проверка обеих команд в справке конкретного AVD. В повторе35
+help/оба Success сохранены,boot затем прошёл. На36 этот прогон был начат до
+правки guard и использовал прежнее ожидание очередей36. Причина перехода stopped,
+гарантия записи всех файлов и долговременная устойчивость не установлены;
+runtime приложения не менялся. PS syntax/diff check прошли,JVM suite не повторялась.
+
+После каждого прогона удалены собственная новая установка и файлы,остановлен
+свой PID с проверкой starttime/AVD name. В конце emulator.json отсутствует,
+qemu-system-x86_64 процессов нет. Новые образы не скачивались. Суммарные отчёты
+включая отказ/повтор около43.89 MiB после удаления17.53 MiB byte-identical
+adb-дубликатов в завершённых отчётах35/36. Основные named logs сохранены;
+пути и SHA: `20261009-201736-rc3-periodic-matrix/removed-duplicate-logs.json`.
+Рост AVD/cache этим размером не измерен. Телефон,пользовательский JSON и main*.db
+не использовались. API31/33 rc3 periodic,второй период,Doze/квоты,OEM,API24/16КБ
+и release predictive-жесты не покрыты; R4.3/R5.3 целиком остаются открытыми.

@@ -1318,3 +1318,35 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.p
 После каждого API остановлен только собственный PID с проверкой starttime/AVD
 name, установки очищены. Новые образы не скачивались; отчёты около74.09 MiB,
 без учёта роста AVD/cache. Runtime не менялся, JVM suite повторно не запускалась.
+
+## Rc3 natural periodic на API35/36 — 9 октября
+
+Свежий этап: UI3/3 и release10/10 каждого,по одному естественному тихому повтору
+после смерти процесса. Итог после повтора API35 и границы:
+`.test-tools/runs/20261009-201736-rc3-periodic-matrix/confirmed-matrix.json`.
+Bootstrap каждого API: штатный test.ps1 с ScreenPlatformTest,
+`-Offline -KeepEmulator -EmulatorGpu host -DisableEmulatorVulkan -EmulatorRamMb 4096`.
+Затем на том же выбранном API:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -ApkPath 'C:/Projects/intime/.test-tools/runs/20261009-103501-release27-historical-json/candidate/intime-27-2.0.0-rc3.apk' -TestApi 35 -PeriodicOnly -PeriodicWaitMinutes 65 -ExpectedVersionCode 27 -ExpectedVersionName '2.0.0-rc3'
+```
+
+PeriodicRepeats=1 по умолчанию. Новый этап не подтверждает второй период,rc3 на
+31/33 или Doze/OEM. До ожидания есть реальный alarm,процесс убивается через am kill
+в фоне,его отсутствие сверяется. Затем нужны новое тихое уведомление без ACK и
+WorkManager SUCCESS; JobScheduler не опрашивается внутри ожидания. Непрерывность
+host/guest проверяется,тайм-аут и разрыв наблюдения не становятся natural PASS.
+
+Перед reboot на API35/36 теперь проверяется наличие wait-for-handler и
+wait-for-background-handler в cmd package help и ожидаются обе штатные очереди.
+Команды не снимают stopped и не вызывают receiver. Новый help guard выполнен на
+повторе35; прогон36 был запущен до этой правки и использовал прежнее ожидание
+очередей36. Первый35 FAILED при stopped=true после reboot сохранён; успех с более
+строгой подготовкой не доказывает причину/устранение редкого сбоя или запись всех
+файлов PackageManager. Подробности — DEVICE_TEST_RESULTS.md.
+Свои установки/AVD очищены,новых образов нет. Отчёты всего этапа около43.89 MiB
+после удаления17.53 MiB побайтовых adb-дубликатов; основные журналы сохранены,
+удалённые/сохранённые пути и SHA записаны в removed-duplicate-logs.json.
+Размер AVD/cache этим измерением не охвачен. Код приложения не менялся; JVM suite
+не повторялась,PS parser/diff check и реальные device-сценарии выполнены.
