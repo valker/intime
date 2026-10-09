@@ -2,6 +2,11 @@
 
 This document describes the process for building and releasing Intime.
 
+9 октября пользователь предоставил подписанные Play APK 25/1.1.12 и
+26/2.0.0-rc2; оба прошли локальный preflight с App signing key. Получение APK
+больше не блокирует следующий шаг, но обновление 25 → 26 на AVD ещё не проверено.
+Исторические записи ожидания ниже сохранены; актуальный статус — UPGRADE.md.
+
 > Актуальный статус — в ROADMAP.md, путь обновления v1 — в [UPGRADE.md](UPGRADE.md).
 > По умолчанию release имеет пакет `.dev`. Production-кандидат включается явно
 > через `-PproductionRelease=true`; его проверка описана ниже.

@@ -1,5 +1,26 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Play APK 25 → 26: локальный preflight — 9 октября 2026
+
+Пользователь предоставил скачанные из Console APK. `verify-play-apk.ps1` прошёл
+для каждого файла: apksigner verify, production package, точные code/name,
+non-debuggable, один App signing certificate и неизменность хеша во время проверки.
+Код 25 теперь разрешён в preflight для старого APK; production build guard >25 не менялся.
+11 синтетических host-проверок разбора повторно прошли (не криптографические тесты).
+
+| Файл | Версия | SHA-256 APK |
+| --- | --- | --- |
+| C:/Users/Valentin/Downloads/25.apk | 25/1.1.12 | BE753F85A148F24C8B31A8F91E1A4CA2E2D5E37C340379D946D99CCB2018C5BE |
+| C:/Users/Valentin/Downloads/26.apk | 26/2.0.0-rc2 | E22942ACC0FA27582461DC00F8ACA9BEA520E2FDDEAD7765915E152C72FD2B5A |
+
+Общий SHA-256 подписанта:
+`4a37905063f6896ec53f3aee47757c0541ce8c5094d12f9bfb21a7348f2ef17c`.
+Отчёты: `.test-tools/runs/20261009-092839-play-apk-ad6d307b` (25) и
+`.test-tools/runs/20261009-092816-play-apk-4e3e3409` (26), оба PASSED.
+Подпись скачанного APK 26 отличается от локального Upload-key APK ожидаемо.
+Установки/переподписи, чтения баз, обращения к телефону и device-тестов не было.
+Это не PASS обновления/миграции/сохранения задач; статус внедрения Console не проверялся.
+
 ## Следующий release-кандидат 26/2.0.0-rc2 — 8 октября 2026
 
 Пользователь подтвердил, что максимальный использованный versionCode в Play

@@ -1,5 +1,19 @@
 # Running tests
 
+### Проверка подписи Play APK до установки
+
+`scripts/verify-play-apk.ps1` читает только локальный APK. `ApkPath`,
+`ExpectedVersionCode` и `ExpectedVersionName` обязательны; для текущего кандидата
+передать 26 и 2.0.0-rc2. Нужны JDK 17 и SDK build-tools 35.0.0 (пути переопределяются).
+Для старой скачанной Play-версии разрешён код 25 с именем 1.1.12; это не разрешение
+собрать или загрузить новую production-версию с уже использованным кодом.
+apksigner verify и точные метаданные должны пройти; Upload key отклоняется,
+принимается только известный App signing certificate. Отчёт — `.test-tools/runs`.
+Ни adb, ни установки, ни чтения пользовательской базы нет. PASSED не заменяет
+device/upgrade-тесты. Порядок получения APK и ограничения — UPGRADE.md.
+9 октября 11 host-случаев прошли; локальный Upload-key APK ожидаемо отклонён.
+JUnit и device-тесты на этом шаге не запускались: runtime приложения не менялся.
+
 The Windows runner works with Windows PowerShell 5.1 and JDK 17. Android Studio
 does not need to be open. Use the repository's Gradle Wrapper (8.11.1), AGP 8.9.1
 and installed compile SDK 36. Device API 24/31/33/35/36 is independent of compile/target SDK.
