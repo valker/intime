@@ -1155,3 +1155,13 @@ GitLab jobs use compile SDK 36 and publish JUnit/HTML reports even on failure. T
 instrumentedTests job requires a runner tagged android-emulator with /dev/kvm
 available in its container. Without such a runner, device verification runs
 locally; the manual CI job must not be claimed as verified.
+# Проверки загрузки Play-кандидата (9 октября 2026)
+
+`node scripts/prepare-play-candidate.test.mjs` использует mock HTTP и точный
+архивный AAB27; сервисный ключ, API, телефон и БД не читает. Все 8 тестов
+содержат русские JSDoc-комментарии. После рефакторинга общего OAuth/requestJson
+также выполнен `node scripts/play-api.test.mjs`: 13/13. Свежие логи:
+`.test-tools/runs/20261009-140119-play27-api-host/`.
+Это не проверка реального commit, скачанной подписи или upgrade. Реальный
+upload27 прошёл, APK пока 404; Android тесты на этом host-этапе не запускались.
+Ограничения и продолжение описаны в PLAY_API.md.

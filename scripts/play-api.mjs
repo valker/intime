@@ -59,10 +59,10 @@ export function createAssertion(credentials, now = Math.floor(Date.now() / 1000)
     return content + '.' + sign('RSA-SHA256', Buffer.from(content), key).toString('base64url');
 }
 
-async function requestJson(url, options, transport) {
+export async function requestJson(url, options, transport, timeoutMs = 60000) {
     let response;
     try {
-        response = await transport(url, { ...options, redirect: 'error', signal: AbortSignal.timeout(60000) });
+        response = await transport(url, { ...options, redirect: 'error', signal: AbortSignal.timeout(timeoutMs) });
     } catch { throw new PlayApiError('NETWORK_OR_TIMEOUT'); }
     if (!response.ok) {
         const phase = url === TOKEN_URL ? 'OAUTH' : 'PLAY';
@@ -101,8 +101,7 @@ export function summarizeGeneratedApks(body, versionCode) {
     };
 }
 
-export async function checkAccess(credentials, version, transport = fetch) {
-    const code = validateVersionCode(version);
+export async function getAccessToken(credentials, transport = fetch) {
     const assertion = createAssertion(credentials);
     const token = await requestJson(TOKEN_URL, {
         method: 'POST',
@@ -113,9 +112,15 @@ export async function checkAccess(credentials, version, transport = fetch) {
         || !token.access_token || /[\r\n]/.test(token.access_token)) {
         throw new PlayApiError('INVALID_OAUTH_RESPONSE');
     }
+    return token.access_token;
+}
+
+export async function checkAccess(credentials, version, transport = fetch) {
+    const code = validateVersionCode(version);
+    const token = await getAccessToken(credentials, transport);
     const body = await requestJson(
         `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE}/generatedApks/${code}`,
-        { method: 'GET', headers: { Authorization: `Bearer ${token.access_token}` } }, transport);
+        { method: 'GET', headers: { Authorization: `Bearer ${token}` } }, transport);
     return summarizeGeneratedApks(body, code);
 }
 

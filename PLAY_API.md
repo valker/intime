@@ -114,9 +114,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-play-api.ps1 -K
 | EXPECTED_APP_SIGNING_CERTIFICATE_MISSING_OR_AMBIGUOUS | Проверить signing metadata; не принимать Upload key как App signing |
 
 Успешное чтение не подтверждает право загрузки/публикации, получение APK или
-upgrade. Upload/commit/publish не реализованы и в этом этапе не выполнялись.
-После успешной проверки отдельно добавляем загрузку тестового кандидата и
-скачивание Play APK, сохраняя публикацию рабочей версии отдельным действием.
+upgrade. На этапе проверки доступа upload/commit/publish не выполнялись.
+Результаты следующего этапа загрузки кандидата приведены ниже; публикация
+рабочей версии остаётся отдельным действием.
 Отозвать доступ можно удалением пользователя в Play и ключа в Cloud.
 
 ## Проверки локальной интеграции
@@ -142,3 +142,61 @@ Windows PS runner без ключа дал ожидаемый FAILED/CREDENTIAL_
 после исправлений новые локальные 13/13 и настоящий API PASSED подтверждены
 в DEVICE_TEST_RESULTS.md. Скачивание APK и его apksigner проверка в этот шаг
 не входили.
+
+## Загрузка кандидата 27 — 9 октября 2026
+
+Добавлены `scripts/prepare-play-candidate.ps1`, `.mjs` и `.test.mjs`.
+Они работают только с архивным AAB 27 / 2.0.0-rc3, SHA256
+`b8f0a7e09e1ae4e1742972df769a3134c654a0943890e11b4f78234d07c62fb9`.
+Перед upload проверяется локальный hash, после — versionCode и hash Google.
+Существующий AAB принимается только при точном совпадении; upload не имеет
+автоматических повторов. Checkpoint фиксирует edit ID и факт загрузки.
+Скрипт не изменяет треки, не вызывает commit и не публикует выпуск.
+Это узкий инструмент для данного архивного кандидата, не общий release runner.
+
+Первый реальный upload прошёл, Google подтвердил payload. Edit:
+`12907835182854021575`, expiryTimeSeconds=`1791550902`.
+Отчёт: `.test-tools/runs/20261009-140141-play27-37e5577e/summary.json`.
+Итоговый FAILED относится к последующему GET generatedApks (404), а не к upload.
+Повторы только download также дали 404; последний:
+`.test-tools/runs/20261009-140914-play27-3ed3830a/summary.json`.
+APK не получен, подпись/DEX APK27 и upgrade 25→27 не проверены.
+Версию 27 следует считать использованной; не пересобирать другой payload с этим code.
+
+Read-only проверка собственного edit: production=25 completed, beta=26 completed,
+alpha пустой, internal содержит прежний пустой draft и completed=23,
+пользовательский трек `Intime! alfa version` пустой. Никакой track update не выполнялся.
+Проверка `edits.validate` прошла. Контролируемое сохранение только неназначенного
+AAB с `changesNotSentForReview=true` и `ERROR_IF_IN_REVIEW` вернуло HTTP 400:
+`Changes are sent for review automatically. The query parameter changesNotSentForReview must not be set.`
+Отчёты `validation.json`, `save-upload.json`, `commit-error.json` находятся рядом
+с исходным upload summary. Commit не выполнен. Попытка запустить сохранение без
+первого параметра отклонена автоматической проверкой разрешений до запуска процесса:
+возможна автоматическая отправка на рассмотрение. Требуется явное разрешение
+на этот побочный эффект. Снятие параметра не является гарантией отсутствия review.
+Одноразовый подготовленный `save-upload.mjs` в каталоге upload повторно сверяет
+треки и AAB, требует validate и отказывает при изменениях на рассмотрении;
+не назначает 27 на трек. До разрешения его не запускать.
+Изменения Console могут инвалидировать edit; тогда сначала заново сверить состояние,
+не повторять загрузку вслепую и не затрагивать существующий internal draft.
+
+После разрешённого сохранения готовность APK проверяется отдельно:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-play-candidate.ps1 -Mode download
+```
+
+Этот режим не создаёт edit и не повторяет upload. APK ограничен 10 МиБ до записи,
+redirect запрещён; API metadata требует известный App signing certificate.
+После получения runner запускает `verify-play-apk.ps1` (code/name, подпись,
+non-debuggable). Для доказательства происхождения дополнительно сравнить DEX
+с архивным AAB, затем проверять 25→27 только на выделенном API35 AVD.
+Телефон и пользовательские базы не использовались, SDK/AVD не скачивались.
+
+Свежие host-проверки: auth 13/13 и candidate 8/8, без пропусков:
+`.test-tools/runs/20261009-140119-play27-api-host/`.
+Candidate-тесты проверяют точный payload, повторное использование, отказы HTTP,
+фиксацию успешного upload при ошибочном ответе, выбор подписи, URL download,
+лимит размера и ZIP magic. Это mock API, не покрытие реального commit или
+apksigner/upgrade. Все новые тесты имеют подробные русские комментарии.
+Android runtime в этом этапе не менялся; JVM/device suite не перезапускались.

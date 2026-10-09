@@ -527,6 +527,14 @@ no app/data/settings were changed. Natural-entry, delivery and candidate APK
 identity remain unvalidated. This phone snapshot does not verify candidate v2.
 Existing images were reused; owned emulators were stopped after cleanup.
 
+API candidate27 update (9 October): exact archived AAB uploaded and validated;
+generated APK remains HTTP404. Upload-only commit with changesNotSentForReview
+was rejected by Google, and executing commit without that parameter was blocked
+by automatic approval review because Google may automatically submit changes
+for review. No commit, track update or publication occurred. Explicit consent
+to that side effect is pending; see PLAY_API.md. Treat code27 as used and do not
+upload a different payload under it. Host tests: auth13/13 + candidate8/8.
+
 - [ ] Remaining device coverage and release worker verified (R4.3/R5.3).
 - [ ] Real-data upgrade through Play-compatible signature verified (R4.2).
 - [ ] Public privacy page and actual Console declarations verified (R5.4).
