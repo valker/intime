@@ -8,3 +8,7 @@
 /app/release/
 /.test-tools/
 /app/build/
+# Локальные ключи Play API не должны попадать в Git; runner требует путь вне проекта.
+play-service-account*.json
+*service-account-key*.json
+intime-play-api-*.json

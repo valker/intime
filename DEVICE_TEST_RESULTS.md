@@ -1,5 +1,108 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Доступ Play API на чтение подтверждён — 9 октября 2026
+
+После исправления приглашения владельцем OAuth прошёл, generatedapks.list для
+InTime/26 вернул HTTP 200. Первый штатный повтор сохранён FAILED в
+`20261009-135207-play-api-c35558ab`: runner сравнивал SHA-256 только в форме
+64 hex-символов, API возвращает `4A:37:...:F1:7C`. Публичный сертификат в
+read-only диагностике совпал с ранее подтверждённым App signing key; universal
+APK есть, split APK count=165. Ключ и OAuth token не выводились.
+
+Исправление: строгая нормализация ровно 64 hex либо 32 hex-байтов через двоеточия,
+без удаления произвольных символов. Новая регрессия с русским комментарием
+проверяет настоящий формат, неверные разделители/длины и неоднозначность двух
+эквивалентных групп. Полный Node 13/13, fail/skipped=0; свежий лог
+`.test-tools/runs/20261009-135207-play-api-c35558ab/node-tests-fingerprint.log`.
+
+Штатный реальный повтор **PASSED**:
+`.test-tools/runs/20261009-135341-play-api-498fd865/summary.json`.
+Подтверждены package com.vpe_soft.intime.intime, code 26, ожидаемая App signing
+группа и universalApkAvailable=true. Метаданные не заменяют скачивание/apksigner
+проверку файла. Отказы 403 и сравнения не переписаны как успешные. Upload/edits/
+commit/publish и устройства/пользовательские базы не использовались. Доступ на
+чтение подтверждён, права загрузки/публикации этой проверкой не подтверждаются.
+
+## Первый реальный вызов Play API — 9 октября 2026
+
+Предоставлен внешний локальный JSON service account; в ignored конфигурации
+сохранён только путь. Email: intime-play-api@intime-play-api.iam.gserviceaccount.com.
+OAuth RS256/token exchange прошёл; generatedapks.list для InTime/versionCode 26
+вернул **PLAY_HTTP_403**, полный доступ не подтверждён. Отчёт сохранён FAILED:
+`.test-tools/runs/20261009-134328-play-api-07ed0f5d/summary.json`.
+Повторная read-only диагностика: HTTP 403, категория PERMISSION_DENIED;
+исходный серверный ответ/ключ/token не выводились и не сохранялись.
+Категория не доказывает, какие именно разрешения отсутствуют; нужно проверить
+приглашение и доступ к InTime в Play Console. API writes/upload/publish,
+телефон/AVD/пользовательские базы не использовались. Создаётся только локальная
+конфигурация пути; APK 27 пока не получен. Предыдущие локальные 12/12 ниже
+проверяют обвязку, не являются доказательством настоящих Google ACL.
+Локальный путь теперь автоматически берётся из ignored конфигурации, явный
+KeyFile имеет приоритет. Две host-проверки wrapper прошли с fake Node без чтения
+ключа/сети: `wrapper-host-summary.json` в том же каталоге. Их дочерние summary
+`20261009-134720-play-api-43b3cbd4` и `20261009-134721-play-api-5b429269`
+содержат scope «synthetic wrapper only, no API»; PASSED относится только к
+передаче пути и не подтверждает API/наличие universal APK. Реальный отчёт 403
+остаётся FAILED. PS syntax и ignored-пути проверены.
+
+## Локальная подготовка доступа к Play API — 9 октября 2026
+
+`scripts/play-api.mjs` и PS 5.1 wrapper `test-play-api.ps1` реализуют только
+OAuth RS256/token exchange и GET generatedapks.list для production InTime.
+Credentials и tokens не выводятся, ключ требуется вне реального пути проекта,
+HTTP endpoints фиксированы, redirect запрещён. APK signing metadata сверяется
+с подтверждённым App signing certificate. Не реализованы edits/upload/commit/publish.
+Существующий Node 24.19.0, стандартные библиотеки, без новых зависимостей/образов.
+
+Отчёты: `.test-tools/runs/20261009-124603-play-api-setup/`.
+Первый `node --test`: инфраструктурный spawn EPERM, тесты не выполнены.
+Single-process попытка: 11/12, неверная тестовая фикстура внешнего пути
+(завершающий разделитель root сделал sibling внутренним); фикстура исправлена.
+Свежий полный повтор: 12/12, ошибок/пропусков нет. В тестах временные RSA/EC
+ключи только в памяти и mock HTTP, без пользовательских credentials/Google API.
+Проверены JWT signature/claims, read-only маршруты, secret-free summary,
+невалидные credentials/keys/codes/tokens, ошибки сети/OAuth/403 и сертификаты.
+Проверка read-path симлинков не моделируется pure-path тестом; production
+loadCredentials разрешает realpath перед проверкой расположения ключа.
+
+PS wrapper с отсутствующим ключом: ожидаемый FAILED с кодом
+CREDENTIAL_FILE_MISSING_OR_UNREADABLE, до сетевого вызова. Отчёт
+`.test-tools/runs/20261009-124644-play-api-779ec2dd/summary.json` не заменён PASSED.
+Ключ в стандартном пути пока отсутствует; реальное соединение/ACL/API права
+не подтверждены. Телефон/AVD/пользовательские main*.db не использовались,
+Android runtime не менялся, JUnit/device-тесты не требовались.
+Владелец должен настроить Cloud/Play аккаунт и локальный ключ по PLAY_API.md.
+
+## Подготовка проверки Play 25 → 27 — 9 октября 2026
+
+Runner `test-play-upgrade.ps1` принимает обязательные ExpectedNewVersionCode
+и ExpectedNewVersionName, передаёт их в APK verifier и использует код в
+dumpsys-проверке после install -r. Исходная версия 25/1.1.12, App signing guard,
+ограничение на собственный API 35 и запрет пользовательских баз сохранены.
+Старые 25 → 26 прогоны воспроизводятся с явными 26/2.0.0-rc2.
+
+Свежие результаты: `.test-tools/runs/20261009-121610-prepare-play27/`.
+`host-summary.json`: PASSED 18 случаев (9 сравнения snapshot, 7 identity,
+2 forwarding code/name/path в preflight). Подменён только транспорт, устройства
+и настоящие базы не использованы. При извлечении функции через AST обнаружен
+пустой PSScriptRoot в host-обвязке: путь scripts задан явно в обвязке; runtime
+функция выполняется обычным скриптом, этот отказ не был device/runtime тестом.
+
+`preflight-summary.json`: PASSED четыре реальных APK guard-случая. Исходные
+Play 25/1.1.12 и 26/rc2 приняты; Play 26 при ожидании 27/rc3 отклонён по версии,
+локальный Upload-key 27/rc3 отклонён по сертификату. Два соответствующих отчёта
+verifier имеют FAILED как ожидаемый отказ; они не переименованы в успешный
+upgrade. Первая host-обвязка прервалась на ожидаемом stderr PowerShell 5.1;
+после корректного сбора stdout/stderr свежий полный повтор подтвердил exit/message.
+Хеши всех входных APK до/после совпали. PS syntax/BOM проверены.
+
+APK 27 с App signing key пока отсутствует (в Downloads только 25.apk/26.apk).
+Обновление 25 → 27 не запускалось. Эмулятор/телефон/main*.db не использовались,
+новые сборки/SDK-образы/зависимости не создавались. Android/JUnit не перезапускались:
+runtime приложения не менялся, проверялись только host-параметры и APK guard.
+Следующее действие владельца Console — получить подписанный универсальный APK
+27 из загруженного AAB; инструкции — RELEASE.md.
+
 ## Release 27/rc3 с историческим JSON-импортом — 9 октября 2026
 
 Свежий подписанный локальный APK/AAB **27/2.0.0-rc3** содержит исправление

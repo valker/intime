@@ -1,10 +1,38 @@
 # Running tests
 
+### Проверка доступа Play API
+
+Настройка сервисного аккаунта и команды — [PLAY_API.md](PLAY_API.md).
+`scripts/test-play-api.ps1` проверяет только OAuth и generatedapks.list для InTime;
+ключ вне проекта, без upload/edits/publish или устройств. После исправления
+приглашения OAuth и generatedapks.list APK 26 PASSED, сертификат подтверждён.
+Host-тесты `scripts/play-api.test.mjs`
+запускаются существующим Node 24 в одном процессе; свежий результат 13/13.
+Новые зависимости и Android-сборка для этих проверок не нужны.
+
+### Подготовлено обновление Play 25 → 27, 9 октября 2026
+
+`test-play-upgrade.ps1` теперь требует явных `ExpectedNewVersionCode` и
+`ExpectedNewVersionName`. Они используются для независимого APK preflight и
+проверки установленного кода после install -r; исходная версия остаётся 25/1.1.12.
+Сертификат по-прежнему только App signing key, AVD только Intime_Test_API35.
+Подготовка прошла 18 host-случаев (9 snapshot, 7 identity, 2 forwarding) и четыре
+реальных APK guard-проверки: Play 25/26 приняты, 26 при ожидании 27 и Upload-key
+APK 27 отклонены. Это проверки runner/preflight, не новый device pass.
+APK 27 из Play ещё не предоставлен; автономный device-прогон до его получения
+не запускается. Результаты — DEVICE_TEST_RESULTS.md, получение файла — RELEASE.md.
+
+После получения `C:/Users/Valentin/Downloads/27.apk` и успешного bootstrap API 35:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-play-upgrade.ps1 -OldApkPath 'C:/Users/Valentin/Downloads/25.apk' -NewApkPath 'C:/Users/Valentin/Downloads/27.apk' -ExpectedNewVersionCode 27 -ExpectedNewVersionName '2.0.0-rc3' -PythonPath 'C:/Users/Valentin/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe'
+```
+
 ### Обновление исходных Play APK 25 → 26 на API 35
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 35 -Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline -KeepEmulator -EmulatorGpu host -DisableEmulatorVulkan -EmulatorRamMb 4096
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-play-upgrade.ps1 -OldApkPath 'C:/Users/Valentin/Downloads/25.apk' -NewApkPath 'C:/Users/Valentin/Downloads/26.apk' -PythonPath 'C:/Users/Valentin/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-play-upgrade.ps1 -OldApkPath 'C:/Users/Valentin/Downloads/25.apk' -NewApkPath 'C:/Users/Valentin/Downloads/26.apk' -ExpectedNewVersionCode 26 -ExpectedNewVersionName '2.0.0-rc2' -PythonPath 'C:/Users/Valentin/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe'
 ```
 
 Вторую команду выполнять только после успешной первой. Нужны исходные universal
@@ -35,7 +63,8 @@ Play25BackupImportTest 4/4, полный local 101/101 и ImportTransactionPlatf
 
 `scripts/verify-play-apk.ps1` читает только локальный APK. `ApkPath`,
 `ExpectedVersionCode` и `ExpectedVersionName` обязательны; для текущего кандидата
-передать 26 и 2.0.0-rc2. Нужны JDK 17 и SDK build-tools 35.0.0 (пути переопределяются).
+передать 27 и 2.0.0-rc3; для исторического APK 26 — 26 и 2.0.0-rc2.
+Нужны JDK 17 и SDK build-tools 35.0.0 (пути переопределяются).
 Для старой скачанной Play-версии разрешён код 25 с именем 1.1.12; это не разрешение
 собрать или загрузить новую production-версию с уже использованным кодом.
 apksigner verify и точные метаданные должны пройти; Upload key отклоняется,

@@ -1,5 +1,5 @@
 ﻿<#
-Обновляет исходные Play APK 25/1.1.12 → 26/2.0.0-rc2 только на Intime_Test_API35.
+Обновляет исходный Play APK 25/1.1.12 до явно указанного кандидата только на Intime_Test_API35.
 Перед запуском: test.ps1 -Mode device -TestApi 35 -Filter ...ScreenPlatformTest
 -Offline -KeepEmulator -EmulatorGpu host -DisableEmulatorVulkan -EmulatorRamMb 4096.
 Не переподписывает APK. Синтетические задачи создаёт старый UI. Читает только
@@ -11,7 +11,12 @@
 param(
     [Parameter(Mandatory=$true)][string]$OldApkPath,
     [Parameter(Mandatory=$true)][string]$NewApkPath,
-    [Parameter(Mandatory=$true)][string]$PythonPath
+    [Parameter(Mandatory=$true)][string]$PythonPath,
+    # Явные ожидания исключают проверку другой загрузки Console по ошибке.
+    # Код 26 допустим для исторического прогона; новый кандидат — 27/rc3.
+    [Parameter(Mandatory=$true)][ValidateRange(26,2100000000)][int]$ExpectedNewVersionCode,
+    [Parameter(Mandatory=$true)]
+    [ValidatePattern('^[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.]+)?$')][string]$ExpectedNewVersionName
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -25,7 +30,7 @@ $adb = Join-Path $sdk 'platform-tools\adb.exe'
 $serial = 'emulator-5580'
 $package = 'com.vpe_soft.intime.intime'
 $commandNumber = 0
-$summary = [ordered]@{status='RUNNING'; passedPhases=@(); reports=$run; testApi=35; serial=$serial; phoneUsed=$false; signatureScope='original Google Play APKs'; cleanup=$false}
+$summary = [ordered]@{status='RUNNING'; passedPhases=@(); reports=$run; testApi=35; serial=$serial; phoneUsed=$false; signatureScope='original Google Play APKs'; cleanup=$false; expectedNewVersionCode=$ExpectedNewVersionCode; expectedNewVersionName=$ExpectedNewVersionName}
 $lock=$null; $owned=$false; $installedHere=$false; $probePushed=$false
 $remoteSnapshots=@(); $backupDevicePaths=@(); $backupDevicePath=$null; $state=$null
 $oldJavaHome=$env:JAVA_HOME
@@ -53,6 +58,15 @@ function Read-InstalledIdentity([int]$Code) {
     $first=[regex]::Match($dump,'(?m)^\s*firstInstallTime=([^\r\n]+)')
     if(-not $version.Success -or [int]$version.Groups[1].Value -ne $Code -or -not $uid.Success -or -not $first.Success){throw 'Installed package identity unavailable/wrong'}
     return @{uid=$uid.Groups[1].Value; firstInstallTime=$first.Groups[1].Value.Trim(); versionCode=$Code}
+}
+
+# Проверяем обе подписи и точные версии до установки. Исходный Play 25 остаётся
+# фиксированным, ожидания кандидата передаются явно и используются также после
+# install -r. Host-проверки подменяют только транспорт вызова verify-play-apk.
+function Invoke-PlayUpgradePreflight([string]$OldPath,[string]$NewPath,[int]$NewCode,[string]$NewName) {
+    foreach($entry in @(@{path=$OldPath;code=25;name='1.1.12'},@{path=$NewPath;code=$NewCode;name=$NewName})){
+        Invoke-ReleaseTool 'powershell.exe' @('-NoProfile','-ExecutionPolicy','Bypass','-File',(Join-Path $PSScriptRoot 'verify-play-apk.ps1'),'-ApkPath',$entry.path,'-ExpectedVersionCode',"$($entry.code)",'-ExpectedVersionName',$entry.name) "preflight-$($entry.code).log"|Out-Null
+    }
 }
 
 # До копирования принудительно останавливаем только установленный нами пакет.
@@ -153,9 +167,7 @@ try {
     $OldApkPath=(Resolve-Path -LiteralPath $OldApkPath).Path
     $NewApkPath=(Resolve-Path -LiteralPath $NewApkPath).Path
     # Независимый preflight перед установкой обоих оригинальных файлов.
-    foreach($entry in @(@{path=$OldApkPath;code=25;name='1.1.12'},@{path=$NewApkPath;code=26;name='2.0.0-rc2'})){
-        Invoke-ReleaseTool 'powershell.exe' @('-NoProfile','-ExecutionPolicy','Bypass','-File',(Join-Path $PSScriptRoot 'verify-play-apk.ps1'),'-ApkPath',$entry.path,'-ExpectedVersionCode',"$($entry.code)",'-ExpectedVersionName',$entry.name) "preflight-$($entry.code).log"|Out-Null
-    }
+    Invoke-PlayUpgradePreflight $OldApkPath $NewApkPath $ExpectedNewVersionCode $ExpectedNewVersionName
     $summary.oldApkSha256=(Get-FileHash $OldApkPath -Algorithm SHA256).Hash
     $summary.newApkSha256=(Get-FileHash $NewApkPath -Algorithm SHA256).Hash
     $env:JAVA_HOME='C:\Program Files\Java\jdk-17'
@@ -198,14 +210,14 @@ try {
     Complete-ReleasePhase 'old-ui-fixture'
     # Две старые синтетические задачи экспортируются настоящим UI/SAF до обновления.
     # Восемь полей/ID сверяются с SQLite-снимком, оригинальный JSON сохраняется.
-    # Сам по себе успешный экспорт не доказывает поддержку этого файла импортом 26.
+    # Сам по себе успешный экспорт не доказывает поддержку файла новым импортёром.
     Export-OwnTasks $before -OldVersion
     Invoke-ReleaseAdb @('shell','am','force-stop',$package)|Out-Null
     Complete-ReleasePhase 'old-json-export'
     # Между установками нет uninstall/clear/import. Строго install -r исходного Play APK.
     $output=Invoke-ReleaseAdb @('install','-r',$NewApkPath)
     if($output -notmatch '(?m)^Success\r?$'){throw 'Update did not report Success'}
-    $afterIdentity=Read-InstalledIdentity 26
+    $afterIdentity=Read-InstalledIdentity $ExpectedNewVersionCode
     if($beforeIdentity.uid -ne $afterIdentity.uid -or $beforeIdentity.firstInstallTime -ne $afterIdentity.firstInstallTime){throw 'Update replaced installation identity'}
     $summary.installationIdentity=$afterIdentity
     Complete-ReleasePhase 'install-r-identity'
