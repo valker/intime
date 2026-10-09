@@ -1,5 +1,26 @@
 # Running tests
 
+### Обновление исходных Play APK 25 → 26 на API 35
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi 35 -Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline -KeepEmulator -EmulatorGpu host -DisableEmulatorVulkan -EmulatorRamMb 4096
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-play-upgrade.ps1 -OldApkPath 'C:/Users/Valentin/Downloads/25.apk' -NewApkPath 'C:/Users/Valentin/Downloads/26.apk' -PythonPath 'C:/Users/Valentin/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe'
+```
+
+Вторую команду выполнять только после успешной первой. Нужны исходные universal
+APK 25/1.1.12 и 26/2.0.0-rc2 с App signing key, root-capable AOSP API 35 и локальный
+Python с sqlite3 (путь обязательный; при смене runtime уточнить фактический путь).
+Runner проверяет ownership/API/user 0/отсутствие неизвестной production-установки,
+создаёт две задачи старым UI и делает install -r без clear/uninstall между версиями.
+Согласованные копии собственной базы/WAL/SHM читает mode=ro; после сравнения полей,
+JSON, CRUD/ACK/restart удаляет свою установку/probe/файлы и останавливает AVD.
+Личный телефон, Pixel_8 и пользовательские main*.db не используются.
+9 октября: свежий UI 3/3, upgrade 8/8, 9 snapshot + 5 identity host-случаев
+и SQLite/WAL reader прошли. Первые инфраструктурный/два runner-отказа сохранены.
+Это синтетические задачи, не проверка реальных данных/уведомлений/reboot/всех API.
+Runtime приложения не менялся; полный local JUnit на этом шаге не перезапускался.
+Отчёт и ограничения — DEVICE_TEST_RESULTS.md/UPGRADE.md.
+
 ### Проверка подписи Play APK до установки
 
 `scripts/verify-play-apk.ps1` читает только локальный APK. `ApkPath`,

@@ -4,7 +4,8 @@ This document describes the process for building and releasing Intime.
 
 9 октября пользователь предоставил подписанные Play APK 25/1.1.12 и
 26/2.0.0-rc2; оба прошли локальный preflight с App signing key. Получение APK
-больше не блокирует следующий шаг, но обновление 25 → 26 на AVD ещё не проверено.
+больше не блокирует следующий шаг. Обновление 25 → 26 прошло 8/8 фаз на API 35
+с синтетическими задачами; реальные данные и полный Play release smoke ещё открыты.
 Исторические записи ожидания ниже сохранены; актуальный статус — UPGRADE.md.
 
 > Актуальный статус — в ROADMAP.md, путь обновления v1 — в [UPGRADE.md](UPGRADE.md).
@@ -13,8 +14,8 @@ This document describes the process for building and releasing Intime.
 > Старый APK из Google Play проверен; обновление 24 → 25 прошло с debug-подписью
 > и синтетическими данными на API 35. Сертификат JKS отличается от подписи Play APK;
 > пользователь предоставил оба сертификата Console: JKS соответствует Upload key,
-> а APK — App signing key. Нужен production AAB и APK, подписанный приложению через Play.
-> Подпись приложения через Play и копия реальных данных ещё не проверены; исторические
+> а APK — App signing key. Исходные Play APK 25 → 26 проверены на проектном API 35.
+> Копия реальных данных ещё не проверена; исторические
 > отметки сборки ниже не подтверждают готовность production-релиза.
 
 ## R6.1: Release Signing Configuration
