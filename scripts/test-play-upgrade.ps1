@@ -27,7 +27,7 @@ $package = 'com.vpe_soft.intime.intime'
 $commandNumber = 0
 $summary = [ordered]@{status='RUNNING'; passedPhases=@(); reports=$run; testApi=35; serial=$serial; phoneUsed=$false; signatureScope='original Google Play APKs'; cleanup=$false}
 $lock=$null; $owned=$false; $installedHere=$false; $probePushed=$false
-$remoteSnapshots=@(); $backupDevicePath=$null; $state=$null
+$remoteSnapshots=@(); $backupDevicePaths=@(); $backupDevicePath=$null; $state=$null
 $oldJavaHome=$env:JAVA_HOME
 
 # Импортируем только выбранные определения UI-помощников из AST, не выполняя
@@ -98,12 +98,19 @@ function Assert-PreservedSnapshot($Before,$After) {
 # Через SAF экспортируем только свои задачи. После нажатия Save копируем созданный
 # файл и сверяем все восемь значений каждой строки с мигрированным снимком, не
 # считая импорт/экспорт доказательством самого install -r.
-function Export-OwnTasks($Expected) {
-    Launch-Release
-    Click-ReleaseId 'btn_open_settings'
-    Click-ReleaseId 'export_to_json_btn'
+function Export-OwnTasks($Expected, [switch]$OldVersion) {
+    # У старого APK другие id и метаданные. Сравниваем данные строк отдельно
+    # от оболочки JSON; не переименовываем поля старого файла для этой проверки.
+    $exportId='export_to_json_btn'
+    if($OldVersion){
+        Invoke-ReleaseAdb @('shell','am','start','-W','-n',"$package/com.vpe_soft.intime.intime.activity.MainActivity")|Out-Null
+        Wait-ReleaseNode "//node[@resource-id='${package}:id/add_task']"|Out-Null
+        Click-ReleaseId 'open_settings'; $exportId='export_btn'
+    }else{Launch-Release; Click-ReleaseId 'btn_open_settings'}
+    Click-ReleaseId $exportId
     $backupName='intime-play-upgrade-'+[guid]::NewGuid().ToString('N')+'.json'
     $script:backupDevicePath='/sdcard/Download/'+$backupName
+    $script:backupDevicePaths+=$script:backupDevicePath
     $fieldXPath="//node[@class='android.widget.EditText' and @resource-id='android:id/title']"
     $limit=(Get-Date).AddSeconds(30)
     do{Click-ReleaseNode $fieldXPath; $field=Wait-ReleaseNode $fieldXPath; if($field.GetAttribute('focused') -eq 'true'){break}}while((Get-Date) -lt $limit)
@@ -113,14 +120,21 @@ function Export-OwnTasks($Expected) {
     Invoke-ReleaseAdb @('shell','input','text',$backupName)|Out-Null
     Wait-ReleaseNode "//node[@class='android.widget.EditText' and @text='$backupName']"|Out-Null
     Click-ReleaseNode "//node[@resource-id='android:id/button1']"
-    Wait-ReleaseNode "//node[@resource-id='${package}:id/export_to_json_btn']"|Out-Null
+    Wait-ReleaseNode "//node[@resource-id='${package}:id/$exportId']"|Out-Null
     $local=Join-Path $run $backupName
     Invoke-ReleaseAdb @('pull',$backupDevicePath,$local)|Out-Null
     $backup=Get-Content $local -Raw -Encoding UTF8|ConvertFrom-Json
-    if($backup.meta.version -ne 1 -or ($backup.tables.tasks.columns -join ',') -ne 'id,description,interval,amount,next_alarm,next_caution,last_ack,quant' -or $backup.tables.tasks.rows.Count -ne 2){throw 'Unexpected export contract/count'}
+    if($OldVersion){
+        if($backup.meta.backup_version -ne 1 -or $backup.meta.db_version -ne 5 -or $backup.meta.app -ne $package -or $backup.meta.created_at -le 0){throw 'Unexpected historical export metadata'}
+    }elseif($backup.meta.version -ne 1){throw 'Unexpected current export metadata'}
+    if(($backup.tables.tasks.columns -join ',') -ne 'id,description,interval,amount,next_alarm,next_caution,last_ack,quant' -or $backup.tables.tasks.rows.Count -ne 2){throw 'Unexpected export contract/count'}
     $rows=@($backup.tables.tasks.rows|Sort-Object {[long]$_[0]})
     for($row=0;$row -lt 2;$row++){for($column=0;$column -lt 8;$column++){if([string]$rows[$row][$column] -cne [string]$Expected.rows[$row][$column]){throw 'Export differs from migrated tasks'}}}
-    $summary.exportSha256=(Get-FileHash $local -Algorithm SHA256).Hash
+    if($OldVersion){
+        $summary.oldExport=$local
+        $summary.oldExportMetadata=$backup.meta
+        $summary.oldExportSha256=(Get-FileHash $local -Algorithm SHA256).Hash
+    }else{$summary.exportSha256=(Get-FileHash $local -Algorithm SHA256).Hash}
     Invoke-ReleaseAdb @('shell','input','keyevent','4')|Out-Null
 }
 
@@ -182,6 +196,12 @@ try {
     $before=Read-OwnSnapshot 'before'
     if($before.rows.Count -ne 2 -or (@($before.rows|ForEach-Object{$_[1]}) -notcontains $first) -or (@($before.rows|ForEach-Object{$_[1]}) -notcontains $second)){throw 'Old UI tasks missing from snapshot'}
     Complete-ReleasePhase 'old-ui-fixture'
+    # Две старые синтетические задачи экспортируются настоящим UI/SAF до обновления.
+    # Восемь полей/ID сверяются с SQLite-снимком, оригинальный JSON сохраняется.
+    # Сам по себе успешный экспорт не доказывает поддержку этого файла импортом 26.
+    Export-OwnTasks $before -OldVersion
+    Invoke-ReleaseAdb @('shell','am','force-stop',$package)|Out-Null
+    Complete-ReleasePhase 'old-json-export'
     # Между установками нет uninstall/clear/import. Строго install -r исходного Play APK.
     $output=Invoke-ReleaseAdb @('install','-r',$NewApkPath)
     if($output -notmatch '(?m)^Success\r?$'){throw 'Update did not report Success'}
@@ -251,7 +271,7 @@ try {
         if($owned){
             foreach($path in $remoteSnapshots){Invoke-ReleaseAdb @('shell','su','0','rm','-f',$path)|Out-Null}
             if($probePushed){Invoke-ReleaseAdb @('shell','rm','-f','/data/local/tmp/intime-release-probe.jar','/data/local/tmp/intime-release-ui.xml')|Out-Null}
-            if($backupDevicePath){Invoke-ReleaseAdb @('shell','rm','-f',$backupDevicePath)|Out-Null}
+            foreach($path in $backupDevicePaths){Invoke-ReleaseAdb @('shell','rm','-f',$path)|Out-Null}
             $live=Get-Process -Id $state.processId -ErrorAction SilentlyContinue
             if($live -and $live.StartTime.ToUniversalTime().ToString('o') -eq $state.started){
                 Invoke-ReleaseAdb @('emu','kill')|Out-Null
@@ -266,5 +286,5 @@ try {
     $env:JAVA_HOME=$oldJavaHome
     $summary|ConvertTo-Json -Depth 6|Set-Content (Join-Path $run 'summary.json') -Encoding UTF8
 }
-Write-Output "$($summary.status): $($summary.passedPhases.Count)/8 phases. Report: $run"
+Write-Output "$($summary.status): $($summary.passedPhases.Count)/9 phases. Report: $run"
 if($summary.status -ne 'PASSED'){exit 1}

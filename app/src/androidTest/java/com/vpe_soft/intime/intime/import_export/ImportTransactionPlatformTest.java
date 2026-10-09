@@ -16,6 +16,10 @@ import org.junit.runner.RunWith;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import org.json.JSONObject;
 
 @RunWith(AndroidJUnit4.class)
 public class ImportTransactionPlatformTest {
@@ -74,6 +78,61 @@ public class ImportTransactionPlatformTest {
         ImportReplacement.replaceAll(database, BackupExport.toJson(Collections.emptyList()));
         assertEquals(0, database.taskDao().getTaskCount());
         assertTrue(database.taskDao().getAllTasksSync().isEmpty());
+    }
+
+    /**
+     * В отдельной Android Room-базе в памяти уже есть две старые задачи ID 7/22,
+     * первая отмечена уведомлённой. Импортирует неизменённый JSON, экспортированный
+     * Play APK 25 из двух синтетических UI-задач. Проверяет полную замену списка,
+     * отсутствие старых ID, все восемь полей/ID 1/2 и wasNotified=false для обеих
+     * новых строк. Используется реальная SQLite/Room-транзакция; личная база,
+     * SAF, уведомления и AlarmManager этой проверкой не затрагиваются.
+     */
+    @Test public void nativePlay25ExportReplacesTasksPreservingAllFields() throws Exception {
+        ImportReplacement.replaceAll(database, play25Fixture());
+        TaskEntity expectedFirst = task(1, "PlayUpgrade-First-101310", 1, 1,
+                1791533596920L, 1791533416920L, 0, 1);
+        TaskEntity expectedSecond = task(2, "PlayUpgrade-Second-101310", 2, 1,
+                1791616404952L, 1791612084952L, 0, 1);
+        assertEquals(2, database.taskDao().getTaskCount());
+        assertNull(database.taskDao().getRawTaskById(7));
+        assertNull(database.taskDao().getRawTaskById(22));
+        assertEquals(expectedFirst, database.taskDao().getRawTaskById(1));
+        assertEquals(expectedSecond, database.taskDao().getRawTaskById(2));
+        assertFalse(database.taskDao().getRawTaskById(1).isWasNotified());
+        assertFalse(database.taskDao().getRawTaskById(2).isWasNotified());
+    }
+
+    /**
+     * При двух существующих задачах ID 7/22 меняет только backup_version старой
+     * Play-фикстуры на неизвестную 2 и вызывает транзакционный импорт. Ожидает
+     * IllegalArgumentException, прежнее количество и все поля обеих старых строк,
+     * прежние wasNotified и отсутствие новых ID 1/2. Проверяет отказ до замены
+     * реальной Android Room-базы в памяти, без UI, расписания и пользовательских данных.
+     */
+    @Test public void nativeUnsupportedPlayBackupKeepsExistingTasks() throws Exception {
+        JSONObject backup = new JSONObject(play25Fixture());
+        backup.getJSONObject("meta").put("backup_version", 2);
+        assertThrows(IllegalArgumentException.class,
+                () -> ImportReplacement.replaceAll(database, backup.toString()));
+        assertEquals(2, database.taskDao().getTaskCount());
+        assertEquals(first, database.taskDao().getRawTaskById(7));
+        assertEquals(second, database.taskDao().getRawTaskById(22));
+        assertTrue(database.taskDao().getRawTaskById(7).isWasNotified());
+        assertFalse(database.taskDao().getRawTaskById(22).isWasNotified());
+        assertNull(database.taskDao().getRawTaskById(1));
+        assertNull(database.taskDao().getRawTaskById(2));
+    }
+
+    private String play25Fixture() throws Exception {
+        try (InputStream input = InstrumentationRegistry.getInstrumentation().getContext()
+                .getAssets().open("play25-backup.json")) {
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            byte[] buffer = new byte[2048];
+            int size;
+            while ((size = input.read(buffer)) != -1) output.write(buffer, 0, size);
+            return new String(output.toByteArray(), StandardCharsets.UTF_8);
+        }
     }
 
     private List<TaskEntity> replacement() {

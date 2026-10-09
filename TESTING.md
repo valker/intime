@@ -15,10 +15,20 @@ Runner проверяет ownership/API/user 0/отсутствие неизве
 Согласованные копии собственной базы/WAL/SHM читает mode=ro; после сравнения полей,
 JSON, CRUD/ACK/restart удаляет свою установку/probe/файлы и останавливает AVD.
 Личный телефон, Pixel_8 и пользовательские main*.db не используются.
-9 октября: свежий UI 3/3, upgrade 8/8, 9 snapshot + 5 identity host-случаев
-и SQLite/WAL reader прошли. Первые инфраструктурный/два runner-отказа сохранены.
+9 октября первый upgrade прошёл 8/8; после добавления старого SAF экспорта
+свежий UI 3/3 и расширенный upgrade 9/9 прошли. Оба экспорта сверяются по восьми
+полям/ID со снимками, а метаданные проверяются для своего формата отдельно.
+9 snapshot + 5 identity host-случаев и SQLite/WAL reader прошли на первом шаге.
+Первые инфраструктурный/два runner-отказа сохранены.
 Это синтетические задачи, не проверка реальных данных/уведомлений/reboot/всех API.
-Runtime приложения не менялся; полный local JUnit на этом шаге не перезапускался.
+Затем runtime BackupImport исправлен для backup_version=1. Общая неизменённая
+фикстура `app/src/sharedTest/resources/play25-backup.json` экспортирована старым
+APK из своих синтетических задач и включается только в JVM/Android-тесты.
+Play25BackupImportTest 4/4, полный local 101/101 и ImportTransactionPlatformTest
+на API 35 4/4 прошли. Для повторения использовать test.ps1 -Mode local -Offline
+и -Mode device -TestApi 35 -Filter com.vpe_soft.intime.intime.import_export.ImportTransactionPlatformTest
+с указанной конфигурацией GPU/Vulkan/RAM. Native тестирует Room в памяти,
+без UI-импорта и AlarmManager; скачанный 26.apk исправления не содержит.
 Отчёт и ограничения — DEVICE_TEST_RESULTS.md/UPGRADE.md.
 
 ### Проверка подписи Play APK до установки

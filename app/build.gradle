@@ -118,6 +118,9 @@ android {
     namespace 'com.vpe_soft.intime.intime'
 
     sourceSets {
+        // Одна синтетическая Play-фикстура для JVM parser и Android/Room тестов.
+        test.resources.srcDirs += files("$projectDir/src/sharedTest/resources".toString())
+        androidTest.assets.srcDirs += files("$projectDir/src/sharedTest/resources".toString())
         // Проверьте, что указано 'androidTest', а не просто 'test' или 'main'
         androidTest.assets.srcDirs += files("$projectDir/schemas".toString())
     }

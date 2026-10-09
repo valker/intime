@@ -1,0 +1,44 @@
+{
+  "meta": {
+    "app": "com.vpe_soft.intime.intime",
+    "backup_version": 1,
+    "db_version": 5,
+    "created_at": 1791530019183
+  },
+  "tables": {
+    "tasks": {
+      "columns": [
+        "id",
+        "description",
+        "interval",
+        "amount",
+        "next_alarm",
+        "next_caution",
+        "last_ack",
+        "quant"
+      ],
+      "rows": [
+        [
+          1,
+          "PlayUpgrade-First-101310",
+          1,
+          1,
+          1791533596920,
+          1791533416920,
+          0,
+          1
+        ],
+        [
+          2,
+          "PlayUpgrade-Second-101310",
+          2,
+          1,
+          1791616404952,
+          1791612084952,
+          0,
+          1
+        ]
+      ]
+    }
+  }
+}

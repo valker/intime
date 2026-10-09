@@ -52,15 +52,24 @@ public final class BackupImport {
             throw new IllegalArgumentException("Backup must contain one JSON object");
         }
         JSONObject root = (JSONObject) value;
-        // Старые v1-файлы без meta остаются совместимыми. Явная версия обязательна,
-        // если meta присутствует: неизвестный формат нельзя трактовать как v1.
+        // Старые файлы без meta, Play v1 с backup_version и текущие с version
+        // имеют одинаковые восемь колонок. При наличии meta требуется ровно один
+        // маркер версии: смешанные оболочки нельзя молча трактовать как текущие.
         if (root.has(KEY_META)) {
             JSONObject meta = root.optJSONObject(KEY_META);
-            if (meta == null || !meta.has("version")) {
+            if (meta == null || meta.has("version") == meta.has("backup_version")) {
                 throw new IllegalArgumentException("Unsupported backup metadata/version");
             }
-            integer(meta.get("version"), "meta.version", FORMAT_VERSION, FORMAT_VERSION);
-            if (meta.has("exportedAt")) integer(meta.get("exportedAt"), "meta.exportedAt", 0, Long.MAX_VALUE);
+            if (meta.has("version")) {
+                integer(meta.get("version"), "meta.version", FORMAT_VERSION, FORMAT_VERSION);
+                if (meta.has("exportedAt")) integer(meta.get("exportedAt"), "meta.exportedAt", 0, Long.MAX_VALUE);
+            } else {
+                integer(meta.get("backup_version"), "meta.backup_version", FORMAT_VERSION, FORMAT_VERSION);
+                // Эти поля описывают источник экспорта, а не целевую Room-схему
+                // или расписание. Значения строк задач не пересчитываются.
+                if (meta.has("db_version")) integer(meta.get("db_version"), "meta.db_version", 1, Integer.MAX_VALUE);
+                if (meta.has("created_at")) integer(meta.get("created_at"), "meta.created_at", 0, Long.MAX_VALUE);
+            }
         }
         JSONObject tables = root.optJSONObject(KEY_TABLES);
         if (tables == null) {
