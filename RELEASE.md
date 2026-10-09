@@ -57,7 +57,8 @@ Runner готов к явно указанным 27/2.0.0-rc3; host/preflight п
 > и синтетическими данными на API 35. Сертификат JKS отличается от подписи Play APK;
 > пользователь предоставил оба сертификата Console: JKS соответствует Upload key,
 > а APK — App signing key. Исходные Play APK 25 → 26 проверены на проектном API 35.
-> Копия реальных данных ещё не проверена; исторические
+> Позднее Play25→27 прошёл на логической копии17 реальных задач из JSON,API35,9/9.
+> Исходные SQLite/WAL/preferences телефона не проверялись; исторические
 > отметки сборки ниже не подтверждают готовность production-релиза.
 
 ## R6.1: Release Signing Configuration
@@ -539,7 +540,11 @@ not current blockers. See PLAY_API.md/DEVICE_TEST_RESULTS.md. Code27 is used;
 do not upload a different payload under it. Earlier host auth13/13 + candidate8/8.
 
 - [ ] Remaining device coverage and release worker verified (R4.3/R5.3).
-- [ ] Real-data upgrade through Play-compatible signature verified (R4.2).
+- [x] R4.2: Play-compatible25→27 upgrade verified on a separate logical copy
+  of17 real tasks from the user-provided JSON, API35,9/9 phases. All original
+  fields/IDs/dates preserved; source unchanged, cleanup complete. Fresh UI3/3
+  and host4/4. Original phone SQLite/WAL/preferences and delivery/OEM/reboot
+  are outside this coverage; see UPGRADE.md/DEVICE_TEST_RESULTS.md.
 - [ ] Public privacy page and actual Console declarations verified (R5.4).
 - [ ] Final production version and unused Play versionCode confirmed (R5.1).
 - [ ] Fresh final artifacts, mapping and hashes archived after all changes.

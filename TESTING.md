@@ -10,7 +10,7 @@ Host-тесты `scripts/play-api.test.mjs`
 запускаются существующим Node 24 в одном процессе; свежий результат 13/13.
 Новые зависимости и Android-сборка для этих проверок не нужны.
 
-### Подготовлено обновление Play 25 → 27, 9 октября 2026
+### Обновление Play 25 → 27, 9 октября 2026
 
 `test-play-upgrade.ps1` теперь требует явных `ExpectedNewVersionCode` и
 `ExpectedNewVersionName`. Они используются для независимого APK preflight и
@@ -19,8 +19,9 @@ Host-тесты `scripts/play-api.test.mjs`
 Подготовка прошла 18 host-случаев (9 snapshot, 7 identity, 2 forwarding) и четыре
 реальных APK guard-проверки: Play 25/26 приняты, 26 при ожидании 27 и Upload-key
 APK 27 отклонены. Это проверки runner/preflight, не новый device pass.
-APK 27 из Play ещё не предоставлен; автономный device-прогон до его получения
-не запускается. Результаты — DEVICE_TEST_RESULTS.md, получение файла — RELEASE.md.
+Позднее APK27 получен через API, подпись и DEX проверены; синтетический
+API35 UI3/3 и Play25→27 upgrade9/9 прошли. Результаты — DEVICE_TEST_RESULTS.md,
+получение файла — PLAY_API.md. Host-проверки выше не заменяют этот device-прогон.
 
 После получения `C:/Users/Valentin/Downloads/27.apk` и успешного bootstrap API 35:
 
@@ -1169,9 +1170,48 @@ commit APK получен и проверен. Android runtime не менялс
 DEVICE_TEST_RESULTS.md и UPGRADE.md. JVM suite не повторялась для API/документации.
 Ограничения и продолжение описаны в PLAY_API.md.
 
-Для следующей проверки реальных задач требуется отдельно предоставленный JSON
-export25. Порядок и границы логической копии описаны в UPGRADE.md. Текущий
-test-play-upgrade.ps1 жёстко проверяет две синтетические будущие задачи и не
-является runner для произвольной пользовательской копии; нового параметра
-реальных данных пока нет. Изменять его ожидания без отдельного сценария нельзя.
-На этапе подготовки изменены только документы; пересборка/тесты не требовались.
+Для проверки реальных задач пользователь отдельно предоставил JSON export25
+с 17 строками. Порядок и границы логической копии описаны в UPGRADE.md.
+test-play-upgrade.ps1 остаётся runner для двух синтетических будущих задач;
+для JSON-копии добавлен отдельный test-real-copy-upgrade.ps1 и Python helper.
+
+После успешного штатного API35 UI bootstrap с KeepEmulator:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-real-copy-upgrade.ps1 -BackupJsonPath 'C:/путь/к/экспорту25.json' -OldApkPath 'C:/Users/Valentin/Downloads/25.apk' -NewApkPath 'C:/Projects/intime/.test-tools/runs/20261009-151639-play27-af6bca99/intime-play-27-2.0.0-rc3.apk' -PythonPath 'C:/Users/Valentin/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe' -ExpectedNewVersionCode 27 -ExpectedNewVersionName '2.0.0-rc3'
+```
+
+Runner принимает только явно указанный JSON, сохраняет его hash и отдельную
+копию в ignored run; не адресует телефон и пользовательские main*.db. Seed
+создаёт новую schema5 с исходными восемью полями/ID и датами. Install-r
+использует оригинальные Play APK; metadata/signature и ownership проверяются.
+Все исходные строки сверяются после Room migration, exports и process restart.
+CRUD/ACK выполняется только на дополнительно созданной синтетической задаче.
+Перед force-stop после удаления проверяется экспорт: finish() экрана сам по
+себе не доказывает завершение асинхронной операции. WasNotified проверяется
+как 0/1, а не обязательно 0 для всех реальных строк. Доставка alarm этим
+сценарием не доказывается. Snapshot учитывает WAL/SHM, SQLite открывается ro.
+Логи/UI/snapshots/private-backup содержат частные значения и остаются только
+в ignored .test-tools/runs; общий summary содержит counts/hashes/status.
+После прогона runner удаляет свою установку/файлы с AVD и останавливает его.
+Исходный JSON не меняется; физический SQLite/WAL и preferences не воспроизводятся.
+
+Host-проверки, без пользовательских файлов:
+
+```powershell
+& 'C:/Users/Valentin/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe' -B scripts/test_real_copy_fixture.py
+```
+
+Четыре теста с русскими комментариями проверяют точные значения/ID/Unicode,
+AUTOINCREMENT по сохранившимся ID, неизменность исходника, отказ перезаписи,
+неверные contracts и обнаружение изменённого поля schema6. Android migration
+в host-тесте моделируется; настоящий Room проверяется только device-сценарием.
+
+Свежие результаты для предоставленного JSON17 задач: host4/4
+`.test-tools/runs/20261009-154841-real-copy-host/tests.log`,API35 UI3/3
+`.test-tools/runs/20261009-154324-03e5d242/summary.json`,device9/9
+`.test-tools/runs/20261009-154653-real-copy-upgrade-638aba16/summary.json`.
+Первый device7/9 сохранён,исправлено раннее force-stop после async delete probe.
+Cleanup=true,исходный JSON не менялся. R4.2 закрыт для логической JSON-копии;
+не для исходных SQLite/WAL/preferences телефона. Runtime приложения не менялся,
+JVM suite повторно не запускалась; новые host/device-сценарии выполнены последовательно.

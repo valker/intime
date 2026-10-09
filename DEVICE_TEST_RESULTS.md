@@ -2937,3 +2937,43 @@ Old JSON metadata: backup_version1/db_version5. Это не дополнител
 не реальная пользовательская база, не OEM/Doze/reboot или API-матрица.
 Cleanup=true, собственный AVD остановлен; телефон/main*.db не использовались.
 R4.2 открыт по отдельной согласованной копии реальных данных.
+
+## JSON-копия17 реальных задач: Play25→27,9 октября2026
+
+Пользователь явно предоставил JSON export25,3844 байта,meta backup_version1,
+db_version5. SHA256 `0458FEF32B083D56021892BB59732BC1491DEBDC1223CD6E662CCCFF7DC133F2`.
+Descriptions не публикуются и не включаются в репозиторий. Новый отдельный runner
+test-real-copy-upgrade.ps1 создаёт schema5 по историческому DDL из точных строк
+этого JSON; даты не сдвигаются. Это логическая копия, не исходный SQLite/WAL/preferences.
+
+Финальный host4/4,без ошибок:
+`.test-tools/runs/20261009-154841-real-copy-host/tests.log`.
+Первоначальный неверный module filename исправлен; sandbox Temp отказ отделён
+от test assertions. Затем cleanup выявил незакрытые SQLite connections;
+исправлено через closing, предыдущий отказ сохранён в
+`.test-tools/runs/20261009-154003-real-copy-host/tests.log`.
+Синтетические host-тесты не читают пользовательский файл и не выполняют Room migration.
+
+Первый API35 UI3/3: `.test-tools/runs/20261009-153718-bf52c0a4/summary.json`.
+Первый real-copy device `.test-tools/runs/20261009-154010-real-copy-upgrade-fd4c0491/`:
+FAILED7/9,cleanup=true. После probe delete force-stop опередил async commit,
+final содержит дополнительный ID30, все17 исходных строк/поля не изменились.
+Исправлен runner: новый экспорт точно сверяет исходные строки до force-stop.
+
+Свежий UI3/3,0fail/error/skipped:
+`.test-tools/runs/20261009-154324-03e5d242/summary.json`.
+Свежий полный device PASSED9/9:
+`.test-tools/runs/20261009-154653-real-copy-upgrade-638aba16/summary.json`.
+Выделенный AOSP API35,host GPU/Vulkan disabled,RAM4096/CPU4,ANR checks enabled;
+существующий образ,offline dependencies. Фазы: logical-copy-seeded,
+old-values-and-schema,old-json-export,install-r-identity,migrated-values-and-schema,
+new-json-export,process-restart,probe-insert-ack-delete,final-restart-and-inputs.
+Сверены все8 полей/ID/даты17 строк со source JSON, schema5→Room6/identity,
+UID/firstInstallTime,старый/новый/final exports и restart. WasNotified0/1,
+observed notifiedCount0. Synthetic probe проходит insert/ACK/delete с новым ID,
+исходные17 задач не редактировались. Source/APK hashes неизменны.
+Cleanup=true,emulator ownership file удалён,собственный AVD остановлен.
+Телефон/Pixel_8/main*.db не использовались,SDK/images не скачивались.
+Локальные private-backup/UI/снимки содержат частные значения в ignored run.
+Alarm delivery,natural Doze,OEM,reboot,другие API и исходные SQLite/WAL/preferences
+не проверены. R4.2 закрыт для отдельной логической копии реальных задач.
