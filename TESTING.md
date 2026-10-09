@@ -1163,5 +1163,8 @@ locally; the manual CI job must not be claimed as verified.
 также выполнен `node scripts/play-api.test.mjs`: 13/13. Свежие логи:
 `.test-tools/runs/20261009-140119-play27-api-host/`.
 Это не проверка реального commit, скачанной подписи или upgrade. Реальный
-upload27 прошёл, APK пока 404; Android тесты на этом host-этапе не запускались.
+upload27 прошёл; первоначальный download дал404. После явного разрешения
+commit APK получен и проверен. Android runtime не менялся; свежие API35 UI3/3
+и отдельный Play25→27 upgrade9/9 фаз прошли в следующем этапе, см.
+DEVICE_TEST_RESULTS.md и UPGRADE.md. JVM suite не повторялась для API/документации.
 Ограничения и продолжение описаны в PLAY_API.md.

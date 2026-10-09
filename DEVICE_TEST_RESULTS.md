@@ -2889,7 +2889,7 @@ PowerShell Parser не обнаружил синтаксических ошиб�
 `main` версии 5; проверенная историческая фикстура версии 5 создана по DDL этого
 же коммита. Для данного релиза основной маршрут — 5 → 6. Происхождение подтверждено
 владельцем проекта; воспроизводимость APK и фактическая база телефона не проверялись.
-# Play API: upload27, без нового device-прогона (9 октября 2026)
+# Play API: первый upload27 до разрешения commit (9 октября 2026)
 
 Host auth 13/13 + candidate 8/8, 0 fail/skipped:
 `.test-tools/runs/20261009-140119-play27-api-host/`.
@@ -2903,3 +2903,37 @@ track update не выполнялись, production25/beta26/internal draft н�
 Нового APK нет; подпись/DEX APK27 и upgrade25→27 не проверены. R4.2 открыт.
 Телефон, main*.db и эмуляторы не использовались; образы не скачивались.
 Дальнейшие действия и требуемое разрешение приведены в PLAY_API.md.
+
+## После явного разрешения: Play APK27 и upgrade25→27
+
+Пользователь разрешил commit с возможным automatic review. Собственный edit
+12907835182854021575 сохранён с ERROR_IF_IN_REVIEW после повторной сверки
+треков/AAB и validate; UPLOAD_SAVED/committed=true в save-upload.json рядом
+с прежним upload summary. Прежние FAILED/committed=false относятся к ранним
+шагам, не отменяют последующее сохранение. Track update не выполнялся.
+Post-commit snapshot: production25/beta26/internal23 + прежний пустой draft;
+27 не назначен ни на один трек. Отсутствие review этим snapshot не доказывается.
+
+Download `.test-tools/runs/20261009-151639-play27-af6bca99/summary.json`:
+APK_VERIFIED, 3 150 384 байта, SHA256
+`7662D7D4321FECDE08437880BA18113899B447EAE061939B9092D29FC7F7633C`.
+Apksigner/metadata/non-debuggable:
+`.test-tools/runs/20261009-151642-play-apk-e55b1fb2/summary.json`, PASSED.
+DEX provenance PASSED: APK classes.dex точно совпал с архивным AAB classes.dex;
+полный APK/resources не сравнивались. Отчёт рядом с download summary.
+
+Свежие UI3/3 на выделенном API35 AOSP default x86_64, host GPU, Vulkan disabled,
+RAM4096/CPU4, ANR checks включены:
+`.test-tools/runs/20261009-151741-94be13f8/summary.json`.
+Существующий образ переиспользован, dependencies offline.
+
+Оригинальный Play25→27 upgrade: PASSED9/9 фаз,
+`.test-tools/runs/20261009-152119-play-upgrade-147be141/summary.json`.
+Покрыты old-ui-fixture, old-json-export, install-r-identity,
+preserved-schema-fields-alarm, json-export-agrees, process-restart,
+edit-and-ack, insert-and-delete, final-restart. UID/firstInstallTime сохранены,
+проверяемые поля/ID и schema5→6 сохранены; всё на синтетических задачах старого UI.
+Old JSON metadata: backup_version1/db_version5. Это не дополнительный SAF import,
+не реальная пользовательская база, не OEM/Doze/reboot или API-матрица.
+Cleanup=true, собственный AVD остановлен; телефон/main*.db не использовались.
+R4.2 открыт по отдельной согласованной копии реальных данных.

@@ -160,7 +160,8 @@ Windows PS runner без ключа дал ожидаемый FAILED/CREDENTIAL_
 Итоговый FAILED относится к последующему GET generatedApks (404), а не к upload.
 Повторы только download также дали 404; последний:
 `.test-tools/runs/20261009-140914-play27-3ed3830a/summary.json`.
-APK не получен, подпись/DEX APK27 и upgrade 25→27 не проверены.
+На момент этих отказов APK не был получен. После разрешения пользователя
+сохранение и download завершились успешно, см. продолжение ниже.
 Версию 27 следует считать использованной; не пересобирать другой payload с этим code.
 
 Read-only проверка собственного edit: production=25 completed, beta=26 completed,
@@ -170,13 +171,14 @@ alpha пустой, internal содержит прежний пустой draft 
 AAB с `changesNotSentForReview=true` и `ERROR_IF_IN_REVIEW` вернуло HTTP 400:
 `Changes are sent for review automatically. The query parameter changesNotSentForReview must not be set.`
 Отчёты `validation.json`, `save-upload.json`, `commit-error.json` находятся рядом
-с исходным upload summary. Commit не выполнен. Попытка запустить сохранение без
+с исходным upload summary. На этом шаге commit не был выполнен. Попытка запустить сохранение без
 первого параметра отклонена автоматической проверкой разрешений до запуска процесса:
-возможна автоматическая отправка на рассмотрение. Требуется явное разрешение
-на этот побочный эффект. Снятие параметра не является гарантией отсутствия review.
+возможна автоматическая отправка на рассмотрение. Пользователь затем явно
+разрешил этот побочный эффект. Снятие параметра не является гарантией отсутствия review.
 Одноразовый подготовленный `save-upload.mjs` в каталоге upload повторно сверяет
 треки и AAB, требует validate и отказывает при изменениях на рассмотрении;
-не назначает 27 на трек. До разрешения его не запускать.
+не назначает 27 на трек. После разрешения он выполнен успешно; повторять commit
+этого edit не следует.
 Изменения Console могут инвалидировать edit; тогда сначала заново сверить состояние,
 не повторять загрузку вслепую и не затрагивать существующий internal draft.
 
@@ -200,3 +202,35 @@ Candidate-тесты проверяют точный payload, повторное
 лимит размера и ZIP magic. Это mock API, не покрытие реального commit или
 apksigner/upgrade. Все новые тесты имеют подробные русские комментарии.
 Android runtime в этом этапе не менялся; JVM/device suite не перезапускались.
+
+### Продолжение после разрешения пользователя
+
+9 октября пользователь явно разрешил сохранение и возможный review. После
+повторной сверки треков, SHA256 AAB и validate commit с
+`changesInReviewBehavior=ERROR_IF_IN_REVIEW` прошёл: UPLOAD_SAVED/committed=true.
+Итог: `.test-tools/runs/20261009-140141-play27-37e5577e/save-upload.json`.
+Первоначальный upload summary сохранён как исторический checkpoint, его
+committed=false не описывает последующее сохранение. Ошибка параметра сохранена
+в commit-error.json. API не предоставляет здесь доказательства отсутствия review.
+
+Download: `.test-tools/runs/20261009-151639-play27-af6bca99/summary.json`, APK_VERIFIED,
+3 150 384 байта. APK SHA256:
+`7662d7d4321fecde08437880ba18113899b447eae061939b9092d29fc7f7633c`.
+Отдельная проверка подписи/версии/non-debuggable:
+`.test-tools/runs/20261009-151642-play-apk-e55b1fb2/summary.json`, PASSED.
+DEX provenance в каталоге download: PASSED; classes.dex APK и AAB совпал побайтно,
+SHA256 `1385bfa68ca3649610eb5232f211fab1e553daaf5ae979c09226140d9d660388`.
+Сравнение DEX не является сравнением ресурсов или всего APK.
+
+Read-only snapshot после commit (`tracks-after.json` в каталоге download)
+подтверждает прежние production25/beta26/internal23 + пустой draft; alpha и
+пользовательский трек пустые. 27 не назначен ни на один трек, track update
+не выполнялся. Snapshot создан в отдельном временном edit без commit.
+
+После получения APK выполнены свежие API35 UI3/3 и Play25→27 upgrade9/9 фаз,
+cleanup=true, собственный AVD остановлен. Результаты:
+`.test-tools/runs/20261009-151741-94be13f8/summary.json` и
+`.test-tools/runs/20261009-152119-play-upgrade-147be141/summary.json`.
+Это синтетические задачи старого UI; отдельная реальная пользовательская база
+не проверялась. Телефон не использовался. Подробное покрытие и ограничения
+приведены в UPGRADE.md/DEVICE_TEST_RESULTS.md; R4.2 целиком остаётся открыт.
