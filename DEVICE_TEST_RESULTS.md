@@ -2977,3 +2977,52 @@ Cleanup=true,emulator ownership file удалён,собственный AVD о�
 Локальные private-backup/UI/снимки содержат частные значения в ignored run.
 Alarm delivery,natural Doze,OEM,reboot,другие API и исходные SQLite/WAL/preferences
 не проверены. R4.2 закрыт для отдельной логической копии реальных задач.
+# Кандидат27/rc3: focused R8 JSON/reboot матрица API31/33/36,9 октября2026
+
+Весь запланированный набор31/33/36 выполнен последовательно одним этапом.
+Архивный Upload-key production APK27/2.0.0-rc3, SHA256
+`9BFE60C4507CC5567888AF84EF72256620CC2B1BB11FA6CB9D717C80DB231760`.
+APK/signature/metadata и соответствующий R8 mapping проверены runner на каждом API.
+Это clean install синтетического сценария,не Play25→27 upgrade и не JSON-копия17 задач.
+
+| API | Свежий UI | RebootOnly + HistoricalJsonImport | Reboot alarm | Отчёт release |
+| --- | --- | --- | --- | --- |
+| 31 | 3/3 | 9/9 | прежний срок,receiver logged | `.test-tools/runs/20261009-165252-release-smoke/` |
+| 33 | 3/3 | 9/9 | прежний срок,receiver logged | `.test-tools/runs/20261009-170040-release-smoke/` |
+| 36 | 3/3 | 9/9 | прежний срок,receiver logged | `.test-tools/runs/20261009-170510-release-smoke/` |
+
+UI reports соответственно: `.test-tools/runs/20261009-164528-7abf8f5d/`,
+`.test-tools/runs/20261009-165539-e77cdeb4/`,
+`.test-tools/runs/20261009-170322-38edbf8a/`.0fail/error/skipped каждого.
+Общий проверенный итог:
+`.test-tools/runs/20261009-164433-rc3-cross-api/confirmed-matrix.json`.
+Сверены все три свежих UI/release summaries,status/count/version/hash,
+reboot restored и cleanup. Ранее API35 данного кандидата прошёл full15/15;
+тот отчёт не объявляется новым прогоном этой матрицы.
+
+Покрыты create/alarm,edit/process restart,ACK/reschedule,settings/system Back,
+текущий export,delete/empty restart,current import/restart,historical meta
+Play25 import/restart и один reboot с восстановлением того же alarm до UI.
+Historical import использует свою синтетическую будущую строку с точной meta,
+не исходный пользовательский JSON. ANR/crash проверки включены. Новые images
+или зависимости не скачивались; RAM4096/host GPU/Vulkan disabled.
+
+Первый batch завис на native pipeline после UI31: собственная оболочка31872
+остановлена после проверки команды,сама успешная UI-фаза сохранена. Повторный
+агрегатор неверно оценил exit code31 и не смог ReadAllText активного stdout33
+(file sharing),до36 не дошёл. Эти инфраструктурные результаты сохранены:
+`interrupted-summary.json`,`process-output-failure-summary.json` рядом с matrix.
+Их cleanup flags сами по себе не доказывали остановку оставленного AVD33.
+Исправлено: скрытый Start-Process,сохранение Handle до WaitForExit без Refresh,
+UI outcomes читаются из свежего JSON этого запуска. Контрольный процесс с exit7
+вернул7. API31 PASS9/9 подтверждён индивидуальным report; API33 UI3/3 использован
+из текущего запуска после точной сверки собственного PID41024/starttime/serial.
+Аналогично31 resume проверял7928/starttime/serial. Успешные фазы не пересоздавались.
+Матрица затем завершилась PASSED; release cleanup и остановка всех собственных
+AVD подтверждены,emulator.json отсутствует. Телефон/Pixel_8/main*.db и
+пользовательский JSON не использовались,публикация не выполнялась.
+
+Не покрыты notification delivery/permission phases,periodic worker/Doze quotas,
+natural Doze/OEM,predictive Back gesture,API24/16КБ или повторная real-data migration.
+Прежний единичный API31 reboot сбой остаётся без установленной причины.
+Runtime не менялся,JVM suite не повторялась; R4.3 целиком остаётся открытым.

@@ -240,6 +240,19 @@ release/R8 и оставшаяся Android-матрица проверяются
   Подготовка и границы результата — UPGRADE.md/DEVICE_TEST_RESULTS.md.
 - [ ] R4.3: выполнить smoke-сценарии на API 24, 31, 33, 35, 36: CRUD/ACK,
   импорт/экспорт, уведомления, разрешения, reboot и повторное открытие.
+  9 октября кандидат27/2.0.0-rc3 с R8 проверен одним последовательным этапом
+  на API31/33/36: UI3/3 и focused release9/9 каждого. RebootOnly +
+  HistoricalJsonImport покрыли CRUD/ACK/alarm,settings/system Back,текущий JSON,
+  meta Play25,process restart и один reboot с восстановлением того же alarm
+  до открытия Activity. BootReceiver logged на каждом API; cleanup подтверждён,
+  собственные AVD остановлены. API35 этого кандидата ранее прошёл full15/15.
+  Это синтетические задачи,без пользовательского JSON; новый image не скачивался.
+  Матрица: `.test-tools/runs/20261009-164433-rc3-cross-api/confirmed-matrix.json`.
+  Сбои host-агрегатора(наследование pipe,exit code,file sharing) сохранены отдельно;
+  свежие индивидуальные PASS сверены,это не ошибки приложения. Старый единичный
+  API31 reboot сбой этим успешным повтором не объясняется. API24/16КБ,жест
+  predictive Back,delivery/permissions полного нового rc3 smoke и OEM/natural Doze
+  этим focused-прогоном не закрываются; R4.3 целиком остаётся открытым.
   На API 36 прошли 19 debug-тестов и четыре отдельные notification/reboot-фазы.
   Добавлены два UI-теста: границы выбранных элементов четырёх экранов относительно
   системных панелей и возврат из настроек системным Back/кнопкой к тому же списку.

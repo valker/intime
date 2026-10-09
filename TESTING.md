@@ -1215,3 +1215,27 @@ AUTOINCREMENT по сохранившимся ID, неизменность ис�
 Cleanup=true,исходный JSON не менялся. R4.2 закрыт для логической JSON-копии;
 не для исходных SQLite/WAL/preferences телефона. Runtime приложения не менялся,
 JVM suite повторно не запускалась; новые host/device-сценарии выполнены последовательно.
+# Focused rc3 matrix API31/33/36
+
+9 октября свежие UI3/3 и release9/9 прошли на каждом API31/33/36. Для повторения
+на каждом выбранном API последовательно: штатный test.ps1 device bootstrap
+с ScreenPlatformTest,-Offline,-KeepEmulator,-EmulatorGpu host,
+-DisableEmulatorVulkan,-EmulatorRamMb4096; затем:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -ApkPath 'C:/Projects/intime/.test-tools/runs/20261009-103501-release27-historical-json/candidate/intime-27-2.0.0-rc3.apk' -TestApi 31 -RebootOnly -HistoricalJsonImport -ExpectedVersionCode 27 -ExpectedVersionName '2.0.0-rc3'
+```
+
+Подставлять тот же API31/33/36 в оба runner. Это архивный Upload-key APK с
+matching mapping,не Play APK. Release runner удаляет свою установку,но оставляет
+AVD; остановка в этом batch выполнялась только после проверки собственного
+PID/starttime/AVD name. Не останавливать чужие эмуляторы. Общий проверенный итог:
+`.test-tools/runs/20261009-164433-rc3-cross-api/confirmed-matrix.json`.
+No new images; scope/отказы host-агрегатора сохранены в DEVICE_TEST_RESULTS.md.
+При shell-агрегации KeepEmulator может наследовать pipe/stdout handles:
+не считать зависшую оболочку провалом тестов и не принимать null exit code за0.
+Скрытый Start-Process с сохранённым Handle и WaitForExit самого дочернего
+PowerShell позволяет получить exit code; активный UI stdout может требовать
+file sharing,поэтому outcome подтверждается свежим runner summary.
+Не использовать эти сведения как разрешение на повторное чтение старых отчётов
+в новых тестовых запусках:31/33 здесь возобновлялись только в текущем этапе.

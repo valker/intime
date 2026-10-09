@@ -540,6 +540,13 @@ not current blockers. See PLAY_API.md/DEVICE_TEST_RESULTS.md. Code27 is used;
 do not upload a different payload under it. Earlier host auth13/13 + candidate8/8.
 
 - [ ] Remaining device coverage and release worker verified (R4.3/R5.3).
+  Candidate27/rc3 focused R8 smoke completed in one sequential stage on
+  API31/33/36: UI3/3 and release9/9 each (RebootOnly + HistoricalJsonImport).
+  Current/historical JSON,CRUD/ACK/process restart and one reboot preserving
+  the same alarm passed; owned AVDs stopped. Verified matrix:
+  `.test-tools/runs/20261009-164433-rc3-cross-api/confirmed-matrix.json`.
+  This does not replace full notification/permissions/Doze coverage or cover
+  API24/16KB/OEM/predictive gestures. Earlier rc3 API35 full15/15 remains separate.
 - [x] R4.2: Play-compatible25→27 upgrade verified on a separate logical copy
   of17 real tasks from the user-provided JSON, API35,9/9 phases. All original
   fields/IDs/dates preserved; source unchanged, cleanup complete. Fresh UI3/3
