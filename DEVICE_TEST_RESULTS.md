@@ -3116,3 +3116,47 @@ SHA сравнивался с сохранённым logcat.log соответс
 Phone,пользовательский JSON и main*.db не использовались. Runtime не менялся,
 JVM suite не повторялась. Natural/forced Doze,inexact,periodic worker,OEM,
 API24/16КБ и release predictive-жесты не проверялись; R4.3/R5.3 целиком открыты.
+
+## Rc3 inexact fallback API 31/33/35/36 — 9 октября 2026
+
+Тот же архивный Upload-key APK27/2.0.0-rc3 с R8 и mapping; SHA-256
+`9BFE60C4507CC5567888AF84EF72256620CC2B1BB11FA6CB9D717C80DB231760`.
+Все четыре API проверены последовательно одним этапом на существующих AVD:
+свежий ScreenPlatformTest, затем InexactOnly. Все прошли с первой попытки.
+
+| API | UI summary (в .test-tools/runs) | Release summary | Результат |
+| --- | --- | --- | --- |
+| 31 | `20261009-185208-ab208752/summary.json` | `20261009-185534-release-smoke/summary.json` | 3/3 + 11/11 |
+| 33 | `20261009-190135-ac3a4d5f/summary.json` | `20261009-190412-release-smoke/summary.json` | 3/3 + 11/11 |
+| 35 | `20261009-190907-d9c19f95/summary.json` | `20261009-191053-release-smoke/summary.json` | 3/3 + 11/11 |
+| 36 | `20261009-191507-f8b6b499/summary.json` | `20261009-191653-release-smoke/summary.json` | 3/3 + 11/11 |
+
+UI failures/errors/skipped=0 каждого. Release PASSED, health/cleanup ошибок нет.
+Emulator37.2.12,CPU4,RAM4096,host GPU,Vulkan disabled; ANR checks сохранены.
+Общая сверка версии/hash,11 фаз,exactAlarmDenied=true,двух положительных окон,
+reboot restored/receiverLogged/expected==actual и cleanup:
+`.test-tools/runs/20261009-185151-rc3-inexact-matrix/confirmed-matrix.json`.
+
+| API | Окно alarm до доставки | Окно после ACK | notification.when − срок |
+| --- | --- | --- | --- |
+| 31 | +44s877ms | +42s591ms | 44.890с |
+| 33 | +44s958ms | +43s293ms | 40.910с |
+| 35 | +44s961ms | +43s81ms | 44.970с |
+| 36 | +44s669ms | +43s370ms | 44.738с |
+
+Это измерения конкретных AVD, не гарантия задержки на других устройствах.
+Проверены CRUD/ACK/settings/system Back,текущий JSON,process restart,reboot,
+fallback доставка при SCHEDULE_EXACT_ALARM=deny и ACK из шторки. Окно собственного
+AlarmReceiver сверяется до ожидания; настоящая доставка требует callback своего
+процесса и уведомление задачи с action ACK. Quiet worker без callback не принимается
+за alarm delivery. После ACK/restart запрет сохраняется и alarm имеет окно.
+Не ускорялись часы/планировщик,Activity/receiver до доставки вручную не запускались.
+HistoricalJsonImport/permission/channel/Doze/periodic режимы не включались.
+
+Runner удалил свою новую установку и файлы; batch после каждого API проверил
+PID/starttime/AVD name и остановил только свой процесс. В конце emulator.json
+отсутствует, qemu-system-x86_64 процессов нет. Новые образы не скачивались;
+отчёты около74.09 MiB (рост AVD/cache этим измерением не охвачен). Телефон,
+пользовательский JSON и main*.db не использовались. Runtime не менялся, JVM suite
+не повторялась. Forced/natural Doze,квоты,periodic worker,OEM,API24/16КБ и release
+predictive-жесты этим этапом не покрыты; R4.3/R5.3 целиком остаются открытыми.

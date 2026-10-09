@@ -561,6 +561,13 @@ do not upload a different payload under it. Earlier host auth13/13 + candidate8/
   Owned installations/AVDs cleaned up; no phone or new images. This closes this
   rc3 notification/permissions repeat; Doze/inexact/periodic worker, API24/16KB,
   OEM and release predictive gestures remain outside this stage.
+  A following fresh InexactOnly stage passed on all API31/33/35/36: UI3/3 and
+  release11/11 each. Exact appop denied, positive alarm windows, real receiver
+  delivery/notification ACK and continued fallback after ACK/restart confirmed.
+  Matrix: `.test-tools/runs/20261009-185151-rc3-inexact-matrix/confirmed-matrix.json`.
+  Owned AVDs/installations cleaned up, no new images or phone use. This is active
+  AVD inexact coverage; Doze/quota/periodic worker and remaining device gaps
+  are separate. Details and measured delays: DEVICE_TEST_RESULTS.md.
 - [x] R4.2: Play-compatible25→27 upgrade verified on a separate logical copy
   of17 real tasks from the user-provided JSON, API35,9/9 phases. All original
   fields/IDs/dates preserved; source unchanged, cleanup complete. Fresh UI3/3

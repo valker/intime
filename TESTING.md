@@ -1294,3 +1294,27 @@ name, затем удалил свою запись владения; чужие
 три byte-identical adb-копии итогового logcat, основные logcat.log сохранены.
 Данные AVD и Gradle cache этим измерением не охватываются. Подробности результатов
 и границы — DEVICE_TEST_RESULTS.md; runtime не менялся, JVM suite не повторялась.
+
+## Свежая inexact-матрица rc3 — 9 октября
+
+На API31/33/35/36 последовательно прошли свежие ScreenPlatformTest3/3 и
+release11/11 каждого. Общая сверка:
+`.test-tools/runs/20261009-185151-rc3-inexact-matrix/confirmed-matrix.json`.
+Bootstrap: `test.ps1 -Mode device -TestApi <API>` с ScreenPlatformTest,
+`-Offline -KeepEmulator -EmulatorGpu host -DisableEmulatorVulkan -EmulatorRamMb 4096`.
+Затем тот же API передать release runner:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -ApkPath 'C:/Projects/intime/.test-tools/runs/20261009-103501-release27-historical-json/candidate/intime-27-2.0.0-rc3.apk' -TestApi 31 -InexactOnly -ExpectedVersionCode 27 -ExpectedVersionName '2.0.0-rc3'
+```
+
+Не совмещать с HistoricalJsonImport/RebootOnly/PeriodicOnly. Exact appop запрещён
+только новой установке runner; требуется положительное окно alarm, запись
+собственного AlarmReceiver и уведомление с ACK. После ACK/process restart
+проверяются сохранение запрета и новое положительное окно. Quiet worker не
+заменяет доставку alarm. Часы/планировщик не ускоряются. Doze/квоты этим режимом
+не проверяются. Тайм-аут15 минут — INCONCLUSIVE, разрыв наблюдения — отдельный
+инфраструктурный результат. В этой матрице все четыре прошли с первой попытки.
+После каждого API остановлен только собственный PID с проверкой starttime/AVD
+name, установки очищены. Новые образы не скачивались; отчёты около74.09 MiB,
+без учёта роста AVD/cache. Runtime не менялся, JVM suite повторно не запускалась.
