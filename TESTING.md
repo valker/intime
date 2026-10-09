@@ -1071,6 +1071,31 @@ runner проектный AVD; -KeepEmulator оставляет его для с
 Не передавать -PupgradeSmoke=true обычным connected/release-задачам:
 Gradle разрешает с этим флагом только три явные debug-задачи, перечисленные в UPGRADE.md.
 
+## Импорт исторического JSON в release/R8
+
+`scripts/test-release-smoke.ps1 -HistoricalJsonImport` добавляет к полному smoke
+фазу `historical-json-import-and-restart` (всего 15 вместо 14). Она берёт meta
+из общей синтетической Play-фикстуры `app/src/sharedTest/resources/play25-backup.json`
+и строки из собственного текущего экспорта. Будущий срок задачи позволяет
+проверять точный alarm независимо от даты создания исторической фикстуры.
+Перед импортом задача удаляется через UI; требуются пустой список и отменённый
+alarm. SAF-импорт должен восстановить описание и срок, включая restart процесса.
+Все восемь полей в Room эта UI-фаза не читает: их покрывают отдельные
+Play25BackupImportTest и ImportTransactionPlatformTest. Личные базы не используются.
+
+Пример для локального кандидата 27/rc3 после bootstrap API 35 с `-KeepEmulator`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -TestApi 35 -ApkPath .test-tools/runs/20261009-103501-release27-historical-json/candidate/intime-27-2.0.0-rc3.apk -ExpectedVersionCode 27 -ExpectedVersionName 2.0.0-rc3 -HistoricalJsonImport
+```
+
+Требуется matching `mapping.txt` рядом с APK и подтверждённый Upload key.
+Скрипт очищает только собственную установку/файл на проектном AVD и оставляет
+эмулятор работающим. Этот кандидат не предназначен для установки поверх Play
+на личном телефоне: сертификат Upload key отличается от App signing key.
+Флаг совместим с полным smoke и RebootOnly; комбинации с Doze/Inexact/Periodic
+отклоняются. Прогон не подтверждает естественный Doze или обновление Play APK.
+
 ## Results and diagnosis
 
 Every invocation creates .test-tools/runs/<timestamp>-<id>/ with stdout/stderr,

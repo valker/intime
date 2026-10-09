@@ -2,12 +2,16 @@
 
 This document describes the process for building and releasing Intime.
 
-После проверки экспорта Play 25 исправлен BackupImport для исторической meta
-backup_version=1. Исходники прошли local 101/101 и native Room 4/4 на API 35;
-сам исходный Play upgrade + оба экспорта прошёл 9/9. Скачанный APK 26/rc2 не
-менялся и исправления не содержит. Следующая новая загрузка должна использовать
-свободный код выше уже загруженного 26 и пройти release/R8-проверки исправления.
-Новый production-кандидат с этим изменением на этом шаге не собирался/не публиковался.
+Текущий локальный кандидат — **27/2.0.0-rc3**, 9 октября 2026, с поддержкой
+исторической meta backup_version=1 из Play 25. Подписанные APK/AAB собраны с
+R8/lint; Upload key, манифесты, bundletool и совпадение mapping проверены.
+Семь конфигурационных случаев, свежие local 101/101, API 35 UI 3/3 и release
+15/15 прошли, включая исторический SAF-импорт и restart. Артефакты:
+`.test-tools/runs/20261009-103501-release27-historical-json/candidate/`.
+Результаты и SHA-256 — DEVICE_TEST_RESULTS.md. Сборка не загружена/не опубликована;
+до загрузки проверить свободность кода 27 в Console. Следующий шаг — получить
+Play APK с App signing key и проверить обновление 25 → 27 на проектном AVD.
+Скачанный APK 26/rc2 неизменён и исправления импорта не содержит.
 
 9 октября пользователь предоставил подписанные Play APK 25/1.1.12 и
 26/2.0.0-rc2; оба прошли локальный preflight с App signing key. Получение APK
@@ -27,7 +31,7 @@ backup_version=1. Исходники прошли local 101/101 и native Room 4
 
 ## R6.1: Release Signing Configuration
 
-### Текущий локальный кандидат — 26/2.0.0-rc2, 8 октября 2026
+### Исторический локальный кандидат — 26/2.0.0-rc2, 8 октября 2026
 
 Пользователь подтвердил максимум использованных Console-кодов 25. Production
 guard теперь требует 26..2100000000; новый подписанный APK/AAB 26/2.0.0-rc2
@@ -74,7 +78,7 @@ runtime не изменялся; ранее проверенный APK и нов
 ### Production candidate — 3 октября 2026
 
 Обычные сборки остаются `.dev`/21/1.1.8. Production-режим сохраняет исходный пакет
-`com.vpe_soft.intime.intime`, требует явных releaseVersionCode (>25) и releaseVersionName.
+`com.vpe_soft.intime.intime`, требует явных releaseVersionCode (>26) и releaseVersionName.
 Разрешены только `:app:assembleRelease` и `:app:bundleRelease`; совмещение с upgradeSmoke
 отклоняется. Release использует R8. Код 25 и имя 2.0.0-rc1 — локальный кандидат;
 перед загрузкой проверить все использованные коды Console и согласовать финальную версию.
@@ -87,13 +91,16 @@ runtime не изменялся; ранее проверенный APK и нов
 согласуется отдельно. Новые production-сборки с кодом 25 теперь отклоняются.
 Команды с кодом 25 ниже описывают исторические сборки и не проходят текущий guard.
 
-Подготовка следующего кандидата после подтверждения свободного кода:
+Подготовка следующего кандидата после подтверждения свободного кода (актуально 9 октября):
+
+После получения Play APK 26 guard обновлён: коды 25 и 26 отклоняются,
+допустимы 27..2100000000. Старые команды ниже с занятыми кодами исторические.
 
 ```powershell
-./gradlew.bat ':app:assembleRelease' ':app:bundleRelease' '-PproductionRelease=true' '-PreleaseVersionCode=26' '-PreleaseVersionName=2.0.0-rc2' --offline --no-daemon --no-watch-fs --no-configuration-cache
+./gradlew.bat ':app:assembleRelease' ':app:bundleRelease' '-PproductionRelease=true' '-PreleaseVersionCode=27' '-PreleaseVersionName=2.0.0-rc3' --offline --no-daemon --no-watch-fs --no-configuration-cache
 ```
 
-Для smoke нового APK передать `-ExpectedVersionCode 26 -ExpectedVersionName 2.0.0-rc2`
+Для smoke нового APK передать `-ExpectedVersionCode 27 -ExpectedVersionName 2.0.0-rc3`
 вместе с его путём. Значения по умолчанию 25/2.0.0-rc1 оставлены только для
 воспроизведения исторических артефактов. Код и имя проверяются в APK до установки,
 а имя дополнительно на экране настроек. Это проверка выбранного APK на проектном AVD,

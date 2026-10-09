@@ -1,5 +1,58 @@
 # Проверки уведомлений на Android — 2 октября 2026
 
+## Release 27/rc3 с историческим JSON-импортом — 9 октября 2026
+
+Свежий подписанный локальный APK/AAB **27/2.0.0-rc3** содержит исправление
+BackupImport из `edb2a88ddb144acf906ff62b8924def6126629bf`; рабочий diff включает
+production guard (>26) и дополнительную фазу host-runner. Build использовал
+Java 17/offline, выполнил R8 и lintVitalRelease. Проверены production package,
+code/name, non-debuggable, SDK 24/36, подписи APK/AAB с Upload key
+`97:B6:01:10:A8:E8:94:79:1B:47:70:82:6A:8D:21:4D:C5:E3:A5:51:CD:24:BD:41:D6:46:C2:9F:64:A1:DD:26`,
+bundletool validate и совпадение встроенного proguard.map с внешним mapping.txt.
+
+| Проверка | Свежий результат | Отчёт в .test-tools/runs |
+| --- | --- | --- |
+| Настоящий Gradle dry-run: 25/26 reject, 27/max accept, неверные коды reject | PASSED 7/7 | 20261009-103501-release27-historical-json/configuration-matrix.json |
+| Полный local | PASSED 101/101, errors/failures/skipped=0 | 20261009-103726-aea35419/summary.json |
+| Debug UI bootstrap API 35 | PASSED 3/3, errors/failures/skipped=0 | 20261009-104100-8183942d/summary.json |
+| Release/R8 API 35 с HistoricalJsonImport | PASSED 15/15 | 20261009-104358-release-smoke/summary.json |
+| Build/подписи/манифесты/map и завершение AVD | PASSED, cleanup=true | 20261009-103501-release27-historical-json/candidate-summary.json |
+
+AVD: только Intime_Test_API35/emulator-5580, AOSP default x86_64, emulator 37.2.12,
+4 CPU/4096 MB/host GPU/Vulkan off; проверки ANR включены. Production-пакет до
+установки отсутствовал, использованы собственные синтетические задачи.
+Полный smoke: create/edit/ACK/settings, текущий экспорт/импорт, удаление,
+исторический импорт, process restart, реальный reboot, AlarmManager delivery,
+notification action ACK, отказ/возврат POST_NOTIFICATIONS, отключение/возврат канала.
+
+Новая фаза `historical-json-import-and-restart` берёт точную meta общей Play 25
+фикстуры (backup_version=1/db_version=5/created_at/app), но строки — из собственного
+текущего экспорта с будущим сроком. На host проверено сохранение всех восьми
+значений при сериализации. Через UI задача удалена и alarm отменён, затем SAF
+восстановил описание и точный alarm; оба сохранены после restart. Private Room
+DB эта UI-фаза не читает и все поля в ней не проверяет; это покрывают ранее
+прошедшие unit/native Room тесты. Это историческая форма JSON с текущей строкой,
+а не побайтовый импорт исходного старого файла или копии реальных данных.
+
+Архив `.test-tools/runs/20261009-103501-release27-historical-json/candidate/`
+содержит APK/AAB/map, source diff, runner и неизменённую sharedTest-фикстуру.
+
+| Артефакт | SHA-256 |
+| --- | --- |
+| intime-27-2.0.0-rc3.apk | 9BFE60C4507CC5567888AF84EF72256620CC2B1BB11FA6CB9D717C80DB231760 |
+| intime-27-2.0.0-rc3.aab | B8F0A7E09E1AE4E1742972DF769A3134C654A0943890E11B4F78234D07C62FB9 |
+| mapping.txt | 7FCBA853267D009B572EFD20C1C5694580B20B6AE995D1691A6BC52C9822F8C2 |
+| historical-import.json (отдельный каталог release-smoke) | C7E6B8A2B935DE836BDEAAEDEF948A76AA5239321961D38AE8FE29A9B06AEB40 |
+
+Скрипт удалил свою установку и файл JSON, принадлежащий запуску AVD остановлен,
+emulator.json отсутствует. Телефон и main*.db не использовались. Новые SDK-образы
+и зависимости не скачивались; комплект кандидата около 16 МБ. Код 26 уже использован
+в Play, новые production build требуют 27..2100000000; свободность 27 в Console
+ещё не проверена. APK/AAB подписаны Upload key, не App signing key: прямое обновление
+личной Play-установки ими не проверялось. Кандидат не загружен/не опубликован.
+Нужен APK 27 из Play для следующего обновления 25 → 27; реальные данные, другие API,
+естественный Doze, quota/Periodic/InexactOnly в этом прогоне не проверялись.
+
 ## JSON-экспорт Play 25 и совместимый импорт — 9 октября 2026
 
 Расширенный `test-play-upgrade.ps1` прошёл **9/9 фаз** на Intime_Test_API35

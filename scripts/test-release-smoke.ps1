@@ -10,6 +10,8 @@ APK должен быть подписан подтверждённым upload k
 PeriodicOnly (API 31/33/35/36) проходит подготовку/boot/первый alarm и ждёт тихий
 повтор после am kill фонового процесса. Обычный полный режим сохраняет 14 фаз;
 periodic-режим содержит 10 фаз (11 при PeriodicRepeats=2) и не меняет batching/период/часы Android.
+HistoricalJsonImport добавляет к полному режиму 15-ю фазу: SAF-импорт meta Play 25,
+восстановление собственной задачи и её alarm после перезапуска процесса.
 InexactOnly (API 31/33/35/36) содержит 11 фаз: подготовка, доставка fallback и ACK/restart.
 InexactOnly + DozeOnly содержит 12 фаз: дополнительно подтверждается deep IDLE.
 DozeSequence добавляет подготовку второй задачи и её доставку: 14 фаз.
@@ -23,6 +25,9 @@ param(
     [ValidateSet(24, 31, 33, 35, 36)][int]$TestApi = 36,
     # Точечный режим проходит подготовку/JSON и повторяет reboot без минутных уведомлений.
     [switch]$RebootOnly,
+    # Дополнительный SAF-импорт с исторической meta Play 25 и текущей собственной
+    # задачей. Срок остаётся будущим; исходная sharedTest-фикстура не изменяется.
+    [switch]$HistoricalJsonImport,
     # Только доставка в deep idle и ACK после подготовки/reboot; без фаз запрета.
     [switch]$DozeOnly,
     # На API 31/33/35/36 запрещаем exact своей установке и проверяем inexact delivery/ACK.
@@ -85,6 +90,8 @@ if ($DozeQuota -and (-not $DozeSequence -or -not $InexactOnly -or -not $DozeOnly
 if ($DozeSequence -and (-not $InexactOnly -or -not $DozeOnly)) { throw 'DozeSequence requires InexactOnly and DozeOnly' }
 if ($InexactOnly -and ($RebootOnly -or $PeriodicOnly -or $TestApi -notin @(31, 33, 35, 36))) { throw 'InexactOnly requires API 31/33/35/36 and can only be combined with DozeOnly.' }
 $summary.periodicOnly = [bool]$PeriodicOnly
+$summary.historicalJsonImport = [bool]$HistoricalJsonImport
+if ($HistoricalJsonImport -and ($PeriodicOnly -or $InexactOnly -or $DozeOnly)) { throw 'HistoricalJsonImport requires full smoke or RebootOnly' }
 if (-not $PeriodicOnly -and $PeriodicRepeats -ne 1) { throw 'PeriodicRepeats requires PeriodicOnly' }
 $summary.periodicRepeats = $PeriodicRepeats
 if ($PeriodicOnly -and ($RebootOnly -or $DozeOnly -or $TestApi -notin @(31, 33, 35, 36))) { throw 'PeriodicOnly requires API 31/33/35/36 and cannot be combined with other modes.' }
@@ -1181,6 +1188,49 @@ try {
     if ((Wait-ReleaseAlarm) -ne $afterAck) { throw 'Imported alarm not restored after process restart' }
     $summary.importedAlarm = $restoredAlarm
     Complete-ReleasePhase 'json-import-and-restart'
+
+    if ($HistoricalJsonImport) {
+        # Исходные условия: одна наша синтетическая задача восстановлена штатным
+        # импортом. Берём точную форму meta из реального синтетического экспорта
+        # Play 25; строки заменяем собственным текущим экспортом, чтобы срок alarm
+        # не зависел от даты создания исторической фикстуры. Проверяем форму файла
+        # и неизменность всех восьми значений на стороне host перед SAF-импортом.
+        $historicalFixture = Get-Content (Join-Path $root 'app/src/sharedTest/resources/play25-backup.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($historicalFixture.meta.backup_version -ne 1 -or $historicalFixture.meta.db_version -ne 5 -or $historicalFixture.meta.app -ne $package -or ($historicalFixture.tables.tasks.columns -join ',') -ne ($backup.tables.tasks.columns -join ',')) { throw 'Unexpected Play25 fixture contract' }
+        $historical = @{ meta = $historicalFixture.meta; tables = $backup.tables }
+        $historicalPath = Join-Path $run 'historical-import.json'
+        # JSON записываем без BOM, как штатный экспорт; BOM нужен только PS1
+        # с русскими комментариями для Windows PowerShell 5.1.
+        [IO.File]::WriteAllText($historicalPath, ($historical | ConvertTo-Json -Depth 10), (New-Object System.Text.UTF8Encoding($false)))
+        $roundTrip = Get-Content $historicalPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($roundTrip.meta.PSObject.Properties.Name -contains 'version') { throw 'Historical import contains current version marker' }
+        if (($roundTrip.tables.tasks.rows | ConvertTo-Json -Depth 10 -Compress) -ne ($backup.tables.tasks.rows | ConvertTo-Json -Depth 10 -Compress)) { throw 'Historical fixture task fields changed' }
+        $summary.historicalImportSha256 = (Get-FileHash $historicalPath -Algorithm SHA256).Hash
+        $summary.historicalSourceFixtureSha256 = (Get-FileHash (Join-Path $root 'app/src/sharedTest/resources/play25-backup.json') -Algorithm SHA256).Hash
+        # Удаляем только собственную задачу через UI и требуем пустой список с
+        # отменённым alarm. Без этого отказ parser мог бы скрыться за старой строкой.
+        Open-ReleaseDetails $edited
+        Click-ReleaseId 'btnDeleteTask'
+        Click-ReleaseNode "//node[@resource-id='android:id/button1']"
+        Wait-ReleaseNode "//node[@resource-id='${package}:id/emptyStateAddTaskBtn']" | Out-Null
+        if ((Read-ReleaseAlarm) -ne 0) { throw 'Historical import setup still has active alarm' }
+        Invoke-ReleaseAdb @('push', $historicalPath, $backupDevicePath) | Out-Null
+        Click-ReleaseId 'btn_open_settings'
+        Click-ReleaseId 'import_from_json_btn'
+        Click-ReleaseNode "//node[@text='$backupName']"
+        Wait-ReleaseNode "//node[@resource-id='${package}:id/import_from_json_btn']" | Out-Null
+        Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '4') | Out-Null
+        Assert-ReleaseText $edited
+        if ((Wait-ReleaseAlarm) -ne $afterAck) { throw 'Historical import alarm changed' }
+        Invoke-ReleaseAdb @('shell', 'am', 'force-stop', $package) | Out-Null
+        Launch-Release
+        Assert-ReleaseText $edited
+        if ((Wait-ReleaseAlarm) -ne $afterAck) { throw 'Historical import alarm missing after restart' }
+        # Реальный release/R8 parser, SAF, Room и restart проверены по описанию и
+        # alarm. Эта UI-фаза не читает private DB и не подтверждает все поля Room;
+        # полный контроль восьми полей выполняют отдельные JVM/native Room тесты.
+        Complete-ReleasePhase 'historical-json-import-and-restart'
+    }
 
     # Проверка BootReceiver: импортированная часовая задача сохранена, приложение
     # запускалось и не находится в stopped. Уходим Home, записываем точный срок
