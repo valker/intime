@@ -3073,3 +3073,46 @@ predictive-back конфигурацией. Кадры/плавность previe
 back-to-home, остальные экраны, release/R8 и OEM не проверены. Телефон, реальный
 JSON и main*.db не использовались. Runtime приложения не менялся; JVM suite
 не повторялась. Полная R4.3 по API24/16КБ и остальным сценариям остаётся открытой.
+
+## Полный rc3 release smoke API 31/33/36 — 9 октября 2026
+
+Продолжение focused-матрицы: тот же архивный Upload-key APK27/2.0.0-rc3 с R8,
+SHA-256 `9BFE60C4507CC5567888AF84EF72256620CC2B1BB11FA6CB9D717C80DB231760`.
+Новые образы не скачивались. Три выбранных API выполнены последовательно одним
+этапом: свежий ScreenPlatformTest, затем полный smoke с HistoricalJsonImport,
+без RebootOnly/DozeOnly/InexactOnly/PeriodicOnly. Все прошли с первой попытки.
+
+| API | UI summary (в .test-tools/runs) | Release summary | Результат |
+| --- | --- | --- | --- |
+| 31 | `20261009-180315-d543cde6/summary.json` | `20261009-180607-release-smoke/summary.json` | 3/3 + 15/15 |
+| 33 | `20261009-181556-87927699/summary.json` | `20261009-181849-release-smoke/summary.json` | 3/3 + 15/15 |
+| 36 | `20261009-182956-d16593f3/summary.json` | `20261009-183203-release-smoke/summary.json` | 3/3 + 15/15 |
+
+UI failures/errors/skipped=0 каждого; release status PASSED, health/cleanup
+ошибок нет. Emulator37.2.12,CPU4,RAM4096,host GPU,Vulkan disabled; проверки
+ANR не отключались. Сверены версия/hash APK, число фаз, reboot expected==actual,
+restored=true и receiverLogged=true на всех. Общий подтверждённый отчёт:
+`.test-tools/runs/20261009-175200-rc3-notification-matrix/confirmed-matrix.json`.
+API35 full15/15 того же кандидата ранее прошёл отдельно в `20261009-104358-release-smoke`;
+в этом этапе API35 не повторялся и не представлен как свежий прогон.
+
+15 фаз каждого: create/alarm,edit/process restart,ACK/reschedule,settings/system
+Back,JSON export,delete/empty restart,current JSON import,historical meta Play25
+import,reboot recovery,настоящая delivery,notification ACK,запрет уведомлений,
+снятие запрета,выключение и включение канала. На API31 запрет приложения через
+Settings (notificationBlockMode=settings-switch), на API33/36 — отзыв/возврат
+POST_NOTIFICATIONS (runtime-permission). При обоих запретах receiver подтверждён,
+уведомление отсутствует после срока; при восстановлении новый UI ACK начинает
+новый срок, доставка и ACK из шторки подтверждены. Старая просрочка без нового
+ACK не проверяется. Времена ОС не ускоряются, receiver вручную не вызывается.
+
+Release runner удалил только свою новую установку и собственные файлы. Batch
+сверил PID/starttime/AVD name и остановил свой процесс после каждого API.
+После завершения emulator.json отсутствует, qemu-system-x86_64 процессов нет.
+Около82.74 MiB отчётов после удаления трёх побайтово идентичных итоговому logcat
+adb-дубликатов: adb-870.log на31,adb-861.log на33,adb-828.log на36. Перед удалением
+SHA сравнивался с сохранённым logcat.log соответствующего запуска. Основные
+журналы/JUnit/summary остаются; это размер отчётов, не замер роста AVD/cache.
+Phone,пользовательский JSON и main*.db не использовались. Runtime не менялся,
+JVM suite не повторялась. Natural/forced Doze,inexact,periodic worker,OEM,
+API24/16КБ и release predictive-жесты не проверялись; R4.3/R5.3 целиком открыты.

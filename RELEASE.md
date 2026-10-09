@@ -552,6 +552,15 @@ do not upload a different payload under it. Earlier host auth13/13 + candidate8/
   list instance and preserves the checked task fields. This does not cover
   release/R8 gestures or visual predictive animation. Reports and failed setup
   attempts: DEVICE_TEST_RESULTS.md; command: TESTING.md.
+  The next sequential stage passed full R8 rc3 smoke on API31/33/36: fresh
+  UI3/3 and release15/15 each, with HistoricalJsonImport and without RebootOnly.
+  Real delivery/notification ACK, app notification denial/restoration (API31
+  Settings switch; API33/36 POST_NOTIFICATIONS) and channel disable/restore passed.
+  Reboot restored the same alarm before Activity launch. Verified reports:
+  `.test-tools/runs/20261009-175200-rc3-notification-matrix/confirmed-matrix.json`.
+  Owned installations/AVDs cleaned up; no phone or new images. This closes this
+  rc3 notification/permissions repeat; Doze/inexact/periodic worker, API24/16KB,
+  OEM and release predictive gestures remain outside this stage.
 - [x] R4.2: Play-compatible25→27 upgrade verified on a separate logical copy
   of17 real tasks from the user-provided JSON, API35,9/9 phases. All original
   fields/IDs/dates preserved; source unchanged, cleanup complete. Fresh UI3/3

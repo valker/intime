@@ -1268,3 +1268,29 @@ attached и gestural: одного `settings navigation_mode=2` недостат
 KEYCODE_BACK и вызовы callback не используются. Анимация визуально, правый край,
 back-to-home, остальные экраны, release/R8 и OEM этим debug-тестом не покрыты.
 API ниже 33 пропускаются по SdkSuppress и не считаются покрытием этого сценария.
+
+## Полный rc3 smoke уведомлений API 31/33/36 — 9 октября
+
+Свежий последовательный этап: UI3/3 и release15/15 каждого. Summary и общая
+сверка: `.test-tools/runs/20261009-175200-rc3-notification-matrix/confirmed-matrix.json`.
+На каждом выбранном API сначала штатный `test.ps1 -Mode device -TestApi <API>`
+с фильтром `com.vpe_soft.intime.intime.activity.ScreenPlatformTest`, `-Offline`,
+`-KeepEmulator`, `-EmulatorGpu host -DisableEmulatorVulkan -EmulatorRamMb 4096`.
+Затем тот же API передать полному release runner:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -ApkPath 'C:/Projects/intime/.test-tools/runs/20261009-103501-release27-historical-json/candidate/intime-27-2.0.0-rc3.apk' -TestApi 31 -HistoricalJsonImport -ExpectedVersionCode 27 -ExpectedVersionName '2.0.0-rc3'
+```
+
+Без `-RebootOnly`: добавляются настоящая доставка/notification ACK, запрет и
+возврат уведомлений, выключение/включение канала. На API31 общий запрет через
+Settings, на API33/36 POST_NOTIFICATIONS. Восстановление проверяется после нового
+UI ACK; старая просрочка без ACK не покрыта. Receiver вручную не вызывается,
+часы не меняются. Это exact alarm при разрешённом appop, не Doze/inexact/worker.
+Release runner удаляет собственную установку и файлы, но оставляет AVD.
+После каждого API batch остановил только свой PID с проверкой starttime/AVD
+name, затем удалил свою запись владения; чужие процессы не останавливать.
+Новые образы не скачивались. Итоговые отчёты занимают около82.74 MiB: удалены
+три byte-identical adb-копии итогового logcat, основные logcat.log сохранены.
+Данные AVD и Gradle cache этим измерением не охватываются. Подробности результатов
+и границы — DEVICE_TEST_RESULTS.md; runtime не менялся, JVM suite не повторялась.
