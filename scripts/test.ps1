@@ -27,6 +27,9 @@ param(
     # Диагностический режим для проблем графического backend: выключаем Vulkan
     # только в новом процессе выделенного AVD. GLES и проверки ANR сохраняются.
     [switch]$DisableEmulatorVulkan,
+    # Включаем экранную системную навигацию для проверки жестов Back.
+    # Override действует только в новом процессе AVD, не меняет INI или данные.
+    [switch]$EmulatorSoftwareNavigation,
     # Образы с Google Play могут требовать больше памяти при фоновых обновлениях.
     # Параметр применяется к новому процессу проектного AVD; уже запущенный нужно остановить.
     [ValidateRange(2048, 8192)][int]$EmulatorRamMb = 2048,
@@ -277,6 +280,11 @@ fastboot.forceColdBoot=yes
                 throw 'Stop the retained project emulator before changing or confirming DisableEmulatorVulkan.'
             }
             $summary.emulatorVulkanDisabled = $recordedVulkanDisabled
+            $recordedSoftwareNavigation = if ($state.PSObject.Properties['softwareNavigation']) { [bool]$state.softwareNavigation } else { $null }
+            if ($PSBoundParameters.ContainsKey('EmulatorSoftwareNavigation') -and $recordedSoftwareNavigation -ne [bool]$EmulatorSoftwareNavigation) {
+                throw 'Stop the retained project emulator before changing or confirming EmulatorSoftwareNavigation.'
+            }
+            $summary.emulatorSoftwareNavigation = $recordedSoftwareNavigation
             # RAM работающего процесса берём из записи запуска, а не изменённого INI.
             $recordedRam = if ($state.PSObject.Properties['ramMb']) { $state.ramMb } else { $null }
             if ($PSBoundParameters.ContainsKey('EmulatorRamMb') -and $recordedRam -ne $EmulatorRamMb) {
@@ -298,6 +306,7 @@ fastboot.forceColdBoot=yes
             if ((Invoke-LoggedProcess $check @('accel') 'acceleration' 30) -ne 0) { throw 'Hardware acceleration unavailable. See acceleration logs.' }
             $emulatorArgs = @('-avd', $avdName, '-port', "$EmulatorPort", '-no-window', '-no-audio', '-no-snapshot', '-gpu', $EmulatorGpu)
             if ($DisableEmulatorVulkan) { $emulatorArgs += @('-feature', '-Vulkan') }
+            if ($EmulatorSoftwareNavigation) { $emulatorArgs += @('-prop', 'qemu.hw.mainkeys=0') }
             # Явный override действует и для существующего AVD без удаления его данных.
             if ($PSBoundParameters.ContainsKey('EmulatorRamMb') -or $TestApi -eq 35) {
                 $emulatorArgs += @('-memory', "$EmulatorRamMb")
@@ -309,9 +318,10 @@ fastboot.forceColdBoot=yes
             $argsLine = ($emulatorArgs | ForEach-Object { Quote-Argument $_ }) -join ' '
             $ownedEmulator = Start-Process $emulator -ArgumentList $argsLine -WorkingDirectory $root -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $run 'emulator.stdout.log') -RedirectStandardError (Join-Path $run 'emulator.stderr.log')
             # Запись позволяет безопасно переиспользовать экземпляр после KeepEmulator.
-            @{ processId = $ownedEmulator.Id; started = $ownedEmulator.StartTime.ToUniversalTime().ToString('o'); serial = $serial; gpu = $EmulatorGpu; ramMb = $summary.emulatorRamMb; vulkanDisabled = [bool]$DisableEmulatorVulkan } | ConvertTo-Json | Set-Content $emulatorState -Encoding UTF8
+            @{ processId = $ownedEmulator.Id; started = $ownedEmulator.StartTime.ToUniversalTime().ToString('o'); serial = $serial; gpu = $EmulatorGpu; ramMb = $summary.emulatorRamMb; vulkanDisabled = [bool]$DisableEmulatorVulkan; softwareNavigation = [bool]$EmulatorSoftwareNavigation } | ConvertTo-Json | Set-Content $emulatorState -Encoding UTF8
             $summary.emulatorGpu = $EmulatorGpu
             $summary.emulatorVulkanDisabled = [bool]$DisableEmulatorVulkan
+            $summary.emulatorSoftwareNavigation = [bool]$EmulatorSoftwareNavigation
             $deviceOwned = $true
         }
         Write-Output "Waiting for $serial (maximum $BootTimeoutSeconds seconds)..."

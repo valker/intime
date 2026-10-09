@@ -547,6 +547,11 @@ do not upload a different payload under it. Earlier host auth13/13 + candidate8/
   `.test-tools/runs/20261009-164433-rc3-cross-api/confirmed-matrix.json`.
   This does not replace full notification/permissions/Doze coverage or cover
   API24/16KB/OEM/predictive gestures. Earlier rc3 API35 full15/15 remains separate.
+  A separate debug gesture stage on 9 October passed 1/1 on each API33/35/36:
+  cancelled left-edge Back keeps Settings; committed Back returns to the same
+  list instance and preserves the checked task fields. This does not cover
+  release/R8 gestures or visual predictive animation. Reports and failed setup
+  attempts: DEVICE_TEST_RESULTS.md; command: TESTING.md.
 - [x] R4.2: Play-compatible25→27 upgrade verified on a separate logical copy
   of17 real tasks from the user-provided JSON, API35,9/9 phases. All original
   fields/IDs/dates preserved; source unchanged, cleanup complete. Fresh UI3/3

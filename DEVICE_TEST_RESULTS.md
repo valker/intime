@@ -3026,3 +3026,50 @@ AVD подтверждены,emulator.json отсутствует. Телефо�
 natural Doze/OEM,predictive Back gesture,API24/16КБ или повторная real-data migration.
 Прежний единичный API31 reboot сбой остаётся без установленной причины.
 Runtime не менялся,JVM suite не повторялась; R4.3 целиком остаётся открытым.
+
+## Функциональный жест Back API 33/35/36 — 9 октября 2026
+
+Новый `PredictiveBackPlatformTest` с подробным русским Javadoc проверен одним
+последовательным этапом на существующих выделенных AVD. Окончательный код:
+
+| API | Свежий runner summary в .test-tools/runs | Результат |
+| --- | --- | --- |
+| 33 | `20261009-174654-5462e06a/summary.json` | 1/1, failures/errors/skipped=0 |
+| 35 | `20261009-174248-ba9a3987/summary.json` | 1/1, failures/errors/skipped=0 |
+| 36 | `20261009-174443-f29f1706/summary.json` | 1/1, failures/errors/skipped=0 |
+
+Сводка после сверки всех трёх summary и имён теста в свежих JUnit XML:
+`20261009-174654-5462e06a/confirmed-gesture-matrix.json`.
+CPU4/RAM4096/host GPU/Vulkan disabled; Emulator37.2.12. Проверки ANR runner
+сохранены. `-EmulatorSoftwareNavigation` включает `qemu.hw.mainkeys=0` только
+для процесса AVD: INI и данные не переписываются, новые образы не скачиваются.
+Собственные процессы остановлены runner, запись emulator.json отсутствует.
+
+Тест проверяет точное имя выделенного AVD, временно включает gestural overlay,
+на API33 developer flag enable_back_animation=1 и дожидается enabled/attached
+обработчика края SystemUI. Затем вводит настоящие touchscreen MotionEvent с
+TOOL_TYPE_FINGER от левого края: возврат пальца к краю до отпускания оставляет
+тот же SettingsActivity; полный свайп возвращает тот же MainActivityV2 с фокусом
+и закрывает настройки. Одна синтетическая будущая in-memory Room задача
+сохраняет ID, описание, next_alarm и last_ack. KEYCODE_BACK/прямые callbacks не
+используются. Finally восстанавливает исходный overlay/mode и developer flag,
+mode/flag сверяются. На API35/36 developer flag не меняется.
+
+История неудачных попыток сохранена:
+- `20261009-172345-1686654c`: tests=0, ошибка компиляции нового теста (неверный
+  getter lastAck и неоднозначный assertEquals с Long); исправлено, это не PASS.
+- `20261009-172925-e0a11d7c` и `20261009-173307-9da98527`: API33 0/1;
+  settings navigation_mode=2 не активировал обработчик края. Диагностика SystemUI
+  показала только неактивный handler и отсутствие NavigationBar. Добавлен явный
+  process override экранной навигации и readiness guard. Изменение типов касаний
+  само по себе проблему не устранило. `20261009-173801-5cebc15f` затем прошёл1/1;
+  итоговый повтор API33 выше сделан после общей правки readiness для API35/36.
+- `20261009-174026-2c6919cf`: API35 0/1 до свайпов; guard ожидал старое имя
+  mIsGesturalModeEnabled. Новое SystemUI выводит mIsGestureHandlingEnabled;
+  учтены оба формата при отдельной проверке mode=2, затем повтор прошёл1/1.
+
+Это функциональная debug-проверка левого жеста в портретном AVD с системной
+predictive-back конфигурацией. Кадры/плавность preview-анимации, правый край,
+back-to-home, остальные экраны, release/R8 и OEM не проверены. Телефон, реальный
+JSON и main*.db не использовались. Runtime приложения не менялся; JVM suite
+не повторялась. Полная R4.3 по API24/16КБ и остальным сценариям остаётся открытой.

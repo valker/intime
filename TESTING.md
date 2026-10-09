@@ -1239,3 +1239,32 @@ PowerShell позволяет получить exit code; активный UI st
 file sharing,поэтому outcome подтверждается свежим runner summary.
 Не использовать эти сведения как разрешение на повторное чтение старых отчётов
 в новых тестовых запусках:31/33 здесь возобновлялись только в текущем этапе.
+
+## Функциональная проверка жеста Back на API 33/35/36
+
+`PredictiveBackPlatformTest` запускается только на выделенных `Intime_Test_API*`.
+Каждый выбранный API проверять последовательно, без `-KeepEmulator`:
+
+```powershell
+foreach ($gestureApi in @(33, 35, 36)) {
+    powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test.ps1 -Mode device -TestApi $gestureApi -Filter com.vpe_soft.intime.intime.activity.PredictiveBackPlatformTest -Offline -EmulatorGpu host -DisableEmulatorVulkan -EmulatorRamMb 4096 -EmulatorSoftwareNavigation
+    if ($LASTEXITCODE -ne 0) { throw "Gesture test failed on API $gestureApi" }
+}
+```
+
+`-EmulatorSoftwareNavigation` передаёт новому процессу `qemu.hw.mainkeys=0`:
+системная экранная навигация нужна для обработчика бокового жеста. INI/данные
+AVD не изменяются, образ не скачивается. При подтверждении этого параметра для
+сохранённого процесса runner требует совпадающую запись владения; старые записи
+без этого поля не подтверждают режим. Обработчик SystemUI должен быть enabled,
+attached и gestural: одного `settings navigation_mode=2` недостаточно.
+
+Тест временно включает gestural overlay, на API 33/34 developer flag Back,
+вводит касания пальцем от левого края (отмена с возвратом к краю, затем завершение).
+Проверяет прежний экземпляр настроек после отмены, прежний экземпляр списка
+после завершения и сохранность ID/описания/next_alarm/last_ack одной in-memory
+задачи. Исходные overlay/navigation mode и developer flag восстанавливаются
+в finally с проверкой mode/flag; runner останавливает собственный AVD.
+KEYCODE_BACK и вызовы callback не используются. Анимация визуально, правый край,
+back-to-home, остальные экраны, release/R8 и OEM этим debug-тестом не покрыты.
+API ниже 33 пропускаются по SdkSuppress и не считаются покрытием этого сценария.
