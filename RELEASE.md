@@ -661,6 +661,22 @@ do not upload a different payload under it. Earlier host auth13/13 + candidate8/
   App unchanged, JVM not rerun. No phone/new images; reports10.11 MiB, AVD/cache
   growth unmeasured. Next: rc3 delivery/ACK after unforced light entry31/33.
   Physical natural Doze/OEM, quotas, API24/16KB and other gaps remain open.
+  Subsequent rc3 exact delivery after unforced light entry passed on31/33:
+  fresh UI3/3 + release13/13 each; LightIdleOnly added to release runner.
+  Exact appops allow/window0; two IDLE samples before deadline31:77.266/92.603s,
+  33:355.393/370.822s, controller/power/battery agree at delivery with screen off.
+  Actual AlarmReceiver, own notification action/when and consumed alarm verified.
+  Notification when minus deadline0.018/0.023s is not audio/visibility latency.
+  After restoring virtual power/screen, notification action ACK preserves4/8min
+  interval and alarm across restart.31 first attempt;33 after preserved launcher/
+  Google search ANR during reboot. Original batch FAILED retained, no ANR bypass
+  or AVD reset. Light9/9, ActivityRecord5/5, quiet guard13/13 host regressions.
+  Matrix: `.test-tools/runs/20261010-210008-rc3-light-delivery31-33-matrix/confirmed-matrix.json`.
+  Light constants unchanged, owned AVDs stopped, no phone/new images.
+  Reports40.33 MiB after23.64 MiB identical adb-log cleanup; AVD/cache growth
+  unmeasured. App/archived Upload-key APK unchanged, JVM suite not rerun.
+  Next: inexact fallback after light entry31/33, observing possible maintenance
+  separately. Worker/quotas/physical/OEM and remaining release gaps stay open.
 - [x] R4.2: Play-compatible25→27 upgrade verified on a separate logical copy
   of17 real tasks from the user-provided JSON, API35,9/9 phases. All original
   fields/IDs/dates preserved; source unchanged, cleanup complete. Fresh UI3/3

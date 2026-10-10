@@ -360,7 +360,23 @@ release/R8 и оставшаяся Android-матрица проверяются
   не использовались; отчёты10.11 MiB, рост AVD/cache отдельно не измерен.
   Это вход контроллера на AVD, notificationDeliveryValidated=false:
   release APK/доставка/worker не проверялись, физический natural Doze не покрыт.
-  Следующий шаг — доставка rc3 и ACK в штатном light idle на31/33.
+  Следом exact-доставка rc3 и notification ACK/restart прошли на31/33:
+  свежие UI3/3 и release13/13 каждого; штатный light entry до срока,
+  window0/appops allow, собственный AlarmReceiver и consumed alarm.
+  Два IDLE-снимка31:77.266/92.603с,33:355.393/370.822с; при доставке
+  light IDLE/screen off сохраняются. When уведомления позже alarm на0.018/0.023с
+  (не измерение звука/видимости). ACK после восстановления питания/экрана
+  сохраняет интервал4/8мин и alarm после restart. API31 с первой попытки,
+  API33 после сохранённого ANR Google launcher/search при reboot; исходный
+  batch FAILED не заменён, проверки ANR не отключались, AVD не сбрасывался.
+  Итог: `20261010-210008-rc3-light-delivery31-33-matrix/confirmed-matrix.json`.
+  Host light9/9, ActivityRecord5/5, quiet guard13/13. Light constants прежние,
+  питание восстановлено, AVD остановлены, телефон/новые образы не использовались.
+  Отчёты40.33 MiB после удаления23.64 MiB идентичных adb-дублей;
+  рост AVD/cache отдельно не измерен. Приложение/архивный APK прежние,
+  JVM suite не повторялась; добавлен LightIdleOnly в release runner.
+  Следующий шаг — inexact fallback после штатного light entry на31/33,
+  с отдельным наблюдением возможного выхода в maintenance; worker пока открыт.
   Остальные Doze/квоты/OEM, API24/16КБ и визуальная predictive-анимация открыты.
   На API 36 прошли 19 debug-тестов и четыре отдельные notification/reboot-фазы.
   Добавлены два UI-теста: границы выбранных элементов четырёх экранов относительно
@@ -628,7 +644,11 @@ Upload-key APK ожидаемо отклонён, SHA AAB повторно св�
   step/изменения таймеров после emulator-console virtual AC off и screen off.
   UI3/3 каждого, host9/9; питание восстановлено, AVD остановлены.
   Это готовность среды для следующей доставки rc3, не проверка notification/
-  worker и не физический natural Doze; light-доставка остаётся открытой.
+  worker и не физический natural Doze. Следующая exact light-доставка rc3
+  прошла13/13 каждого (UI3/3), API33 после сохранённого ANR launcher/search
+  при reboot. Notification action ACK с включённым экраном и restart прошли;
+  питание/таймеры восстановлены/сохранены. Inexact light/worker/maintenance,
+  physical natural Doze и OEM остаются открытыми.
   Новые образы не скачивались, собственные AVD остановлены. Естественный Doze,
   OEM и Play upgrade открыты; API 24 ограничен разрешённым дисковым бюджетом.
   R5.3 целиком не закрыт.

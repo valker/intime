@@ -1565,3 +1565,53 @@ Host9/9 проверяет реальную функцию через AST, вк�
 шаг — отдельная доставка rc3 в штатном light idle31/33; физический natural
 Doze/OEM и остальные gaps остаются открытыми. Различие full/light описано в
 [документации Android](https://source.android.com/docs/core/power/platform_mgmt).
+
+## Exact-доставка rc3 после штатного light entry API31/33
+
+После bootstrap через `scripts/test.ps1 -Mode device -TestApi 31
+-Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline
+-KeepEmulator -EmulatorGpu host -DisableEmulatorVulkan -EmulatorRamMb 4096`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -ApkPath .test-tools/runs/20261009-103501-release27-historical-json/candidate/intime-27-2.0.0-rc3.apk -TestApi 31 -LightIdleOnly -ExpectedVersionCode 27 -ExpectedVersionName 2.0.0-rc3
+```
+
+Для33 заменить TestApi в обеих командах, последовательно остановив свой31.
+LightIdleOnly принимает только31/33 и несовместим с другими режимами/повторами.
+13 фаз включают CRUD/JSON/reboot, exact alarm с appops allow/window0, light
+entry, реальную доставку и notification ACK/restart. После подготовки интервал
+задачи4мин на31/8мин на33; срок проверяется по AlarmManager. Это обычный срок
+задачи, системные light timers не меняются. Virtual AC off/status discharging
+и screen off подготавливают среду; force-idle/step/ручной dispatch отсутствуют.
+
+Каждые15с сохраняются первичные deviceidle/power/battery snapshots. Нужны два
+подряд согласованных light IDLE до срока; после подтверждения каждый снимок
+до доставки должен оставаться IDLE. Отсутствие входа/потеря IDLE/таймаут18мин
+дают INCONCLUSIVE, разрыв опросов>90с — INFRASTRUCTURE_INTERRUPTED. Это дискретные
+снимки, не непрерывная трасса. Доставка требует собственного NotificationRecord
+с action и временем не раньше alarm, реального AlarmReceiver и потребления alarm;
+при доставке ещё раз сверяются три службы. Звук/точный момент видимости не измеряются.
+
+Затем восстанавливаются исходные virtual AC/status/экран; проверяются ACTIVE,
+battery state и неизменность всех light_* constants. ACK через notification action
+выполняется уже с включённым экраном, проверяет новый срок с тем же интервалом,
+исчезновение уведомления и сохранение alarm после process restart. В finally
+повторяется незавершённое восстановление питания, удаляется только своя установка.
+По окончании остановить только собственный AVD с проверкой PID/starttime/имени.
+Телефон/Pixel_8 не использовать. Этот режим не проверяет inexact fallback,
+worker в maintenance, квоты, physical/OEM Doze или Play-signing APK.
+
+Свежий итог10 октября:
+`.test-tools/runs/20261010-210008-rc3-light-delivery31-33-matrix/confirmed-matrix.json`.
+UI3/3 и release13/13 обоих, host light9/9/ActivityRecord5/5/quiet13/13.
+API31 с первой попытки; API33 после отдельного полного повтора вслед за ANR
+Google launcher/search при reboot. Исходный batch FAILED и первичные журналы
+сохранены; ANR checks не отключались, AVD не сбрасывался. Два IDLE-снимка31:
+77.266/92.603с,33:355.393/370.822с. Notification when позже alarm на0.018/0.023с;
+ACK remaining239.269/478.932с при интервале4/8мин, alarm тот же после restart.
+Все сырые light-снимки независимо сверены parser, включая состояние при доставке.
+Питание восстановлено, light constants неизменны, AVD остановлены.
+Отчёты40.33 MiB после удаления23.64 MiB идентичных numbered adb logs с проверкой
+SHA-256; named logs сохранены. Рост AVD/cache не измерен, новых образов/телефона
+нет. Runtime/архивный APK прежние, JVM suite не повторялась. Следующий шаг —
+inexact light fallback с отдельным наблюдением maintenance; worker остаётся открыт.

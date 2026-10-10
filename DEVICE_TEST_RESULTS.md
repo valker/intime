@@ -3520,3 +3520,69 @@ NaturalEntryValidated=true относится только к штатному �
 физический natural deep/light, OEM, API24/16КБ или Play-signing APK.
 R4.3/R5.3 целиком остаются открытыми. Следующий шаг — доставка rc3 и ACK
 после самостоятельного входа light на31/33.
+
+## Rc3 exact alarm после штатного light entry31/33 — 10 октября
+
+Итог: `PASSED_AFTER_API33_INFRASTRUCTURE_RETRY` в
+`.test-tools/runs/20261010-210008-rc3-light-delivery31-33-matrix/confirmed-matrix.json`.
+Архивный Upload-key APK27/2.0.0-rc3 с R8, без пересборки:
+SHA-256 `9BFE60C4507CC5567888AF84EF72256620CC2B1BB11FA6CB9D717C80DB231760`.
+
+| API | Финальный UI report в runs | Финальный release report в runs | UI | Release | Два IDLE-снимка, с | Notification when − deadline, с |
+| --- | --- | --- | --- | --- | --- | --- |
+| 31 | `20261010-210026-06713f18` | `20261010-210324-release-smoke` | 3/3 | 13/13 | 77.266 / 92.603 | 0.018 |
+| 33 | `20261010-211655-9abbd1f4` | `20261010-211903-release-smoke` | 3/3 | 13/13 | 355.393 / 370.822 | 0.023 |
+
+Первый31 прошёл. Первый33 UI `20261010-211049-a4ff3b0d` тоже3/3, но release
+`20261010-211301-release-smoke` остановлен после7 фаз при reboot: ANR NexusLauncher
+и `com.google.android.googlequicksearchbox:search`, ожидание FocusEvent5007ms.
+BootReceiver был записан, исходный alarm восстановлен44→45 boot count;
+health guard не позволил продолжить к light-доставке. Причина зависания среды
+не установлена. Исходный batch `summary.json` остаётся FAILED, журналы сохранены.
+Полный повтор33 в `20261010-211642-rc3-light33-retry` прошёл с теми же параметрами,
+без сброса AVD/ослабления фокуса/отключения ANR. Финальные UI failures/errors/
+skipped=0, release healthError отсутствует. Это повтор после инфраструктурного
+отказа, не доказательство исправления launcher или долговременной устойчивости.
+
+Новый режим LightIdleOnly:7 CRUD/JSON фаз, реальный reboot recovery, fixture,
+штатный light entry, light-доставка, уведомление в шторке и ACK/restart =13.
+Интервалы задачи4мин31/8мин33; appops SCHEDULE_EXACT_ALARM allow, собственный
+RTC_WAKEUP/window0 и срок сверены. Emulator console AC off/status discharging
+и KEYCODE_SLEEP отключают виртуальную зарядку/экран; force-idle/step/enable Doze,
+смены light timers/часов/ручного receiver/worker нет. BatteryService updates
+не останавливались. Emulator37.2.12/CPU4/RAM4096/host GPU/Vulkan disabled.
+
+Каждые15с сохранены deviceidle/power/battery: после двух подряд IDLE до срока
+все последующие снимки подтверждали light IDLE/PowerManager light=true, screen
+off/charging=false/не powered/Asleep/forceIdle=false. При фактическом NotificationRecord
+ещё раз сняты три службы (`light-at-delivery-*`). AlarmReceiver записал реальную
+отправку; собственный alarm потреблён; уведомление содержит action и when>=deadline.
+Указанные0.018/0.023с — разность временных меток, не измерение звука, появления
+кадра или момента пользовательского восприятия. Poll timestamps не дают
+непрерывную трассу между снимками; deep остался INACTIVE.
+
+Перед ACK восстановлены virtual AC/status charging/экран и light ACTIVE;
+все light_* constants до/после совпали. ACK через notification action, уже
+при включённом экране, убрал уведомление и назначил новый alarm с тем же
+интервалом: remaining239.269/478.932с. После force-stop/launch этот alarm сохранился.
+Удалены только свои release/probe/backup-файлы; собственные AVD остановлены
+с проверкой PID/starttime/имени. Emulator.json отсутствует, qemu процессов нет.
+Телефон, пользовательские задачи/JSON/main*.db и новые образы не использовались.
+
+Свежие host light parser9/9, ActivityRecord5/5, quiet guard13/13 сохранены в batch.
+`confirm.ps1` независимо сверил все первичные light-снимки, два входных до срока,
+последующие IDLE, снимок доставки, receiver/ACK/reboot и финальные summaries.
+Release runner SHA-256:
+`F0CADF43C46002C1C40B2CE96097C60CE18193763436FFE89AACC6802882801C`;
+light parser/observer прежний:
+`25021891F39048451189F71ACC6D08F52DF11DC459D75B6C33E32408090241AF`.
+Приложение/архивный APK прежние, JVM suite не повторялась. PS parser/git diff
+--check прошли. Отчёты всех попыток около40.33 MiB после удаления23.64 MiB
+крупных numbered adb logs, совпавших с сохранёнными named logs по размеру и
+SHA-256; inventory `duplicate-log-cleanup.json`. Рост AVD/cache отдельно не измерен.
+
+Покрыта одна exact-доставка на каждый AVD после штатного light entry и ACK
+после включения экрана. Inexact light fallback, worker в maintenance, квоты,
+физический natural deep/light/OEM, API24/16КБ, Play-signing APK не покрыты.
+R4.3/R5.3 целиком открыты. Следующий шаг — inexact fallback после light entry31/33
+с отдельным наблюдением возможного перехода в maintenance.

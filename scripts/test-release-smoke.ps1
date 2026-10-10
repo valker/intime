@@ -16,6 +16,8 @@ InexactOnly (API 31/33/35/36) содержит 11 фаз: подготовка, 
 GestureOnly (API33/35/36) содержит9 фаз: CRUD/JSON и отмена/завершение бокового
 Back-жеста. Требует -EmulatorSoftwareNavigation при bootstrap, восстанавливает
 navigation overlay/mode и developer flag; reboot/notification не выполняет.
+LightIdleOnly (API31/33) содержит13 фаз: CRUD/JSON/reboot, будущий exact alarm,
+самостоятельный light entry, доставка при screen off, notification ACK/restart.
 InexactOnly + DozeOnly содержит 12 фаз: дополнительно подтверждается deep IDLE.
 DozeSequence добавляет подготовку второй задачи и её доставку: 14 фаз.
 DozeQuota (API 31/33) добавляет подтверждённую отсрочку по квоте: 15 фаз.
@@ -31,6 +33,9 @@ param(
     # Только CRUD/JSON и отмена/завершение реального бокового Back-жеста в release.
     # Требует экранную навигацию проектного AVD; reboot/notification не выполняются.
     [switch]$GestureOnly,
+    # Штатный light idle и exact-доставка после virtual unplug/screen off.
+    # Только31/33, без forced idle/step/смены таймеров; затем notification ACK.
+    [switch]$LightIdleOnly,
     # Дополнительный SAF-импорт с исторической meta Play 25 и текущей собственной
     # задачей. Срок остаётся будущим; исходная sharedTest-фикстура не изменяется.
     [switch]$HistoricalJsonImport,
@@ -85,6 +90,17 @@ $lock = $null
 $commandNumber = 0
 $summary = @{ status = 'RUNNING'; passedPhases = @(); reports = $run; serial = $serial; testApi = $TestApi; rebootOnly = [bool]$RebootOnly; rebootResults = @(); rebootSettleSeconds = $RebootSettleSeconds; expectedVersionCode = $ExpectedVersionCode; expectedVersionName = $ExpectedVersionName }
 $summary.gestureOnly = [bool]$GestureOnly
+$summary.lightIdleOnly=[bool]$LightIdleOnly
+$lightPowerChanged=$false;$lightOriginalPower=$null
+if($LightIdleOnly -and ($TestApi -notin @(31,33) -or $GestureOnly -or $RebootOnly -or $HistoricalJsonImport -or $DozeOnly -or $InexactOnly -or $DozeSequence -or $DozeQuota -or $DozeQuotaSeven -or $PeriodicOnly -or $RebootRepeats -ne 1 -or $PeriodicRepeats -ne 1)){throw 'LightIdleOnly requires API31/33 without other modes/repeats'}
+if($LightIdleOnly){
+    # Загружаем только проверяемую функцию parser, без выполнения observer.
+    $lightTokens=$null;$lightErrors=$null
+    $lightAst=[System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'test-natural-light-idle.ps1'),[ref]$lightTokens,[ref]$lightErrors)
+    if($lightErrors.Count){throw 'Light observer parser failed'}
+    $lightFunction=$lightAst.Find({param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Get-LightIdleObservation'},$true)
+    Invoke-Expression $lightFunction.Extent.Text
+}
 if ($GestureOnly -and ($TestApi -notin @(33,35,36) -or $RebootOnly -or $HistoricalJsonImport -or $DozeOnly -or $InexactOnly -or $DozeSequence -or $DozeQuota -or $DozeQuotaSeven -or $PeriodicOnly -or $RebootRepeats -ne 1 -or $PeriodicRepeats -ne 1)) { throw 'GestureOnly requires API33/35/36 without other modes/repeats' }
 if (-not $RebootOnly -and $RebootRepeats -ne 1) { throw 'RebootRepeats requires RebootOnly' }
 if ($RebootOnly -and $DozeOnly) { throw 'RebootOnly and DozeOnly are mutually exclusive' }
@@ -251,6 +267,109 @@ function Wait-ReleaseAlarm([long]$After = 0) {
 function Complete-ReleasePhase([string]$Name) {
     $summary.passedPhases += $Name
     Write-Output "PASSED: $Name"
+}
+
+function Read-ReleaseLightSnapshot([string]$Prefix) {
+    $idle=Invoke-ReleaseTool $adb @('-s',$serial,'shell','dumpsys','deviceidle') "$Prefix-idle.log"
+    $power=Invoke-ReleaseTool $adb @('-s',$serial,'shell','dumpsys','power') "$Prefix-power.log"
+    $battery=Invoke-ReleaseTool $adb @('-s',$serial,'shell','dumpsys','battery') "$Prefix-battery.log"
+    return Get-LightIdleObservation $idle $power $battery
+}
+# После любого исхода возвращаем только исходное emulator-console AC/status и
+# экран. Не используем unforce/battery reset: forced idle/simulation не вводились.
+function Restore-ReleaseLightPower {
+    if(-not $script:lightPowerChanged){return}
+    Invoke-ReleaseAdb @('emu','power','ac',$(if($script:lightOriginalPower.ac -eq 'true'){'on'}else{'off'}))|Out-Null
+    Invoke-ReleaseAdb @('emu','power','status',$script:lightOriginalPower.status)|Out-Null
+    Invoke-ReleaseAdb @('shell','input','keyevent','224')|Out-Null
+    $limit=(Get-Date).AddSeconds(20)
+    do {
+        $restored=Read-ReleaseLightSnapshot 'light-restored'
+        if($restored.screenOn -and $restored.lightState -eq 'ACTIVE'){break}
+        Start-Sleep -Milliseconds 500
+    } while((Get-Date) -lt $limit)
+    $battery=Get-Content (Join-Path $run 'light-restored-battery.log') -Raw
+    if(-not $restored.screenOn -or $restored.lightState -ne 'ACTIVE' -or $battery -notmatch "AC powered: $($script:lightOriginalPower.ac)" -or $battery -notmatch "(?m)^\s*status: $($script:lightOriginalPower.statusCode)\s*$"){throw 'Light power restoration failed'}
+    $before=Get-Content (Join-Path $run 'light-before-idle.log') -Raw
+    $after=Get-Content (Join-Path $run 'light-restored-idle.log') -Raw
+    $beforeConstants=@([regex]::Matches($before,'(?m)^\s*light_[a-z_]+=[^\r\n]+')|ForEach-Object {$_.Value.Trim()}|Sort-Object)
+    $afterConstants=@([regex]::Matches($after,'(?m)^\s*light_[a-z_]+=[^\r\n]+')|ForEach-Object {$_.Value.Trim()}|Sort-Object)
+    if($beforeConstants.Count -eq 0 -or ($beforeConstants -join "`n") -ne ($afterConstants -join "`n")){throw 'Light constants changed'}
+    $summary.lightPowerRestored=$true;$summary.lightConstantsUnchanged=$true
+    $script:lightPowerChanged=$false
+}
+
+# Одна синтетическая задача имеет будущий exact alarm с периодом4/8мин.
+# Перед её сроком требуем два штатных согласованных light IDLE-снимка; после
+# этого опрос не открывает UI и не запускает receiver/worker. При обнаружении
+# реального уведомления снова требуем light IDLE, ACK action, when>=deadline,
+# журнал AlarmReceiver и потребление собственного alarm. Это не deep/квота,
+# не непрерывная трасса между опросами и не измерение физического звука.
+function Assert-ReleaseLightDelivery([string]$Description,[long]$Deadline,[string]$Since) {
+    $before=Read-ReleaseLightSnapshot 'light-before'
+    if(-not $before.lightEnabled -or -not $before.screenOn -or $before.lightState -ne 'ACTIVE'){throw 'Initial light ACTIVE/screen on missing'}
+    $battery=Get-Content (Join-Path $run 'light-before-battery.log') -Raw
+    if($battery -match '(?:USB|Wireless|Dock) powered: true'){throw 'Unsupported original power source'}
+    $ac=([regex]::Match($battery,'AC powered: (true|false)')).Groups[1].Value
+    $code=([regex]::Match($battery,'(?m)^\s*status: (\d+)')).Groups[1].Value
+    $status=@{'1'='unknown';'2'='charging';'3'='discharging';'4'='not-charging';'5'='full'}[$code]
+    if(-not $status){throw 'Unknown original battery status'}
+    $script:lightOriginalPower=@{ac=$ac;status=$status;statusCode=$code}
+    $summary.lightOriginalPower=$script:lightOriginalPower
+    $ops=Invoke-ReleaseAdb @('shell','appops','get',$package,'SCHEDULE_EXACT_ALARM')
+    Set-Content (Join-Path $run 'light-exact-appops.log') $ops -Encoding UTF8
+    if($ops -notmatch 'SCHEDULE_EXACT_ALARM: allow'){throw 'Light exact permission missing'}
+    if((Read-ReleaseAlarm) -ne $Deadline){throw 'Own future light alarm missing'}
+    $alarms=Invoke-ReleaseAdb @('shell','dumpsys','alarm')
+    Set-Content (Join-Path $run 'light-alarm-before.log') $alarms -Encoding UTF8
+    $own=[regex]::Match($alarms,'(?m)^\s*RTC_WAKEUP #\d+: Alarm\{\S+ type 0 origWhen (?<deadline>\d+) [^\r\n]* com\.vpe_soft\.intime\.intime\}\r?\n\s+tag=\*walarm\*:com\.vpe_soft\.intime\.intime/(?:com\.vpe_soft\.intime\.intime)?\.receiver\.AlarmReceiver\r?\n\s+type=RTC_WAKEUP[^\r\n]*?window=(?<window>\S+)')
+    if(-not $own.Success -or [long]$own.Groups['deadline'].Value -ne $Deadline -or $own.Groups['window'].Value -ne '0'){throw 'Own exact zero-window light alarm missing'}
+    $summary.lightAlarmWindow='0'
+    $summary.lightForcedIdleUsed=$false;$summary.lightTimersChanged=$false
+    $summary.lightObservations=@();$summary.lightEntryValidated=$false
+    $script:lightPowerChanged=$true
+    Invoke-ReleaseAdb @('emu','power','ac','off')|Out-Null
+    Invoke-ReleaseAdb @('emu','power','status','discharging')|Out-Null
+    Invoke-ReleaseAdb @('shell','input','keyevent','223')|Out-Null
+    $timer=[Diagnostics.Stopwatch]::StartNew();$lastTick=0.0;$index=0;$consecutive=0;$delivered=$false
+    do {
+        $index++;$tick=$timer.Elapsed.TotalSeconds
+        if($index -gt 1 -and $tick-$lastTick -gt 90){throw 'Light observation interrupted by host polling gap'}
+        $lastTick=$tick
+        $snapshot=Read-ReleaseLightSnapshot "light-sample-$index"
+        $snapshot.elapsedSeconds=[Math]::Round($timer.Elapsed.TotalSeconds,3)
+        $snapshot.guestNowMs=[long](Invoke-ReleaseTool $adb @('-s',$serial,'shell','date','+%s') 'light-guest-now.log').Trim()*1000
+        $summary.lightObservations+=,$snapshot
+        if($index -gt 1 -and -not $snapshot.preparationReady){throw 'Light screen/power preparation lost'}
+        $notifications=Invoke-ReleaseTool $adb @('-s',$serial,'shell','dumpsys','notification','--noredact') 'light-notifications-poll.log'
+        $record=[regex]::Match($notifications,'(?ms)^\s*NotificationRecord\([^\r\n]*pkg=com\.vpe_soft\.intime\.intime [^\r\n]*\r?\n(?:(?!^\s*NotificationRecord\().)*')
+        $when=[regex]::Match($record.Value,'(?m)^\s*when=(\d+)(?:/|\r?$)')
+        $delivered=$record.Success -and $record.Value.Contains("android.text=String ($Description)") -and $record.Value -match 'actions=1' -and $when.Success -and [long]$when.Groups[1].Value -ge $Deadline
+        if(-not $summary.lightEntryValidated){
+            if($snapshot.entryObserved -and $snapshot.guestNowMs -lt $Deadline -and -not $delivered){$consecutive++}else{$consecutive=0}
+            if($consecutive -ge 2){
+                $summary.lightEntryValidated=$true;$summary.lightEntry=$snapshot
+                Complete-ReleasePhase 'release-natural-light-entry'
+            } elseif($snapshot.guestNowMs -ge $Deadline -or $delivered){throw 'Natural light entry not confirmed before task deadline'}
+        }
+        if($summary.lightEntryValidated -and -not $snapshot.entryObserved){throw 'Confirmed light IDLE lost before delivery'}
+        Write-Output ("Light delivery wait {0:N1} min: {1}, delivered={2}" -f $timer.Elapsed.TotalMinutes,$snapshot.lightState,$delivered)
+        if(-not $delivered){Start-Sleep -Seconds 15}
+    } while(-not $delivered -and $timer.Elapsed.TotalMinutes -lt 18)
+    if(-not $delivered){throw 'Natural light alarm delivery timed out'}
+    $final=Read-ReleaseLightSnapshot 'light-at-delivery'
+    if(-not $final.entryObserved){throw 'Light IDLE not confirmed at delivery'}
+    $log=Invoke-ReleaseAdb @('logcat','-d','-T',$Since)
+    Set-Content (Join-Path $run 'light-delivery-logcat.log') $log -Encoding UTF8
+    if($log -notmatch 'AlarmReceiver.*handleAlarm: trying to post notification'){throw 'Actual light AlarmReceiver log missing'}
+    if((Read-ReleaseAlarm) -ne 0){throw 'Own light alarm not consumed'}
+    $summary.lightDeliveryValidated=$true;$summary.lightStateAtDelivery=$final
+    $summary.lightNotificationWhen=[long]$when.Groups[1].Value
+    $summary.lightNotificationDelaySeconds=($summary.lightNotificationWhen-$Deadline)/1000.0
+    Complete-ReleasePhase 'release-natural-light-alarm-delivery'
+    # ACK через шторку является пользовательским взаимодействием: сначала
+    # завершена проверка доставки при screen off, затем возвращаем питание/экран.
+    Restore-ReleaseLightPower
 }
 
 # Функциональная проверка release без instrumentation в процессе приложения.
@@ -1495,10 +1614,30 @@ try {
     Open-ReleaseEdit
     Click-ReleaseId 'spinner_interval'
     Click-ReleaseNode "//node[@text='Минута']"
+    if($LightIdleOnly){
+        # Подбираем срок синтетической задачи относительно ранее наблюдавшегося
+        # light entry; системные таймеры не ускоряем. Amount задаём именно в Edit.
+        $minutes=if($TestApi -eq 31){4}else{8}
+        if((Read-ReleaseUi).SelectNodes("//node[@class='android.widget.NumberPicker']").Count -ne 2){throw 'Unexpected light fixture pickers'}
+        $amountXpath="(//node[@class='android.widget.NumberPicker'])[1]//node[@resource-id='android:id/numberpicker_input']"
+        Click-ReleaseNode $amountXpath
+        Wait-ReleaseNode ($amountXpath+"[@focused='true']")|Out-Null
+        Invoke-ReleaseAdb @('shell','input','keyevent','KEYCODE_MOVE_END','KEYCODE_DEL')|Out-Null
+        Invoke-ReleaseAdb @('shell','input','text',"$minutes")|Out-Null
+        Invoke-ReleaseAdb @('shell','input','keyevent','KEYCODE_ENTER')|Out-Null
+        Close-ReleaseKeyboard
+        Wait-ReleaseNode ($amountXpath+"[@text='$minutes']")|Out-Null
+        $summary.lightFixtureMinutes=$minutes
+    }
     Click-ReleaseId 'btn_save_task'
     Click-ReleaseId 'btnAckTask'
     Assert-ReleaseText $edited
     $notificationDeadline = Wait-ReleaseAlarm
+    if($LightIdleOnly){
+        $fixtureNow=[long](Invoke-ReleaseAdb @('shell','date','+%s')).Trim()*1000
+        if([math]::Abs(($notificationDeadline-$fixtureNow)-$summary.lightFixtureMinutes*60000) -gt 15000){throw 'Light fixture interval not confirmed'}
+        Complete-ReleasePhase 'release-natural-light-fixture'
+    }
     if ($DozeSequence -and $summary.sequenceSecondDeadline -le $notificationDeadline + 60000) { throw 'Second task deadline is too close to first alarm' }
     }
     $summary.notificationAlarm = $notificationDeadline
@@ -1506,6 +1645,7 @@ try {
     Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '3') | Out-Null
     if ($InexactOnly -and -not $DozeOnly) { Assert-ReleaseInexactDelivery $edited $notificationDeadline $inexactSince }
     if ($DozeOnly) { Assert-ReleaseDozeDelivery $edited $notificationDeadline $inexactSince }
+    if ($LightIdleOnly) { Assert-ReleaseLightDelivery $edited $notificationDeadline $inexactSince }
     if ($DozeSequence) {
         # Шторка теперь показывает последнюю задачу последовательности:
         # вторую либо восьмую. Её ACK проверяем штатным путём.
@@ -1559,6 +1699,14 @@ try {
     if ($afterNotificationAckUi.SelectSingleNode("//node[@text='$notificationDisplayText']")) { throw 'Acknowledged notification still visible in shade' }
     Set-Content (Join-Path $run 'notifications-after-ack.log') (Invoke-ReleaseAdb @('shell', 'dumpsys', 'notification', '--noredact')) -Encoding UTF8
     $summary.notificationAckAlarm = $notificationAckAlarm
+    if($LightIdleOnly){
+        # Проверяем, что ACK сохранил именно4/8мин, а не просто любой будущий
+        # alarm. Допуск учитывает UI/adb после нажатия, не обещает точность доставки.
+        $ackNow=[long](Invoke-ReleaseAdb @('shell','date','+%s')).Trim()*1000
+        $remaining=$notificationAckAlarm-$ackNow
+        if([math]::Abs($remaining-$summary.lightFixtureMinutes*60000) -gt 45000){throw 'Light ACK did not preserve fixture interval'}
+        $summary.lightAckRemainingSeconds=$remaining/1000.0
+    }
     Invoke-ReleaseAdb @('shell', 'cmd', 'statusbar', 'collapse') | Out-Null
     Invoke-ReleaseAdb @('shell', 'am', 'force-stop', $package) | Out-Null
     Launch-Release
@@ -1578,7 +1726,7 @@ try {
         $summary.inexactAckAlarmWindow = $ackAlarm.Groups['window'].Value
     }
 
-    if (-not $DozeOnly -and -not $InexactOnly) {
+    if (-not $DozeOnly -and -not $InexactOnly -and -not $LightIdleOnly) {
     # Проверка отказа POST_NOTIFICATIONS: отзыв разрешения может убить процесс,
     # поэтому выполняем его до нового запуска. Флаги user-set/user-fixed исключают
     # всплывающий permission dialog. UI ACK ставит новый минутный alarm, Home;
@@ -1643,6 +1791,8 @@ try {
 } catch {
     $summary.status = if ($installedHere) { 'FAILED' } else { 'INFRASTRUCTURE_ERROR' }
     $summary.message = $_.Exception.Message
+    if($LightIdleOnly -and $summary.message -match 'Natural light entry not confirmed|Confirmed light IDLE lost|Light IDLE not confirmed|Natural light alarm delivery timed out'){$summary.status='INCONCLUSIVE'}
+    if($LightIdleOnly -and $summary.message -like 'Light observation interrupted*'){$summary.status='INFRASTRUCTURE_INTERRUPTED'}
     # Отсутствие естественного запуска к лимиту — неопределённый результат
     # планирования, а не доказанное падение приложения/R8. Остальные assertions
     # и ошибки диагностики/очистки по-прежнему считаются FAILED.
@@ -1652,6 +1802,9 @@ try {
     if ($summary.message -like 'Inexact alarm notification timed out*') { $summary.status = 'INCONCLUSIVE' }
     Write-Output $summary.message
 } finally {
+    if($lightPowerChanged){
+        try {Restore-ReleaseLightPower} catch {$summary.lightCleanupError=$_.Exception.Message;$summary.status='FAILED'}
+    }
     if ($dozeChanged) {
         try {
             Set-Content (Join-Path $run 'doze-failure-state.log') (Invoke-ReleaseAdb @('shell', 'dumpsys', 'deviceidle')) -Encoding UTF8
