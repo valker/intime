@@ -1523,3 +1523,45 @@ UI фокус не ослаблялся; исходные FAILED сохране�
 named logs сохранены, рост AVD/cache отдельно не измерен. Следующий шаг —
 естественный light idle на31/33. Visual predictive/OEM/прочие открытые проверки
 не заменяются этим функциональным жестом.
+
+## Штатный вход контроллера в light idle API31/33 — 10 октября
+
+Свежие UI3/3 каждого, оба API с первой попытки; новый parser host9/9.
+Итог: `.test-tools/runs/20261010-194057-natural-light31-33-matrix/confirmed-matrix.json`.
+После bootstrap ScreenPlatformTest через scripts/test.ps1 с `-Offline
+-KeepEmulator -EmulatorGpu host -DisableEmulatorVulkan -EmulatorRamMb 4096`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-natural-light-idle.ps1 -TestApi 31 -WaitMinutes 20
+```
+
+Для33 сменить TestApi после остановки своего31. Observer принимает только
+проверенный выделенный AVD31/33, исходный screen on/light ACTIVE, отсутствие
+forced idle и BatteryService simulation. Устанавливает emulator-console virtual
+AC off/status discharging и KEYCODE_SLEEP; настройки Doze/таймеры не меняет,
+force-idle/step не выполняет. Три службы опрашиваются каждые30с до двух подряд
+согласованных IDLE/light=true при screen off/нет зарядки/Asleep или Dozing.
+Ограничение WaitMinutes6–30, по умолчанию20; отсутствие входа даёт INCONCLUSIVE,
+не PASS приложения. Потеря условий/ошибка/host-разрыв>90с дают infrastructure
+error. В finally восстанавливаются исходные emulator AC/status и screen on;
+проверяется ACTIVE и battery state. После этого остановить только свой AVD
+с проверкой process/starttime/имени. Не применять к телефону/Pixel_8.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-light-idle-parser.ps1
+```
+
+Host9/9 проверяет реальную функцию через AST, включая отрицательные случаи;
+подробные русские комментарии описывают условия/действия/ожидания.
+Фактический результат observer NATURAL_LIGHT_IDLE_OBSERVED (exit0) означает
+вход среды, naturalEntryValidated=true и notificationDeliveryValidated=false.
+На31 последние два IDLE-снимка122.245/152.646с, на33 —400.496/431.039с.
+Это время опросов, не точный момент входа/непрерывная трасса. Все light_* constants
+до/после совпали. Первичные snapshots сохраняются, временные успешные adb logs
+удаляются после чтения. Отчёты10.11 MiB, рост AVD/cache отдельно не измерен.
+Питание восстановлено, AVD остановлены, новых образов/телефона нет.
+Приложение/release APK не менялись, JVM suite не повторялась. Этот сценарий
+не устанавливает release APK и не проверяет его доставку/ACK/worker. Следующий
+шаг — отдельная доставка rc3 в штатном light idle31/33; физический natural
+Doze/OEM и остальные gaps остаются открытыми. Различие full/light описано в
+[документации Android](https://source.android.com/docs/core/power/platform_mgmt).

@@ -649,6 +649,18 @@ do not upload a different payload under it. Earlier host auth13/13 + candidate8/
   ActivityRecord identity is not a Java instance assertion; visual animation,
   right edge, landscape, back-to-home, OEM and Room fields remain outside scope.
   Next: natural light idle31/33. Other Doze/quota/API24/16KB gaps remain open.
+  Unforced light idle environment entry now observed on31/33, first attempt:
+  UI3/3 each, parser host9/9. Emulator-console AC off/status discharging and
+  screen off, then ordinary ACTIVE→INACTIVE→IDLE; no force-idle/step/timer changes.
+  Two successive matching controller/PowerManager/battery snapshots:
+  31:122.245/152.646s;33:400.496/431.039s. Light constants unchanged, battery
+  updates not stopped. Virtual AC/status/screen restored, owned AVDs stopped.
+  Matrix: `.test-tools/runs/20261010-194057-natural-light31-33-matrix/confirmed-matrix.json`.
+  Status denotes environment entry, not application PASS: notificationDelivery
+  remains false. Observer did not install release APK or test alarm/ACK/worker.
+  App unchanged, JVM not rerun. No phone/new images; reports10.11 MiB, AVD/cache
+  growth unmeasured. Next: rc3 delivery/ACK after unforced light entry31/33.
+  Physical natural Doze/OEM, quotas, API24/16KB and other gaps remain open.
 - [x] R4.2: Play-compatible25→27 upgrade verified on a separate logical copy
   of17 real tasks from the user-provided JSON, API35,9/9 phases. All original
   fields/IDs/dates preserved; source unchanged, cleanup complete. Fresh UI3/3

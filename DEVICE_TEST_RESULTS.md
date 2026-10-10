@@ -3457,3 +3457,66 @@ bytes в `removed-duplicate-logs.json` общего batch. Рост AVD/cache о
 не использовались. Не покрыты визуальные кадры/плавность predictive-анимации,
 правый край, landscape, Back-to-home, OEM, все поля Room, Doze/квоты,
 API24/16КБ и Play-signing APK. R4.3/R5.3 целиком остаются открытыми.
+
+## Штатный вход среды в light idle API31/33 — 10 октября 2026
+
+Последовательное наблюдение выделенных существующих AVD, оба с первой попытки.
+Итог NATURAL_LIGHT_IDLE_OBSERVED_BOTH_APIS:
+`.test-tools/runs/20261010-194057-natural-light31-33-matrix/confirmed-matrix.json`.
+
+| API | UI summary (в .test-tools/runs) | Light report | UI | Первый IDLE-снимок | Второй IDLE-снимок |
+| --- | --- | --- | --- | --- | --- |
+| 31 | `20261010-194116-b7444ec5/summary.json` | `20261010-194349-natural-light-idle/summary.json` | 3/3 | 122.245с (2:02.245) | 152.646с (2:32.646) |
+| 33 | `20261010-194631-b5b2b6ec/summary.json` | `20261010-194906-natural-light-idle/summary.json` | 3/3 | 400.496с (6:40.496) | 431.039с (7:11.039) |
+
+UI failures/errors/skipped=0, ANR/fatal в observer logcat не обнаружены.
+Emulator37.2.12, CPU4/RAM4096/host GPU/Vulkan disabled, ANR checks включены.
+Новый test-natural-light-idle.ps1 проверяет владение process/starttime/serial/
+AVD/API и берёт run.lock. Исходно экран включён и light ACTIVE, virtual AC on,
+battery status charging. Затем emulator console power ac off/status discharging
+и KEYCODE_SLEEP223; это управляемое отключение виртуальной зарядки, не физический
+unplug и не BatteryService dumpsys battery unplug/UPDATES STOPPED.
+
+В сохранённых снимках обоих API наблюдаются ACTIVE→INACTIVE→IDLE без force-idle,
+step, enable Doze, изменения таймеров, часов, датчиков или ручного dispatch.
+Каждые30с читаются DeviceIdleController/PowerManager/BatteryService; оба последних
+снимка подтверждают mLightState=IDLE, mLightDeviceIdleMode=true, screenOn=false,
+charging=false, mIsPowered=false, Wakefulness=Asleep, все источники питания false,
+mForceIdle=false. На31 шесть снимков, на33 пятнадцать. Независимая сверка всех
+сырых снимков совпала со summary; два последних разделены30.401/30.543с.
+Это дискретный опрос, не доказательство непрерывного состояния между снимками;
+elapsedSeconds относятся к завершению опроса, не точному моменту перехода.
+Контроллер deep остался INACTIVE, motion sensor по-прежнему null.
+
+Исходные light_after_inactive_to:31 —1мин,33 —4мин; light_idle_to5мин обоих.
+Все сохранённые light_* constants до/после совпали. На33 срок следующего light
+alarm некоторое время был в прошлом при INACTIVE. В
+[DeviceIdleController Android13](https://raw.githubusercontent.com/aosp-mirror/platform_frameworks_base/android13-release/apex/jobscheduler/service/java/com/android/server/DeviceIdleController.java)
+переходный light alarm использует ELAPSED_REALTIME без wakeup. Это возможное
+объяснение задержки, не установленная причина именно этого прогона.
+Light mode не требует significant motion detector:
+[документация платформы](https://source.android.com/docs/core/power/platform_mgmt).
+
+Новый host-test parser9/9: согласованный IDLE/Asleep и Dozing, отказ подтверждения
+при ACTIVE/maintenance/несогласованном PowerManager/зарядке; отказ разбора при
+force-idle/UPDATES STOPPED/неизвестном формате. Реальная функция берётся через
+AST, adb/AVD не используются; каждый случай имеет подробный русский комментарий.
+Результат `host-parser-summary.json` в общем batch. Observer SHA-256 совпал:
+`25021891F39048451189F71ACC6D08F52DF11DC459D75B6C33E32408090241AF`.
+PS parser/git diff --check прошли. Приложение/release APK не менялись,
+JVM suite не повторялась. Release APK observer не устанавливал.
+
+После наблюдения восстановлены virtual AC on/status charging и экран, обе
+службы вернулись в ACTIVE без forced idle и battery simulation. Cleanup=true;
+свои AVD остановлены с проверкой владения, emulator.json отсутствует,
+qemu-system-x86_64 процессов нет. Отчёты всего этапа около10.11 MiB, рост
+AVD/cache отдельно не измерен. Временные успешные adb stdout/stderr удаляются
+observer после чтения, первичные named snapshots/health/summary сохранены.
+Новые образы не скачивались, телефон/пользовательский JSON/main*.db не использовались.
+
+NaturalEntryValidated=true относится только к штатному входу контроллера в light
+на этих AVD с виртуальным питанием. NotificationDeliveryValidated=false:
+не проверены release alarm/notification/ACK/worker, light maintenance/квоты,
+физический natural deep/light, OEM, API24/16КБ или Play-signing APK.
+R4.3/R5.3 целиком остаются открытыми. Следующий шаг — доставка rc3 и ACK
+после самостоятельного входа light на31/33.
