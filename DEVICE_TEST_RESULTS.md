@@ -3352,3 +3352,47 @@ Named logs и repeat-records сохранены, deleted/retained/SHA/bytes за
 release predictive, APK с Play App signing или устойчивость новой подготовки
 reboot35/36. R4.3/R5.3 целиком остаются открытыми. Следующая проверка —
 повторные reboot35/36 с паузой и ожиданием очередей.
+
+## Rc3: три последовательных reboot API35/36 — 10 октября 2026
+
+Тот же архивный Upload-key APK27/2.0.0-rc3 с R8, SHA-256
+`9BFE60C4507CC5567888AF84EF72256620CC2B1BB11FA6CB9D717C80DB231760`.
+Оба API выполнены последовательно, с первой попытки. Итог:
+`.test-tools/runs/20261010-165355-rc3-reboot35-36-matrix/confirmed-matrix.json`.
+
+| API | UI summary (в .test-tools/runs) | Release summary | Результат | Boot count | Reboot |
+| --- | --- | --- | --- | --- | --- |
+| 35 | `20261010-165410-e3d9d419/summary.json` | `20261010-165659-release-smoke/summary.json` | 3/3 + 10/10 | 46→47→48→49 | 3/3 |
+| 36 | `20261010-170530-8775b1b8/summary.json` | `20261010-170753-release-smoke/summary.json` | 3/3 + 10/10 | 29→30→31→32 | 3/3 |
+
+UI failures/errors/skipped=0, release PASSED, ошибок health/cleanup нет.
+Emulator37.2.12, CPU4/RAM4096/host GPU/Vulkan disabled, ANR checks включены.
+RebootOnly/RebootRepeats3: семь подготовительных фаз CRUD/ACK/settings/JSON
+и три настоящих reboot. Перед каждым повтором вновь force-stop/запуск,
+сверка описания/alarm и Home. Перед каждой перезагрузкой пауза15с и ожидание
+обеих очередей PackageManager; все шесть пар wait logs содержат Success.
+
+Во всех шести циклах boot_count вырос, alarm восстановился до открытия
+Activity и BootReceiver отмечен в logcat. На35 сохранён срок1791644281796,
+на36 —1791644914335; expectedAlarm=actualAlarm во всех трёх повторах каждого.
+Пакет stopped=false до/после каждого reboot. Per-iteration package/logcat
+и queue logs независимо сверены; ANR/fatal не обнаружены. Stopped не снимался
+принудительно, receiver вручную не вызывался. Фактическая пауза15с также
+записана в rebootSettleAppliedSeconds обоих summary. Runner SHA-256 до/после
+совпал: `310ABD3277AC2D2ED036F5F021E7098669B3BC63FE973170A830EB1E378D8CE0`.
+
+Успех подтверждает новую подготовку на этой конечной выборке. Причина прежнего
+редкого stopped=true и её устойчивое устранение не доказаны. Это будущий
+часовой срок, не доставка просрочки при boot. Уведомления, quiet worker,
+Doze/квоты/OEM, API24/16КБ, release predictive и Play-signing APK не проверялись.
+R4.3/R5.3 целиком остаются открытыми.
+
+Собственные установки/файлы очищены, AVD остановлены с проверкой владения;
+emulator.json отсутствует, qemu-system-x86_64 процессов нет. Отчёты обоих API
+и batch около43.91 MiB после удаления34.35 MiB идентичных adb-дубликатов.
+Основные named logs сохранены; deleted/retained/SHA/bytes записаны в
+`removed-api35-duplicate-logs.json` и `removed-api36-duplicate-logs.json` batch.
+Рост AVD/cache отдельно не измерен. Новые образы не скачивались; телефон,
+пользовательский JSON и main*.db не использовались. Приложение/постоянные
+скрипты не менялись, JVM suite не повторялась. PS parser и git diff --check
+прошли. Исправлено устаревшее ограничение RebootSettleSeconds в TESTING.md.

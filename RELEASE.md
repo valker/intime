@@ -620,6 +620,20 @@ do not upload a different payload under it. Earlier host auth13/13 + candidate8/
   cleanup, excluding unmeasured AVD/cache growth. Next: repeated reboot35/36
   with the new preparation. Doze/quotas/OEM, API24/16KB, release predictive,
   Play-signing APK and reboot preparation stability remain separate gaps.
+  Fresh repeated reboot35/36 with the new preparation passed on the first
+  attempt: UI3/3 + release10/10 each, three real reboots per API. Each cycle
+  repeats force-stop/launch, then15s settle and both PackageManager queue waits.
+  All waits Success; stopped=false before/after each reboot, BootReceiver logged,
+  identical future alarm restored before Activity. Boot counts35:46→47→48→49,
+  36:29→30→31→32; no ANR/fatal. No manual receiver or stopped reset.
+  Matrix: `.test-tools/runs/20261010-165355-rc3-reboot35-36-matrix/confirmed-matrix.json`.
+  Six successful cycles are a finite sample, not proof of the original cause
+  or a durable stopped-state fix. App/permanent runner unchanged, JVM not rerun;
+  owned AVDs stopped, no phone/new images. Reports43.91 MiB after34.35 MiB
+  identical duplicate-log cleanup, excluding unmeasured AVD/cache growth.
+  Next: release/R8 canceled and completed side Back gestures on33/35/36.
+  Missed-deadline boot delivery, Doze/quotas/OEM, API24/16KB and visual
+  predictive animation remain separate gaps; this uses the Upload-key APK.
 - [x] R4.2: Play-compatible25→27 upgrade verified on a separate logical copy
   of17 real tasks from the user-provided JSON, API35,9/9 phases. All original
   fields/IDs/dates preserved; source unchanged, cleanup complete. Fresh UI3/3

@@ -895,7 +895,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.p
 сбое запуск прекращается, summary сохраняет rebootResults и диагностику.
 Минутные уведомления и разрешения в этом режиме не проверяются; его успех не
 равнозначен полному smoke. RebootRepeats (1–10) требует RebootOnly;
-RebootSettleSeconds (0–60) применяется только на API 31.
+RebootSettleSeconds (0–60) применяется на API 31/35/36; на35/36 после паузы
+runner дополнительно ожидает обе очереди PackageManager. Реально выполненная
+пауза записывается в rebootSettleAppliedSeconds. Это подготовка теста,
+а не доказательство причины или устойчивого устранения прежнего stopped=true.
 Black-box проверки не читают wasNotified, не доказывают сохранение этой отметки
 или автоматическую доставку старой просрочки без нового пользовательского ACK.
 Doze, точность доставки в миллисекундах,
@@ -1453,3 +1456,31 @@ AVD очищены/остановлены, телефон и новые обра
 API24/16КБ, release predictive, Play-signing APK и устойчивость reboot35/36
 остаются отдельными сценариями. Следующий шаг — повторные reboot35/36
 с новой подготовкой.
+
+## Rc3: повторные reboot API35/36 с новой подготовкой — 10 октября
+
+Оба API с первой попытки: UI3/3 и release10/10 каждого, три reboot на каждом.
+Свежая независимая сверка:
+`.test-tools/runs/20261010-165355-rc3-reboot35-36-matrix/confirmed-matrix.json`.
+После bootstrap ScreenPlatformTest через scripts/test.ps1 с `-Offline
+-KeepEmulator -EmulatorGpu host -DisableEmulatorVulkan -EmulatorRamMb 4096`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -ApkPath 'C:/Projects/intime/.test-tools/runs/20261009-103501-release27-historical-json/candidate/intime-27-2.0.0-rc3.apk' -TestApi 35 -RebootOnly -RebootRepeats 3 -RebootSettleSeconds 15 -ExpectedVersionCode 27 -ExpectedVersionName '2.0.0-rc3'
+```
+
+Для36 сменить TestApi после очистки/остановки35. Семь подготовительных фаз
+и три reboot дают10 фаз. Перед каждым повтором воспроизводится force-stop/запуск;
+до reboot проверяются описание/alarm, после — тот же alarm до Activity.
+Фактическая пауза15с, обе очереди Success, stopped=false до/после и вызов
+BootReceiver сверены для всех шести циклов. Boot count35:46→47→48→49,
+36:29→30→31→32. ANR/fatal нет. Не снимали stopped и не вызывали receiver вручную.
+
+Это успешная конечная выборка, не доказательство причины/устойчивого устранения
+редкого stopped-сбоя. Доставка при boot просроченной задачи, notification,
+worker, Doze/квоты/OEM и release predictive этим режимом не покрываются.
+AVD остановлены, телефон/новые образы не использовались. Отчёты43.91 MiB
+после удаления34.35 MiB идентичных adb-дубликатов; named logs сохранены,
+инвентарь в batch. Рост AVD/cache отдельно не измерен. Приложение/постоянные
+скрипты не менялись, JVM suite не повторялась. Следующий шаг — release/R8
+отмена и завершение бокового Back-жеста на33/35/36.
