@@ -1615,3 +1615,58 @@ ACK remaining239.269/478.932с при интервале4/8мин, alarm тот 
 SHA-256; named logs сохранены. Рост AVD/cache не измерен, новых образов/телефона
 нет. Runtime/архивный APK прежние, JVM suite не повторялась. Следующий шаг —
 inexact light fallback с отдельным наблюдением maintenance; worker остаётся открыт.
+
+## Fallback после штатного light entry API31/33
+
+После такого же bootstrap через `scripts/test.ps1` добавить `-InexactOnly`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -ApkPath .test-tools/runs/20261009-103501-release27-historical-json/candidate/intime-27-2.0.0-rc3.apk -TestApi 31 -LightIdleOnly -InexactOnly -ExpectedVersionCode 27 -ExpectedVersionName 2.0.0-rc3
+```
+
+На33 заменить TestApi в bootstrap/release, выполнять последовательно.14 фаз:
+13 light-фаз и дополнительная проверка положительного ACK alarm window.
+До отключения питания требуются appops deny, собственный будущий RTC_WAKEUP
+с положительным окном и реальная строка fallback scheduling. Два согласованных
+light IDLE-снимка нужны до срока задачи. После входа fallback допускает только
+готовый по экрану/питанию IDLE с PowerManager light=true либо IDLE_MAINTENANCE
+с light=false. Maintenance отмечается отдельно, не называется сохранением IDLE;
+иные/несогласованные состояния дают INCONCLUSIVE. Exact-режим по-прежнему
+принимает только IDLE. Наблюдение каждые15с не доказывает отсутствия кратких
+переходов между снимками; `lightMaintenanceObserved=false` означает, что они
+не попали в сохранённые снимки. Состояние при обнаружении уведомления
+сохраняется отдельно в `lightDeliveryState` и трёх первичных журналах.
+
+Доставка/ACK/restart/cleanup проверяются как в exact light-режиме; после ACK
+appops должен оставаться deny, alarm — иметь тот же срок и положительное окно.
+Scheduling log сохраняется до ожидания, чтобы не зависеть от вытеснения ранних
+строк logcat. Питание/экран восстанавливаются до ACK. Таймаут18мин и отсутствие
+входа не являются PASS; force-idle/step/системные таймеры не используются.
+Не применять к личному телефону/Pixel_8. Worker, квоты и physical/OEM Doze
+остаются отдельными проверками.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-light-state.ps1
+```
+
+9 host-фикстур берут реальный классификатор через AST: exact/fallback IDLE,
+разрешённое только fallback maintenance, несогласованность обеих служб,
+потеря подготовки, force-idle и возврат ACTIVE. Каждый случай снабжён русским
+комментарием о начальных условиях, действии и ожидаемом результате.
+
+Свежий результат10 октября — PASSED с первой попытки обоих API:
+`.test-tools/runs/20261010-213902-rc3-light-inexact31-33-matrix/confirmed-matrix.json`.
+UI3/3 и release14/14 каждого; классификатор9/9, parser9/9, ActivityRecord5/5,
+quiet13/13.21 сохранённый exact-снимок принят новым строгим exact-классификатором
+как регрессионные данные, а не новый device-прогон. Два IDLE-снимка31:
+124.759/140.252с,33:323.747/339.108с до срока. Delivery detected31 в maintenance,
+33 в IDLE; when−deadline179.915/114.712с при window179.891/359.903с.
+На33 maintenance в сохранённых снимках не наблюдалось; непрерывное отсутствие
+переходов/причина задержки/квоты не доказаны. ACK remaining239.232/479.228с,
+deny/положительное окно и тот же alarm после restart подтверждены.
+Первичные снимки независимо сверены, питание восстановлено, constants прежние,
+ANR/fatal не обнаружены, свои AVD остановлены. Отчёты31.53 MiB после удаления
+16.10 MiB идентичных adb-дублей с проверкой размера/SHA-256; named logs сохранены.
+Рост AVD/cache не измерен, новых образов/телефона нет. Runtime/архивный APK
+прежние, JVM suite не повторялась. Далее — отдельный тихий повтор worker после
+штатного light entry31/33 с наблюдением maintenance.

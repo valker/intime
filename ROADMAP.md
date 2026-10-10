@@ -375,8 +375,23 @@ release/R8 и оставшаяся Android-матрица проверяются
   Отчёты40.33 MiB после удаления23.64 MiB идентичных adb-дублей;
   рост AVD/cache отдельно не измерен. Приложение/архивный APK прежние,
   JVM suite не повторялась; добавлен LightIdleOnly в release runner.
-  Следующий шаг — inexact fallback после штатного light entry на31/33,
-  с отдельным наблюдением возможного выхода в maintenance; worker пока открыт.
+  Затем inexact fallback после штатного light entry прошёл на31/33 с первой
+  попытки: свежие UI3/3 и release14/14 каждого. Appops deny/положительное окно,
+  реальный fallback scheduling/receiver, notification ACK и тот же alarm после
+  restart подтверждены; запрет exact/положительное окно после ACK сохранились.
+  Два IDLE-снимка31:124.759/140.252с,33:323.747/339.108с до срока задачи.
+  When уведомления позже срока на179.915/114.712с при окне179.891/359.903с.
+  При обнаружении31 — согласованное IDLE_MAINTENANCE,33 — IDLE; на33 maintenance
+  в сохранённых снимках не наблюдалось, отсутствие кратких переходов не доказано.
+  Причина задержки/квоты этим не установлены. Итог:
+  `20261010-213902-rc3-light-inexact31-33-matrix/confirmed-matrix.json`.
+  Новый host классификатор9/9, light parser9/9, ActivityRecord5/5, quiet13/13;
+  21 сохранённый exact-снимок также принят строгим exact-классификатором.
+  Питание/экран восстановлены, light constants прежние, свои AVD остановлены.
+  Отчёты31.53 MiB после удаления16.10 MiB идентичных adb-дублей; рост AVD/cache
+  отдельно не измерен. Телефон/новые образы не использовались, runtime/APK
+  прежние, JVM suite не повторялась. Следующий шаг — тихий повтор worker
+  после штатного light entry31/33 с отдельным наблюдением maintenance.
   Остальные Doze/квоты/OEM, API24/16КБ и визуальная predictive-анимация открыты.
   На API 36 прошли 19 debug-тестов и четыре отдельные notification/reboot-фазы.
   Добавлены два UI-теста: границы выбранных элементов четырёх экранов относительно
@@ -647,8 +662,13 @@ Upload-key APK ожидаемо отклонён, SHA AAB повторно св�
   worker и не физический natural Doze. Следующая exact light-доставка rc3
   прошла13/13 каждого (UI3/3), API33 после сохранённого ANR launcher/search
   при reboot. Notification action ACK с включённым экраном и restart прошли;
-  питание/таймеры восстановлены/сохранены. Inexact light/worker/maintenance,
-  physical natural Doze и OEM остаются открытыми.
+  питание/таймеры восстановлены/сохранены. Этот exact-прогон не покрывал
+  inexact light/worker/maintenance или physical natural Doze/OEM. Последующий inexact light
+  прошёл14/14 каждого (UI3/3), оба с первой попытки: notification/ACK/restart,
+  deny/положительное окно до доставки и после ACK. При обнаружении31 maintenance,
+  33 IDLE, задержки179.915/114.712с; причинность/квоты не установлены.
+  Inexact light покрыт одной доставкой каждого; worker в light maintenance,
+  physical natural Doze/OEM и остальные release gaps остаются открытыми.
   Новые образы не скачивались, собственные AVD остановлены. Естественный Doze,
   OEM и Play upgrade открыты; API 24 ограничен разрешённым дисковым бюджетом.
   R5.3 целиком не закрыт.

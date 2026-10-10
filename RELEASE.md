@@ -677,6 +677,23 @@ do not upload a different payload under it. Earlier host auth13/13 + candidate8/
   unmeasured. App/archived Upload-key APK unchanged, JVM suite not rerun.
   Next: inexact fallback after light entry31/33, observing possible maintenance
   separately. Worker/quotas/physical/OEM and remaining release gaps stay open.
+  Inexact fallback after unforced light entry now passed first attempt31/33:
+  fresh UI3/3 + release14/14 each, LightIdleOnly + InexactOnly.
+  Exact appops deny, positive window, real fallback scheduling/receiver and
+  consumed alarm; notification action ACK preserves4/8min interval, denial,
+  positive window and identical alarm across restart. Two IDLE samples before
+  deadline31:124.759/140.252s,33:323.747/339.108s. Notification when minus deadline
+  179.915/114.712s for windows179.891/359.903s. Detection snapshot31 maintenance,
+  33 IDLE; no sampled maintenance on33 is not proof of no brief transitions.
+  Delay causality/quota enforcement/audio or visibility latency not established.
+  State classifier host9/9, light parser9/9, ActivityRecord5/5, quiet13/13;
+  21 saved exact snapshots accepted as regression fixtures, not fresh devices.
+  Matrix: `.test-tools/runs/20261010-213902-rc3-light-inexact31-33-matrix/confirmed-matrix.json`.
+  Power/screen restored, light constants unchanged, owned AVDs stopped,
+  no phone/new images/ANR/fatal. Reports31.53 MiB after16.10 MiB identical adb
+  duplicate cleanup; AVD/cache growth unmeasured. Runtime/Upload-key APK unchanged,
+  JVM suite not rerun. Next: quiet worker repeat after light entry31/33 with
+  separately observed maintenance. Physical/OEM, quotas and other gaps stay open.
 - [x] R4.2: Play-compatible25→27 upgrade verified on a separate logical copy
   of17 real tasks from the user-provided JSON, API35,9/9 phases. All original
   fields/IDs/dates preserved; source unchanged, cleanup complete. Fresh UI3/3

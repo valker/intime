@@ -18,6 +18,8 @@ Back-жеста. Требует -EmulatorSoftwareNavigation при bootstrap, в
 navigation overlay/mode и developer flag; reboot/notification не выполняет.
 LightIdleOnly (API31/33) содержит13 фаз: CRUD/JSON/reboot, будущий exact alarm,
 самостоятельный light entry, доставка при screen off, notification ACK/restart.
+LightIdleOnly + InexactOnly содержит14 фаз: запрет exact, положительное окно
+fallback, light entry и доставка с отдельным учётом sampled maintenance, ACK/restart.
 InexactOnly + DozeOnly содержит 12 фаз: дополнительно подтверждается deep IDLE.
 DozeSequence добавляет подготовку второй задачи и её доставку: 14 фаз.
 DozeQuota (API 31/33) добавляет подтверждённую отсрочку по квоте: 15 фаз.
@@ -33,8 +35,8 @@ param(
     # Только CRUD/JSON и отмена/завершение реального бокового Back-жеста в release.
     # Требует экранную навигацию проектного AVD; reboot/notification не выполняются.
     [switch]$GestureOnly,
-    # Штатный light idle и exact-доставка после virtual unplug/screen off.
-    # Только31/33, без forced idle/step/смены таймеров; затем notification ACK.
+    # Штатный light idle и доставка после virtual unplug/screen off.
+    # Только31/33, exact либо InexactOnly; без forced idle/step/смены таймеров.
     [switch]$LightIdleOnly,
     # Дополнительный SAF-импорт с исторической meta Play 25 и текущей собственной
     # задачей. Срок остаётся будущим; исходная sharedTest-фикстура не изменяется.
@@ -92,7 +94,7 @@ $summary = @{ status = 'RUNNING'; passedPhases = @(); reports = $run; serial = $
 $summary.gestureOnly = [bool]$GestureOnly
 $summary.lightIdleOnly=[bool]$LightIdleOnly
 $lightPowerChanged=$false;$lightOriginalPower=$null
-if($LightIdleOnly -and ($TestApi -notin @(31,33) -or $GestureOnly -or $RebootOnly -or $HistoricalJsonImport -or $DozeOnly -or $InexactOnly -or $DozeSequence -or $DozeQuota -or $DozeQuotaSeven -or $PeriodicOnly -or $RebootRepeats -ne 1 -or $PeriodicRepeats -ne 1)){throw 'LightIdleOnly requires API31/33 without other modes/repeats'}
+if($LightIdleOnly -and ($TestApi -notin @(31,33) -or $GestureOnly -or $RebootOnly -or $HistoricalJsonImport -or $DozeOnly -or $DozeSequence -or $DozeQuota -or $DozeQuotaSeven -or $PeriodicOnly -or $RebootRepeats -ne 1 -or $PeriodicRepeats -ne 1)){throw 'LightIdleOnly requires API31/33, optionally InexactOnly, without other modes/repeats'}
 if($LightIdleOnly){
     # Загружаем только проверяемую функцию parser, без выполнения observer.
     $lightTokens=$null;$lightErrors=$null
@@ -112,7 +114,7 @@ $summary.dozeQuotaSeven = [bool]$DozeQuotaSeven
 if ($DozeQuotaSeven -and ($DozeQuota -or -not $DozeSequence -or -not $InexactOnly -or -not $DozeOnly -or $TestApi -notin @(35,36))) { throw 'DozeQuotaSeven requires API 35/36 and InexactOnly + DozeOnly + DozeSequence, without DozeQuota' }
 if ($DozeQuota -and (-not $DozeSequence -or -not $InexactOnly -or -not $DozeOnly -or $TestApi -notin @(31,33))) { throw 'DozeQuota requires API 31/33 and InexactOnly + DozeOnly + DozeSequence' }
 if ($DozeSequence -and (-not $InexactOnly -or -not $DozeOnly)) { throw 'DozeSequence requires InexactOnly and DozeOnly' }
-if ($InexactOnly -and ($RebootOnly -or $PeriodicOnly -or $TestApi -notin @(31, 33, 35, 36))) { throw 'InexactOnly requires API 31/33/35/36 and can only be combined with DozeOnly.' }
+if ($InexactOnly -and ($RebootOnly -or $PeriodicOnly -or $TestApi -notin @(31, 33, 35, 36))) { throw 'InexactOnly requires API 31/33/35/36 and can only be combined with DozeOnly or LightIdleOnly.' }
 $summary.periodicOnly = [bool]$PeriodicOnly
 $summary.historicalJsonImport = [bool]$HistoricalJsonImport
 if ($HistoricalJsonImport -and ($PeriodicOnly -or $InexactOnly -or $DozeOnly)) { throw 'HistoricalJsonImport requires full smoke or RebootOnly' }
@@ -299,10 +301,21 @@ function Restore-ReleaseLightPower {
     $script:lightPowerChanged=$false
 }
 
-# Одна синтетическая задача имеет будущий exact alarm с периодом4/8мин.
+# Классифицируем только согласованные снимки после уже подтверждённого входа.
+# Maintenance допускается явно только для fallback и не называется IDLE.
+# Иные состояния/несогласованность не принимаются за успешное продолжение.
+function Get-ReleaseLightDeliveryState($Snapshot,[bool]$AllowMaintenance) {
+    if(-not $Snapshot.preparationReady -or $Snapshot.forceIdle){return 'INVALID'}
+    if($Snapshot.lightState -eq 'IDLE' -and $Snapshot.powerLightIdle){return 'IDLE'}
+    if($AllowMaintenance -and $Snapshot.lightState -eq 'IDLE_MAINTENANCE' -and -not $Snapshot.powerLightIdle){return 'MAINTENANCE'}
+    return 'INVALID'
+}
+
+# Одна синтетическая задача имеет будущий alarm с периодом4/8мин.
 # Перед её сроком требуем два штатных согласованных light IDLE-снимка; после
 # этого опрос не открывает UI и не запускает receiver/worker. При обнаружении
-# реального уведомления снова требуем light IDLE, ACK action, when>=deadline,
+# реального уведомления требуем IDLE (fallback также допускает согласованное
+# maintenance), ACK action, when>=deadline,
 # журнал AlarmReceiver и потребление собственного alarm. Это не deep/квота,
 # не непрерывная трасса между опросами и не измерение физического звука.
 function Assert-ReleaseLightDelivery([string]$Description,[long]$Deadline,[string]$Since) {
@@ -318,13 +331,21 @@ function Assert-ReleaseLightDelivery([string]$Description,[long]$Deadline,[strin
     $summary.lightOriginalPower=$script:lightOriginalPower
     $ops=Invoke-ReleaseAdb @('shell','appops','get',$package,'SCHEDULE_EXACT_ALARM')
     Set-Content (Join-Path $run 'light-exact-appops.log') $ops -Encoding UTF8
-    if($ops -notmatch 'SCHEDULE_EXACT_ALARM: allow'){throw 'Light exact permission missing'}
+    $expectedOp=if($InexactOnly){'deny'}else{'allow'}
+    if($ops -notmatch "SCHEDULE_EXACT_ALARM: $expectedOp"){throw 'Light alarm permission mode missing'}
     if((Read-ReleaseAlarm) -ne $Deadline){throw 'Own future light alarm missing'}
     $alarms=Invoke-ReleaseAdb @('shell','dumpsys','alarm')
     Set-Content (Join-Path $run 'light-alarm-before.log') $alarms -Encoding UTF8
     $own=[regex]::Match($alarms,'(?m)^\s*RTC_WAKEUP #\d+: Alarm\{\S+ type 0 origWhen (?<deadline>\d+) [^\r\n]* com\.vpe_soft\.intime\.intime\}\r?\n\s+tag=\*walarm\*:com\.vpe_soft\.intime\.intime/(?:com\.vpe_soft\.intime\.intime)?\.receiver\.AlarmReceiver\r?\n\s+type=RTC_WAKEUP[^\r\n]*?window=(?<window>\S+)')
-    if(-not $own.Success -or [long]$own.Groups['deadline'].Value -ne $Deadline -or $own.Groups['window'].Value -ne '0'){throw 'Own exact zero-window light alarm missing'}
-    $summary.lightAlarmWindow='0'
+    if(-not $own.Success -or [long]$own.Groups['deadline'].Value -ne $Deadline){throw 'Own light alarm missing'}
+    $window=$own.Groups['window'].Value
+    if(($InexactOnly -and $window -notmatch '[1-9]') -or (-not $InexactOnly -and $window -ne '0')){throw 'Own light alarm window mismatch'}
+    $summary.lightAlarmWindow=$window
+    $summary.lightInexactFallback=[bool]$InexactOnly
+    $summary.lightMaintenanceObserved=$false
+    # Сохраняем fallback log до ожидания: раннюю строку может вытеснить logcat.
+    $beforeLog=Invoke-ReleaseTool $adb @('-s',$serial,'logcat','-d','-T',$Since) 'light-scheduling-logcat.log'
+    if($InexactOnly -and $beforeLog -notmatch 'scheduleAlarm: exact alarms are not available, using inexact alarm'){throw 'Light fallback scheduling log missing'}
     $summary.lightForcedIdleUsed=$false;$summary.lightTimersChanged=$false
     $summary.lightObservations=@();$summary.lightEntryValidated=$false
     $script:lightPowerChanged=$true
@@ -352,18 +373,26 @@ function Assert-ReleaseLightDelivery([string]$Description,[long]$Deadline,[strin
                 Complete-ReleasePhase 'release-natural-light-entry'
             } elseif($snapshot.guestNowMs -ge $Deadline -or $delivered){throw 'Natural light entry not confirmed before task deadline'}
         }
-        if($summary.lightEntryValidated -and -not $snapshot.entryObserved){throw 'Confirmed light IDLE lost before delivery'}
+        if($summary.lightEntryValidated){
+            $deliveryState=Get-ReleaseLightDeliveryState $snapshot ([bool]$InexactOnly)
+            if($deliveryState -eq 'INVALID'){throw 'Confirmed light observation lost valid IDLE/maintenance state'}
+            if($deliveryState -eq 'MAINTENANCE'){$summary.lightMaintenanceObserved=$true}
+        }
         Write-Output ("Light delivery wait {0:N1} min: {1}, delivered={2}" -f $timer.Elapsed.TotalMinutes,$snapshot.lightState,$delivered)
         if(-not $delivered){Start-Sleep -Seconds 15}
     } while(-not $delivered -and $timer.Elapsed.TotalMinutes -lt 18)
     if(-not $delivered){throw 'Natural light alarm delivery timed out'}
     $final=Read-ReleaseLightSnapshot 'light-at-delivery'
-    if(-not $final.entryObserved){throw 'Light IDLE not confirmed at delivery'}
+    $finalState=Get-ReleaseLightDeliveryState $final ([bool]$InexactOnly)
+    if($finalState -eq 'INVALID'){throw 'Light IDLE/maintenance not confirmed at delivery'}
+    if($finalState -eq 'MAINTENANCE'){$summary.lightMaintenanceObserved=$true}
     $log=Invoke-ReleaseAdb @('logcat','-d','-T',$Since)
     Set-Content (Join-Path $run 'light-delivery-logcat.log') $log -Encoding UTF8
     if($log -notmatch 'AlarmReceiver.*handleAlarm: trying to post notification'){throw 'Actual light AlarmReceiver log missing'}
+    if($InexactOnly -and ($beforeLog+"`n"+$log) -notmatch 'scheduleAlarm: exact alarms are not available, using inexact alarm'){throw 'Light fallback evidence missing'}
     if((Read-ReleaseAlarm) -ne 0){throw 'Own light alarm not consumed'}
     $summary.lightDeliveryValidated=$true;$summary.lightStateAtDelivery=$final
+    $summary.lightDeliveryState=$finalState
     $summary.lightNotificationWhen=[long]$when.Groups[1].Value
     $summary.lightNotificationDelaySeconds=($summary.lightNotificationWhen-$Deadline)/1000.0
     Complete-ReleasePhase 'release-natural-light-alarm-delivery'
@@ -1643,7 +1672,7 @@ try {
     $summary.notificationAlarm = $notificationDeadline
     Write-Output "Waiting for real AlarmManager notification (deadline $notificationDeadline)..."
     Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '3') | Out-Null
-    if ($InexactOnly -and -not $DozeOnly) { Assert-ReleaseInexactDelivery $edited $notificationDeadline $inexactSince }
+    if ($InexactOnly -and -not $DozeOnly -and -not $LightIdleOnly) { Assert-ReleaseInexactDelivery $edited $notificationDeadline $inexactSince }
     if ($DozeOnly) { Assert-ReleaseDozeDelivery $edited $notificationDeadline $inexactSince }
     if ($LightIdleOnly) { Assert-ReleaseLightDelivery $edited $notificationDeadline $inexactSince }
     if ($DozeSequence) {
@@ -1724,6 +1753,7 @@ try {
         $ackAlarm = [regex]::Match($ackAlarms, '(?m)^\s*RTC_WAKEUP #\d+: Alarm\{\S+ type 0 origWhen (?<deadline>\d+) [^\r\n]* com\.vpe_soft\.intime\.intime\}\r?\n\s+tag=\*walarm\*:com\.vpe_soft\.intime\.intime/(?:com\.vpe_soft\.intime\.intime)?\.receiver\.AlarmReceiver\r?\n\s+type=RTC_WAKEUP[^\r\n]*?window=(?<window>\S+)')
         if (-not $ackAlarm.Success -or [long]$ackAlarm.Groups['deadline'].Value -ne $notificationAckAlarm -or $ackAlarm.Groups['window'].Value -notmatch '[1-9]') { throw 'Notification ACK did not keep an inexact alarm' }
         $summary.inexactAckAlarmWindow = $ackAlarm.Groups['window'].Value
+        if($LightIdleOnly){Complete-ReleasePhase 'release-light-inexact-ack-window'}
     }
 
     if (-not $DozeOnly -and -not $InexactOnly -and -not $LightIdleOnly) {
@@ -1791,7 +1821,7 @@ try {
 } catch {
     $summary.status = if ($installedHere) { 'FAILED' } else { 'INFRASTRUCTURE_ERROR' }
     $summary.message = $_.Exception.Message
-    if($LightIdleOnly -and $summary.message -match 'Natural light entry not confirmed|Confirmed light IDLE lost|Light IDLE not confirmed|Natural light alarm delivery timed out'){$summary.status='INCONCLUSIVE'}
+    if($LightIdleOnly -and $summary.message -match 'Natural light entry not confirmed|Confirmed light observation lost|Light IDLE/maintenance not confirmed|Natural light alarm delivery timed out'){$summary.status='INCONCLUSIVE'}
     if($LightIdleOnly -and $summary.message -like 'Light observation interrupted*'){$summary.status='INFRASTRUCTURE_INTERRUPTED'}
     # Отсутствие естественного запуска к лимиту — неопределённый результат
     # планирования, а не доказанное падение приложения/R8. Остальные assertions

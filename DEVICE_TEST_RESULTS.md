@@ -3586,3 +3586,77 @@ SHA-256; inventory `duplicate-log-cleanup.json`. Рост AVD/cache отдель
 физический natural deep/light/OEM, API24/16КБ, Play-signing APK не покрыты.
 R4.3/R5.3 целиком открыты. Следующий шаг — inexact fallback после light entry31/33
 с отдельным наблюдением возможного перехода в maintenance.
+
+## Rc3 inexact fallback после штатного light entry31/33 — 10 октября
+
+Итог PASSED с первой попытки каждого API:
+`.test-tools/runs/20261010-213902-rc3-light-inexact31-33-matrix/confirmed-matrix.json`.
+Архивный Upload-key APK27/2.0.0-rc3 с R8, SHA-256
+`9BFE60C4507CC5567888AF84EF72256620CC2B1BB11FA6CB9D717C80DB231760`;
+пересборки/runtime changes не было.
+
+| API | UI report в runs | Release report в runs | UI | Release | Два IDLE-снимка, с | Окно alarm, с | When − deadline, с | Состояние при обнаружении |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 31 | `20261010-213921-d5cb4207` | `20261010-214249-release-smoke` | 3/3 | 14/14 | 124.759 / 140.252 | 179.891 | 179.915 | IDLE_MAINTENANCE |
+| 33 | `20261010-215328-cdf95ff9` | `20261010-215614-release-smoke` | 3/3 | 14/14 | 323.747 / 339.108 | 359.903 | 114.712 | IDLE |
+
+UI failures/errors/skipped=0, release healthError отсутствует, ANR/fatal не
+обнаружены. Emulator37.2.12/CPU4/RAM4096/host GPU/Vulkan disabled, ANR checks
+включены. Только выделенные project AVD31/33; телефон/Pixel_8/пользовательские
+задачи/main*.db не использовались, новых образов нет.
+
+LightIdleOnly + InexactOnly теперь допускается совместно:7 CRUD/JSON фаз,
+reboot recovery, fixture, штатный light entry, actual alarm delivery, notification
+в шторке, ACK/restart и проверка ACK positive window =14. До наблюдения своей
+установке задан appops SCHEDULE_EXACT_ALARM deny. В AlarmManager сверены
+собственный RTC_WAKEUP, срок и положительное окно; до ожидания сохранена настоящая
+строка SchedulingCoordinator fallback, затем реальный AlarmReceiver/notification
+и потребление собственного alarm. Receiver/worker вручную не вызывались.
+
+Интервал задачи4мин31/8мин33, emulator-console virtual AC off/status discharging
+и screen off. Force-idle/step/enable Doze/смены light timers/часов нет, BatteryService
+updates не останавливались. Каждые15с сохранялись deviceidle/power/battery.
+До срока задачи требуются два согласованных IDLE/light=true. После входа fallback
+допускает согласованное IDLE либо IDLE_MAINTENANCE/light=false, сохраняя условия
+выключенного экрана/нет питания. Иные или несогласованные состояния не принимаются
+за PASS. Exact light-режим по-прежнему требует только IDLE.
+
+На31 последний poll и отдельные light-at-delivery снимки показали maintenance;
+на33 — IDLE. На33 ни один сохранённый снимок не показал maintenance, но отсутствие
+краткого перехода между опросами не доказано. Это состояние при обнаружении
+уведомления, не непрерывная трасса состояния на точный момент callback.
+Сопоставление задержки с окном/maintenance не устанавливает причину задержки
+или применение idle quota; 179.915/114.712с относятся к when−deadline и не
+измеряют звук/видимость/реакцию пользователя. Deep оставался INACTIVE.
+
+Перед notification action ACK восстановлены исходные virtual AC/status charging,
+экран и light ACTIVE. Все light_* constants до/после совпали. ACK убрал notification,
+назначил новый alarm с интервалом4/8мин (remaining239.232/479.228с); после force-stop/
+launch alarm идентичен. Appops deny сохранился, ACK window положительное:
+31 `+2m58s462ms`;33 `+5m58s456ms` (summary и первичный alarm log).
+Cleanup прошёл: удалены только свои release/probe/backup-файлы, собственные AVD
+остановлены с проверкой PID/starttime/имени; emulator.json отсутствует, qemu
+процессов нет. Восстановление питания также предусмотрено в finally при отказе.
+
+Свежие host state classifier9/9, light parser9/9, ActivityRecord5/5, quiet13/13.
+Новый scripts/test-release-light-state.ps1 извлекает реальную функцию через AST,
+проверяет IDLE/maintenance и отрицательные случаи с русскими комментариями.
+21 сохранённый exact-снимок прошлого этапа принят строгим классификатором как
+регрессионные данные; это не повтор device-тестов и не новый PASS старых отчётов.
+Confirm.ps1 независимо сверил все первичные light-снимки, вход до срока,
+допустимые последующие состояния, delivery state/maintenance flag, восстановление
+питания/constants, fallback/receiver, appops deny/ACK/reboot/cleanup.
+Release runner SHA-256:
+`9E76E5AB8B1C757765A49C3BB592D0A91CA230396FD4358F2CD946D8093EBDB6`;
+light parser/observer прежний:
+`25021891F39048451189F71ACC6D08F52DF11DC459D75B6C33E32408090241AF`.
+PS parser/git diff --check прошли, JVM suite не повторялась при изменении runner.
+Отчёты31.53 MiB после удаления16.10 MiB numbered adb-копий, совпавших с
+сохранёнными named logs по размеру/SHA-256; inventory duplicate-log-cleanup.json.
+Рост AVD/cache отдельно не измерен.
+
+Покрыта одна fallback-доставка каждого AVD после штатного light entry, затем
+notification ACK при включённом экране и restart. Worker в light maintenance,
+квоты, physical/OEM deep/light Doze, API24/16КБ и Play-signing APK остаются
+открытыми; R4.3/R5.3 целиком не закрыты. Следующий шаг — отдельный тихий повтор
+worker после штатного light entry31/33 с наблюдением maintenance.
