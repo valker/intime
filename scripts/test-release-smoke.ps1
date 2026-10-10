@@ -799,10 +799,18 @@ function Assert-ReleasePeriodicPollContinuity([datetimeoffset]$Previous, [dateti
 # не измеряется; значение mSound канала не подменяет эти проверки.
 function Assert-ReleaseQuietNotification([string]$Record) {
     if ($Record -match 'actions=[1-9]\d*|actions=\{' -or $Record -notmatch '(?m)^\s*pri=-1\s*$' -or $Record -notmatch 'vibrate=null sound=null defaults=(?:0x0|0)(?=\s)' -or $Record -notmatch '(?m)^\s*groupAlertBehavior=1\s*$') { throw 'Repeat is not a quiet notification without ACK' }
+    # Проверяем отдельное поле flags: слово silent в groupKey/тексте той же
+    # header-строки не является нативным флагом SILENT. AndroidX на31/33/35
+    # подавляет звук канала через собственную тихую группу и groupAlertBehavior.
+    # На36 ожидаем настоящий именованный флаг; для35 допускаем оба формата.
+    $nativeSilent = $Record -cmatch '(?m)^\s*flags=(?:[A-Z_]+\|)*SILENT(?:\|[A-Z_]+)*\r?$'
+    $compatSilentGroup = $Record -match '(?m)^\s*groupKey=0\|com\.vpe_soft\.intime\.intime\|g:silent\r?$'
     if ($TestApi -le 33) {
-        $flags = [regex]::Match($Record, '\bflags=0x([0-9a-fA-F]+)\b')
-        if (-not $flags.Success -or ([Convert]::ToInt64($flags.Groups[1].Value, 16) -band 0x18) -ne 0x18) { throw "Quiet notification flags missing on API $TestApi" }
-    } elseif ($Record -notmatch 'flags=[^\r\n]*SILENT') { throw 'Quiet notification SILENT flag missing' }
+        $flags = [regex]::Match($Record, '(?m)^\s*flags=0x([0-9a-fA-F]+)\r?$')
+        if (-not $flags.Success -or ([Convert]::ToInt64($flags.Groups[1].Value, 16) -band 0x18) -ne 0x18 -or -not $compatSilentGroup) { throw "Quiet notification flags/group missing on API $TestApi" }
+    } elseif ($TestApi -eq 35) {
+        if (-not $nativeSilent -and -not $compatSilentGroup) { throw 'Quiet notification native flag or AndroidX silent group missing on API35' }
+    } elseif (-not $nativeSilent) { throw 'Quiet notification native SILENT flag missing' }
 }
 
 function Assert-ReleasePeriodicReminder([string]$Description) {
@@ -1252,10 +1260,18 @@ try {
     Invoke-ReleaseAdb @('shell', 'input', 'keyevent', '3') | Out-Null
     $bootBefore = [int](Invoke-ReleaseAdb @('shell', 'settings', 'get', 'global', 'boot_count')).Trim()
     $expectedBootAlarm = Wait-ReleaseAlarm
-    # API 31: после force-stop/запуска оставляем ОС время зафиксировать состояние
-    # пакета перед reboot. Отсутствие BOOT_COMPLETED однажды наблюдалось, но связь
-    # с отложенной записью PackageManager не доказана; сохраняем состояние для диагностики.
-    if ($TestApi -eq 31 -and $RebootSettleSeconds -gt 0) { Start-Sleep -Seconds $RebootSettleSeconds }
+    # API 31/35/36: после force-stop/запуска оставляем ОС время зафиксировать
+    # состояние пакета перед reboot. На35 stopped=true после reboot повторился
+    # даже после успешного ожидания обеих очередей PackageManager. Пауза даёт
+    # время отложенным операциям, но не доказывает причину сбоя или запись всех
+    # файлов. Не снимаем stopped принудительно и не вызываем receiver вручную.
+    # Отдельно отмечаем реально применённую паузу: наличие параметра в summary
+    # само по себе не означает, что данный API выполнял ожидание.
+    $summary.rebootSettleAppliedSeconds = 0
+    if ($TestApi -in @(31, 35, 36) -and $RebootSettleSeconds -gt 0) {
+        Start-Sleep -Seconds $RebootSettleSeconds
+        $summary.rebootSettleAppliedSeconds = $RebootSettleSeconds
+    }
     # API 35/36: после force-stop/повторного запуска наблюдалось
     # stopped=false до reboot и stopped=true после него, без вызова BootReceiver.
     # Дожидаемся штатных очередей PackageManager перед reboot, чтобы отделить

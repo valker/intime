@@ -237,8 +237,11 @@ instrumentation или ручной job run. Период, часы, огран�
 
 Повтор должен быть в активном record production-пакета с уникальным описанием,
 when не раньше первой отправки +15 минут, LOW priority, без actions/ACK,
-с sound/vibrate=null и defaults=0 в Notification, SILENT и groupAlertBehavior=1.
-В dumpsys mSound может оставаться звуком канала несмотря на SILENT;
+с sound/vibrate=null и defaults=0 в Notification и groupAlertBehavior=1.
+На31/33 нужны отдельные hex flags0x18 и точная AndroidX-группа silent;
+на35 — точная группа либо нативный SILENT, на36 — отдельный нативный SILENT.
+Слово silent в header/тексте не засчитывается как нативный флаг.
+В dumpsys mSound может оставаться звуком канала несмотря на тихий режим;
 его null не требуется. Это проверка полей тихой доставки, не измерение звука.
 Logcat после завершения процесса должен содержать SUCCESS настоящего
 TaskNotificationWorker; будущий alarm для единственной просрочки отсутствует.
@@ -251,6 +254,9 @@ Private Room/preferences не читаются: wasNotified, UUID work и точ
 Собственная установка/probe/JSON удаляются в finally; эмулятор остаётся для
 контролируемой остановки с проверкой PID/StartTime/AVD. Успех подтверждает только
 summary PASSED с десятью фазами; наличие режима не подтверждает пройденную проверку.
+
+При `-PeriodicRepeats 2` требуются одиннадцать фаз, два разных тихих when,
+каждый не раньше предыдущего+15мин, и минимум два SUCCESS worker после kill.
 Фактический статус и границы — DEVICE_TEST_RESULTS.md.
 
 Фактический первый release-прогон 4 октября завершён **контролируемо**, 10/10:
@@ -1377,3 +1383,44 @@ JVM suite не повторялась. Собственные AVD очищены
 образы не использовались. Отчёты около47.75 MiB, без измерения роста AVD/cache.
 Один повтор rc3 проверен на31/33/35/36; второй период, Doze/квоты, OEM,
 API24/16КБ и release predictive остаются отдельными проверками.
+
+## Rc3: второй natural periodic период API35/36 — 10 октября
+
+Свежие UI3/3 и release11/11 каждого; API35 после сохранённого отказа подготовки
+reboot, API36 с первой попытки. Итог/границы:
+`.test-tools/runs/20261010-110833-rc3-two-period35-36-matrix/confirmed-matrix.json`.
+После последовательного bootstrap ScreenPlatformTest через scripts/test.ps1
+с `-Offline -KeepEmulator -EmulatorGpu host -DisableEmulatorVulkan -EmulatorRamMb 4096`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -ApkPath 'C:/Projects/intime/.test-tools/runs/20261009-103501-release27-historical-json/candidate/intime-27-2.0.0-rc3.apk' -TestApi 35 -PeriodicOnly -PeriodicRepeats 2 -PeriodicWaitMinutes 65 -ExpectedVersionCode 27 -ExpectedVersionName '2.0.0-rc3'
+```
+
+Для36 сменить TestApi после очистки/остановки35. Два разных when и два SUCCESS
+нужны в одном непрерывном окне; не открывать Activity, не вызывать manual job run,
+не менять период/часы/batching и не опрашивать JobScheduler между отправками.
+Собственные AVD остановлены. Новых образов/телефона нет; логи около41.76 MiB,
+без измерения роста AVD/cache. Детали интервалов и сохранённого FAILED — в
+DEVICE_TEST_RESULTS.md. Второй период rc3 на31/33 и остальные открытые
+устройственные сценарии этим этапом не закрыты.
+
+Перед reboot пауза RebootSettleSeconds теперь применяется на31/35/36, затем
+на35/36 ожидаются очереди PackageManager. Фактическая пауза отдельно отмечается
+rebootSettleAppliedSeconds; одно наличие параметра не доказывает его применение.
+Retry35 проверил новую паузу15с;36 работал до правки. Это подготовка теста,
+не доказательство причины или устойчивого устранения stopped после reboot.
+
+Host-регрессии проверяют реальную функцию guard через AST без запуска release
+runner, приложения или AVD. Каждый случай содержит подробный русский комментарий:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-quiet-guard.ps1
+```
+
+Прошли13 фикстур: корректные compat/native форматы и отказ при подмене
+SILENT словом в header, отсутствии группы/флагов, наличии ACK/звука,
+неверном priority/groupAlertBehavior. По завершении текущего этапа новым guard
+также проверены все4 сохранённых repeat-records; результат в quiet-guard-summary.json
+общего batch. Live observers были запущены до изменения guard; post-run проверка
+record не подменяет fresh device-наблюдение или WorkManager SUCCESS.
+Код приложения не менялся, JVM suite не повторялась; PS parser/diff checks прошли.

@@ -3250,3 +3250,60 @@ JVM suite не повторялась; документация проверен
 Один повтор rc3 теперь проверен на31/33/35/36, но второй период rc3,
 forced/natural Doze, квоты, OEM, API24/16КБ, release predictive и APK с Play App
 signing этим этапом не покрыты. R4.3/R5.3 целиком остаются открытыми.
+
+## Rc3: два natural quiet повтора API35/36 — 10 октября 2026
+
+Тот же архивный Upload-key APK27/2.0.0-rc3 с R8, SHA-256
+`9BFE60C4507CC5567888AF84EF72256620CC2B1BB11FA6CB9D717C80DB231760`.
+API35/36 выполнены последовательно; API35 повторён после отказа reboot.
+Исходный batch summary остался FAILED, отдельный retry35 PASSED; общий итог
+PASSED_AFTER_API35_RETRY: `.test-tools/runs/20261010-110833-rc3-two-period35-36-matrix/confirmed-matrix.json`.
+
+| API | UI summary (в .test-tools/runs) | Release summary | Результат | Alarm → первый повтор | Первый → второй повтор |
+| --- | --- | --- | --- | --- | --- |
+| 35, повтор | `20261010-121048-ad737426/summary.json` | `20261010-121240-release-smoke/summary.json` | 3/3 + 11/11 | 1270.924с (21:10.924) | 1575.098с (26:15.098) |
+| 36 | `20261010-111630-85a9238d/summary.json` | `20261010-111845-release-smoke/summary.json` | 3/3 + 11/11 | 1232.177с (20:32.177) | 1575.163с (26:15.163) |
+
+UI failures/errors/skipped=0; release PASSED, health/cleanup ошибок нет.
+Emulator37.2.12, CPU4/RAM4096/host GPU/Vulkan disabled, ANR checks включены.
+Оба summary: periodicRepeats=2, observedRepeats=2, workerSuccessCount=2,
+naturalDispatchValidated=true, processAbsentAfterKill=true, liveJobDumps=false,
+batchingChanged=false. Reboot восстановил тот же alarm до Activity,
+receiverLogged=true. Два разных when и оба интервала>=900с проверены.
+Покрыты подготовительные CRUD/ACK/settings/JSON/restart, reboot, первая реальная
+доставка и два тихих повтора после am kill. UI/ручной dispatch/изменение
+часов, периода и batching внутри окна не использовались; разрывов наблюдения нет.
+
+Первый API35: UI3/3 `20261010-110908-c9d2f82b`, release FAILED7/11
+`20261010-111125-release-smoke`. До reboot stopped=false, после stopped=true,
+actualAlarm0, receiverLogged=false; worker-фаза не начиналась. Обе команды
+PackageManager wait завершились Success, следовательно прежняя подготовка
+не гарантировала сохранение состояния. Runner расширил RebootSettleSeconds
+с31 на35/36, перед ожиданием очередей; реально выполненная пауза записывается
+в rebootSettleAppliedSeconds. В retry35 значение15 и reboot прошёл. API36
+выполнен до этой правки без новой паузы. Причина сбоя и устойчивое исправление
+не доказаны; stopped принудительно не снимался, receiver вручную не вызывался.
+
+При дополнительной сверке исправлен parser guard: старый case-insensitive
+regex flags=.*SILENT мог совпасть с groupKey=silent в header. На35 фактически
+показаны ONLY_ALERT_ONCE|AUTO_CANCEL и AndroidX groupKey=...|g:silent, а на36
+отдельное flags содержит SILENT. Новый guard явно проверяет точную группу
+на31/33, группу либо нативный флаг на35, отдельный нативный флаг на36;
+priority=-1, null sound/vibrate, defaults0, groupAlertBehavior1 и отсутствие ACK
+остаются обязательными. AndroidX описывает тихую группу в
+[NotificationCompat](https://android.googlesource.com/platform/frameworks/support/+/refs/heads/androidx-main/core/core/src/main/java/androidx/core/app/NotificationCompat.java).
+Физический звук/вибрация не измерялись. Свежие13 host-фикстур с отрицательными
+случаями прошли, новым guard отдельно проверены все4 сохранённых record этого
+этапа: `20261010-110833-rc3-two-period35-36-matrix/quiet-guard-summary.json`.
+Это post-run проверка parser; live-наблюдатели использовали предыдущий guard.
+Parser/diff checks прошли. APK/runtime не менялся, JVM suite не повторялась.
+
+Свои установки/файлы очищены, AVD остановлены с проверкой PID/starttime/имени;
+emulator.json отсутствует, qemu-system-x86_64 процессов нет. Отчёты всего этапа,
+включая отказ/retry/UI/batch, около41.76 MiB после удаления28.32 MiB побайтовых
+adb-дубликатов. Основные named logs сохранены; deleted/retained/SHA/bytes
+записаны в `removed-*-duplicate-logs.json` общего batch. Рост AVD/cache этим
+размером не измерен. Новые образы не скачивались; телефон, пользовательский
+JSON и main*.db не использовались. Второй период rc3 на31/33, Doze/квоты,
+OEM, API24/16КБ, release predictive и APK с Play App signing этим этапом не
+покрыты. R4.3/R5.3 целиком остаются открытыми.

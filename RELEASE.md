@@ -589,6 +589,23 @@ do not upload a different payload under it. Earlier host auth13/13 + candidate8/
   Logs about47.75 MiB, excluding unmeasured AVD/cache growth. App/runner
   unchanged; JVM suite not rerun. One rc3 repeat now covered on31/33/35/36;
   second period, Doze/quotas/OEM, API24/16KB and release predictive remain open.
+  The next fresh rc3 stage covered two natural quiet repeats on API35/36:
+  UI3/3 + release11/11 each, two distinct when values and two worker SUCCESS.
+  Gaps:35 alarm→repeat1 1270.924s, repeat1→repeat2 1575.098s;
+  36 1232.177s and1575.163s. No manual dispatch or clock/period/batching changes.
+  Matrix: `.test-tools/runs/20261010-110833-rc3-two-period35-36-matrix/confirmed-matrix.json`.
+  First35 failed before worker despite both PackageManager waits succeeding:
+  stopped=false before reboot, true after, receiver absent. Retry35 passed after
+  adding a15s pre-reboot settle; actual pause recorded separately. Cause/durable
+  fix remain unproven.36 ran before the settle change, original FAILED preserved.
+  Quiet parser now distinguishes native SILENT from AndroidX silent group;
+  13 fresh host fixtures and all4 current saved records passed the updated guard.
+  Live observers used the previous guard; records were revalidated post-run.
+  App/APK unchanged, JVM suite not rerun. Owned AVDs stopped, no phone/new images;
+  all reports including failure/retry about41.76 MiB after28.32 MiB duplicate-log
+  cleanup, excluding unmeasured AVD/cache growth. Two rc3 repeats on31/33,
+  Doze/quotas/OEM, API24/16KB, reboot preparation stability and release predictive
+  remain open; this is archived Upload-key APK coverage.
 - [x] R4.2: Play-compatible25→27 upgrade verified on a separate logical copy
   of17 real tasks from the user-provided JSON, API35,9/9 phases. All original
   fields/IDs/dates preserved; source unchanged, cleanup complete. Fresh UI3/3
