@@ -1424,3 +1424,32 @@ SILENT словом в header, отсутствии группы/флагов, �
 общего batch. Live observers были запущены до изменения guard; post-run проверка
 record не подменяет fresh device-наблюдение или WorkManager SUCCESS.
 Код приложения не менялся, JVM suite не повторялась; PS parser/diff checks прошли.
+
+## Rc3: два natural periodic повтора API31/33 — 10 октября
+
+Свежие UI3/3 и release11/11 каждого прошли с первой попытки. Итог:
+`.test-tools/runs/20261010-130930-rc3-two-period31-33-matrix/confirmed-matrix.json`.
+После последовательного bootstrap ScreenPlatformTest через scripts/test.ps1
+с `-Offline -KeepEmulator -EmulatorGpu host -DisableEmulatorVulkan -EmulatorRamMb 4096`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -ApkPath 'C:/Projects/intime/.test-tools/runs/20261009-103501-release27-historical-json/candidate/intime-27-2.0.0-rc3.apk' -TestApi 31 -PeriodicOnly -PeriodicRepeats 2 -PeriodicWaitMinutes 65 -ExpectedVersionCode 27 -ExpectedVersionName '2.0.0-rc3'
+```
+
+Для33 сменить TestApi после очистки/остановки31. Подтверждены два разных when
+и каждый интервал>=900с:31 —1700.476/900.117с;33 —1826.242/1042.914с.
+На каждом workerSuccessCount=3, observedRepeats=2; не выводить число уведомлений
+из числа SUCCESS. NaturalDispatchValidated=true, процесс отсутствовал после
+am kill. Activity/manual dispatch, изменение периода/часов/batching и live
+JobScheduler dumps внутри окна не использовались. Новый quiet guard выполнялся
+в live-наблюдателях. Reboot восстановил alarm до Activity; фактическая пауза
+до reboot31=15с,33=0с. Подробности record и границы — DEVICE_TEST_RESULTS.md.
+
+AVD очищены/остановлены, телефон и новые образы не использовались. Отчёты
+около29.86 MiB после удаления18.46 MiB побайтовых adb-дубликатов; named logs
+сохранены, инвентарь в batch. Рост AVD/cache отдельно не измерен. Приложение
+и постоянные скрипты не менялись, JVM suite не повторялась. Вместе с предыдущим
+этапом два тихих повтора rc3 проверены на31/33/35/36; Doze/квоты/OEM,
+API24/16КБ, release predictive, Play-signing APK и устойчивость reboot35/36
+остаются отдельными сценариями. Следующий шаг — повторные reboot35/36
+с новой подготовкой.

@@ -606,6 +606,20 @@ do not upload a different payload under it. Earlier host auth13/13 + candidate8/
   cleanup, excluding unmeasured AVD/cache growth. Two rc3 repeats on31/33,
   Doze/quotas/OEM, API24/16KB, reboot preparation stability and release predictive
   remain open; this is archived Upload-key APK coverage.
+  A subsequent fresh stage completed two natural quiet repeats on API31/33,
+  first attempt: UI3/3 + release11/11 each. Gaps31:1700.476/900.117s;
+  33:1826.242/1042.914s. Two distinct notification repeats observed, three
+  worker SUCCESS each; SUCCESS count does not equal repeat count. Updated
+  quiet guard executed by live observers. Same alarm restored before Activity,
+  process absent after am kill; no manual dispatch, clock/period/batching
+  changes or live JobScheduler dumps. Actual reboot settle31=15s,33=0s.
+  Matrix: `.test-tools/runs/20261010-130930-rc3-two-period31-33-matrix/confirmed-matrix.json`.
+  Two rc3 quiet repeats now covered on31/33/35/36 across these two stages.
+  App/permanent runner unchanged; JVM suite not rerun. Owned AVDs stopped,
+  no phone/new images. Reports about29.86 MiB after18.46 MiB duplicate-log
+  cleanup, excluding unmeasured AVD/cache growth. Next: repeated reboot35/36
+  with the new preparation. Doze/quotas/OEM, API24/16KB, release predictive,
+  Play-signing APK and reboot preparation stability remain separate gaps.
 - [x] R4.2: Play-compatible25→27 upgrade verified on a separate logical copy
   of17 real tasks from the user-provided JSON, API35,9/9 phases. All original
   fields/IDs/dates preserved; source unchanged, cleanup complete. Fresh UI3/3

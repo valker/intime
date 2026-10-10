@@ -3307,3 +3307,48 @@ adb-дубликатов. Основные named logs сохранены; delete
 JSON и main*.db не использовались. Второй период rc3 на31/33, Doze/квоты,
 OEM, API24/16КБ, release predictive и APK с Play App signing этим этапом не
 покрыты. R4.3/R5.3 целиком остаются открытыми.
+
+## Rc3: два natural quiet повтора API31/33 — 10 октября 2026
+
+Тот же архивный Upload-key APK27/2.0.0-rc3 с R8, SHA-256
+`9BFE60C4507CC5567888AF84EF72256620CC2B1BB11FA6CB9D717C80DB231760`.
+Оба API выполнены последовательно и прошли с первой попытки. Свежий итог:
+`.test-tools/runs/20261010-130930-rc3-two-period31-33-matrix/confirmed-matrix.json`.
+
+| API | UI summary (в .test-tools/runs) | Release summary | Результат | Alarm → первый повтор | Первый → второй повтор |
+| --- | --- | --- | --- | --- | --- |
+| 31 | `20261010-130946-4590b840/summary.json` | `20261010-131227-release-smoke/summary.json` | 3/3 + 11/11 | 1700.476с (28:20.476) | 900.117с (15:00.117) |
+| 33 | `20261010-135956-33c2e61b/summary.json` | `20261010-140239-release-smoke/summary.json` | 3/3 + 11/11 | 1826.242с (30:26.242) | 1042.914с (17:22.914) |
+
+UI failures/errors/skipped=0; release PASSED, ошибок health/cleanup нет.
+Emulator37.2.12, CPU4/RAM4096/host GPU/Vulkan disabled, ANR checks включены.
+На каждом periodicRepeats=2, observedRepeats=2, workerSuccessCount=3:
+три SUCCESS не доказывают три уведомления. Проверены два разных when и каждый
+интервал>=900с. NaturalDispatchValidated=true, processAbsentAfterKill=true,
+liveJobDumps=false, batchingChanged=false. Reboot восстановил тот же alarm
+до Activity, receiverLogged=true. Фактическая пауза до reboot на31 —15с,
+на33 —0с; ожидания очередей35/36 здесь не применялись.
+
+Подготовительные CRUD/ACK/settings/JSON/restart, reboot, реальная alarm-доставка
+и два тихих повтора после am kill прошли. В непрерывном окне не открывалась
+Activity, не выполнялись manual dispatch, изменение периода/часов/batching
+или live JobScheduler dumps. Обновлённый quiet guard выполнялся непосредственно
+в обоих live-наблюдателях: hex flags0x18, точная AndroidX silent group,
+priority=-1, null sound/vibrate, defaults0, groupAlertBehavior1, отсутствие ACK.
+Физический звук/вибрация не измерялись. Runner SHA-256 до/после совпал:
+`310ABD3277AC2D2ED036F5F021E7098669B3BC63FE973170A830EB1E378D8CE0`.
+Приложение и постоянные скрипты не менялись; JVM suite не повторялась.
+
+Собственные установки/файлы очищены, AVD остановлены с проверкой владения;
+emulator.json отсутствует, qemu-system-x86_64 процессов нет. Отчёты обоих API
+и batch около29.86 MiB после удаления18.46 MiB побайтовых adb-дубликатов.
+Named logs и repeat-records сохранены, deleted/retained/SHA/bytes записаны
+в `removed-api31-duplicate-logs.json` и `removed-api33-duplicate-logs.json` batch.
+Рост AVD/cache отдельно не измерен. Новые образы не скачивались; телефон,
+пользовательский JSON и main*.db не использовались.
+
+Вместе с предыдущим этапом два естественных тихих повтора rc3 подтверждены
+на31/33/35/36. Этот этап не проверяет Doze/квоты/OEM, API24/16КБ,
+release predictive, APK с Play App signing или устойчивость новой подготовки
+reboot35/36. R4.3/R5.3 целиком остаются открытыми. Следующая проверка —
+повторные reboot35/36 с паузой и ожиданием очередей.
