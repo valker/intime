@@ -5,10 +5,36 @@ import com.android.uiautomator.testrunner.UiAutomatorTestCase;
 import java.io.File;
 import android.os.Environment;
 import android.os.SystemClock;
+import android.graphics.Point;
 
 /** Отдельный shell-драйвер: не включается в APK приложения и не меняет его базу. */
 @SuppressWarnings("deprecation")
 public class ReleaseHierarchyProbe extends UiAutomatorTestCase {
+    /**
+     * На выделенном AVD с включённой жестовой навигацией уже открыты настройки
+     * release-приложения. PowerShell предварительно проверяет EdgeBackGestureHandler.
+     * Параметр edgeMode выбирает непрерывный свайп от левого края до 65% ширины:
+     * cancel возвращает палец к краю перед отпусканием, commit отпускает вдали.
+     * Проверяем портретную ориентацию, допустимый режим и успешный ввод UiDevice;
+     * после анимации печатаем маркер. Отсутствие перехода при cancel, возврат
+     * к прежнему ActivityRecord при commit и сохранность alarm проверяет host.
+     * Этот драйвер не измеряет кадры predictive-анимации, звук или поля Room.
+     */
+    public void testEdgeBackGesture() {
+        String mode = getParams().getString("edgeMode");
+        assertTrue("Unknown edge mode", "cancel".equals(mode) || "commit".equals(mode));
+        int width = getUiDevice().getDisplayWidth();
+        int height = getUiDevice().getDisplayHeight();
+        assertTrue("Portrait display required", height > width && width > 100);
+        Point start = new Point(1, height / 2);
+        Point far = new Point((int) (width * 0.65), height / 2);
+        Point[] path = "cancel".equals(mode) ? new Point[]{start, far, start}
+                : new Point[]{start, far};
+        assertTrue("Edge input failed", getUiDevice().swipe(path, 20));
+        SystemClock.sleep(1500);
+        System.out.println("INTIME_EDGE_GESTURE_" + mode.toUpperCase(java.util.Locale.ROOT));
+    }
+
     /**
      * На проектном AVD открыто окно, которое может обновляться каждую секунду.
      * Удаляем прошлый XML, отключаем ожидание idle только для этого shell-прогона

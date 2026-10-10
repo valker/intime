@@ -3396,3 +3396,64 @@ emulator.json отсутствует, qemu-system-x86_64 процессов не
 пользовательский JSON и main*.db не использовались. Приложение/постоянные
 скрипты не менялись, JVM suite не повторялась. PS parser и git diff --check
 прошли. Исправлено устаревшее ограничение RebootSettleSeconds в TESTING.md.
+
+## Rc3: отмена/завершение левого Back-жеста API33/35/36 — 10 октября 2026
+
+Архивный Upload-key APK27/2.0.0-rc3 с R8, SHA-256
+`9BFE60C4507CC5567888AF84EF72256620CC2B1BB11FA6CB9D717C80DB231760`.
+API выполнены последовательно. Итог PASSED_AFTER_API33_UI_AND_PARSER_RETRIES:
+`.test-tools/runs/20261010-172054-rc3-gesture33-35-36-matrix/confirmed-matrix.json`.
+
+| API | UI summary (в .test-tools/runs) | Release summary | Итог | Main token/task | PID | Неизменный alarm |
+| --- | --- | --- | --- | --- | --- | --- |
+| 33, финальный повтор | `20261010-173739-1bcfc685/summary.json` | `20261010-173956-release-smoke/summary.json` | 3/3 + 9/9 | 68c2f83/24 | 6499 | 1791646851940 |
+| 35 | `20261010-172514-377f2fa8/summary.json` | `20261010-172701-release-smoke/summary.json` | 3/3 + 9/9 | 7c3b819/24 | 3618 | 1791646053164 |
+| 36 | `20261010-172824-98dcd509/summary.json` | `20261010-173007-release-smoke/summary.json` | 3/3 + 9/9 | 135102213/24 | 3775 | 1791646240453 |
+
+UI failures/errors/skipped=0 финальных прогонов, release PASSED, health/cleanup
+ошибок нет. Emulator37.2.12, CPU4/RAM4096/host GPU/Vulkan disabled,
+EmulatorSoftwareNavigation=true, ANR checks включены. GestureOnly проходит
+семь подготовительных CRUD/ACK/settings/JSON фаз и две жестовые, без reboot.
+Shell UIAutomator driver вводит непрерывный путь от левого края до65% ширины:
+cancel возвращает палец к краю до отпускания, commit отпускает вдали.
+Это не KEYCODE_BACK и не прямой callback. До ввода mode2 и подключённый/активный
+EdgeBackGestureHandler проверены. API33 дополнительно enable_back_animation=1.
+
+После cancel остаётся прежний Settings ActivityRecord/task, после commit
+восстанавливается прежний Main ActivityRecord/task с видимой строкой задачи.
+PID и точный AlarmManager deadline после обоих жестов неизменны. Это identity
+системного ActivityRecord, не прямое сравнение Java Activity instance. Overlay,
+navigation mode и back-animation flag восстановлены:33 mode2/gestural/null,
+35 mode0/нет активного navbar overlay/0,36 mode0/нет overlay/null.
+Все12 activities snapshots повторно разобраны исправленной реальной функцией
+parser, совпадение component/token/task со summary подтверждено.
+
+История API33 сохранена: UI `20261010-172105-5e855f55` FAILED3 tests/1 failure,
+Settings RESUMED без focus; ANR/fatal в логе нет, причина не установлена.
+Повтор UI `20261010-173220-e1dff38c` прошёл3/3, release
+`20261010-173429-release-smoke` FAILED7/9 до жестов: новый parser включал `}`
+в component формата `ActivityRecord{... MainActivityV2} t24}`. Dump подтверждал
+Main RESUMED и focus; это ошибка host-драйвера. Исправление принимает оба
+положения скобки, отвергает неоднозначный token/чужой пакет. Пять host-регрессий
+прошли: `20261010-173728-activity-record-host/summary.json`.
+Третий33 прошёл полностью без изменения APK/сброса AVD/ослабления focus checks.
+Исходный batch и первый retry остаются FAILED; финальный retry:
+`20261010-173729-rc3-gesture33-parser-retry/summary.json` PASSED.
+35/36 live использовали прежний parser, корректный для их формата; снимки
+дополнительно сверены новым. Свежие quiet guard host-фикстуры13/13 также прошли.
+
+Добавлены GestureOnly и отдельный метод shell-probe с подробным русским
+комментарием. Hierarchy вызов теперь выбирает только testDumpActiveWindow,
+чтобы обычные UI-снимки не запускали жестовый метод. Java source компилировался
+SDK/JDK17 и выполнялся на всех трёх API. Приложение/архивный APK не менялись,
+JVM suite не повторялась. PS parser/git diff --check прошли.
+
+Свои установки/файлы очищены, AVD остановлены с проверкой владения;
+emulator.json отсутствует, qemu-system-x86_64 процессов нет. Отчёты всего этапа,
+включая FAILED/retries/host/batch, около15.23 MiB после удаления6.63 MiB
+идентичных adb-дубликатов. Named logs сохранены, inventory deleted/retained/SHA/
+bytes в `removed-duplicate-logs.json` общего batch. Рост AVD/cache отдельно
+не измерен, новых образов нет. Телефон, пользовательский JSON и main*.db
+не использовались. Не покрыты визуальные кадры/плавность predictive-анимации,
+правый край, landscape, Back-to-home, OEM, все поля Room, Doze/квоты,
+API24/16КБ и Play-signing APK. R4.3/R5.3 целиком остаются открытыми.

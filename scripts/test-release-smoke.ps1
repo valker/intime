@@ -13,6 +13,9 @@ periodic-режим содержит 10 фаз (11 при PeriodicRepeats=2) и 
 HistoricalJsonImport добавляет к полному режиму 15-ю фазу: SAF-импорт meta Play 25,
 восстановление собственной задачи и её alarm после перезапуска процесса.
 InexactOnly (API 31/33/35/36) содержит 11 фаз: подготовка, доставка fallback и ACK/restart.
+GestureOnly (API33/35/36) содержит9 фаз: CRUD/JSON и отмена/завершение бокового
+Back-жеста. Требует -EmulatorSoftwareNavigation при bootstrap, восстанавливает
+navigation overlay/mode и developer flag; reboot/notification не выполняет.
 InexactOnly + DozeOnly содержит 12 фаз: дополнительно подтверждается deep IDLE.
 DozeSequence добавляет подготовку второй задачи и её доставку: 14 фаз.
 DozeQuota (API 31/33) добавляет подтверждённую отсрочку по квоте: 15 фаз.
@@ -25,6 +28,9 @@ param(
     [ValidateSet(24, 31, 33, 35, 36)][int]$TestApi = 36,
     # Точечный режим проходит подготовку/JSON и повторяет reboot без минутных уведомлений.
     [switch]$RebootOnly,
+    # Только CRUD/JSON и отмена/завершение реального бокового Back-жеста в release.
+    # Требует экранную навигацию проектного AVD; reboot/notification не выполняются.
+    [switch]$GestureOnly,
     # Дополнительный SAF-импорт с исторической meta Play 25 и текущей собственной
     # задачей. Срок остаётся будущим; исходная sharedTest-фикстура не изменяется.
     [switch]$HistoricalJsonImport,
@@ -78,6 +84,8 @@ $oldJavaHome = $env:JAVA_HOME
 $lock = $null
 $commandNumber = 0
 $summary = @{ status = 'RUNNING'; passedPhases = @(); reports = $run; serial = $serial; testApi = $TestApi; rebootOnly = [bool]$RebootOnly; rebootResults = @(); rebootSettleSeconds = $RebootSettleSeconds; expectedVersionCode = $ExpectedVersionCode; expectedVersionName = $ExpectedVersionName }
+$summary.gestureOnly = [bool]$GestureOnly
+if ($GestureOnly -and ($TestApi -notin @(33,35,36) -or $RebootOnly -or $HistoricalJsonImport -or $DozeOnly -or $InexactOnly -or $DozeSequence -or $DozeQuota -or $DozeQuotaSeven -or $PeriodicOnly -or $RebootRepeats -ne 1 -or $PeriodicRepeats -ne 1)) { throw 'GestureOnly requires API33/35/36 without other modes/repeats' }
 if (-not $RebootOnly -and $RebootRepeats -ne 1) { throw 'RebootRepeats requires RebootOnly' }
 if ($RebootOnly -and $DozeOnly) { throw 'RebootOnly and DozeOnly are mutually exclusive' }
 $summary.dozeOnly = [bool]$DozeOnly
@@ -136,7 +144,7 @@ function Invoke-ReleaseAdb([string[]]$Arguments) {
 function Read-ReleaseUi {
     # Android 16 вынес legacy android.test в отдельные framework JAR; явно
     # добавляем их в classpath shell-runner, не в APK приложения.
-    $probe = Invoke-ReleaseAdb @('shell', 'uiautomator', 'runtest', '/system/framework/android.test.runner.jar', '/system/framework/android.test.base.jar', '/data/local/tmp/intime-release-probe.jar', '-c', 'intime.smoke.ReleaseHierarchyProbe')
+    $probe = Invoke-ReleaseAdb @('shell', 'uiautomator', 'runtest', '/system/framework/android.test.runner.jar', '/system/framework/android.test.base.jar', '/data/local/tmp/intime-release-probe.jar', '-c', 'intime.smoke.ReleaseHierarchyProbe#testDumpActiveWindow')
     if ($probe -notmatch 'OK \(1 test\)' -or $probe -notmatch 'INTIME_FRESH_HIERARCHY_READY' -or $probe -match 'FAILURES!!!|INSTRUMENTATION_FAILED|Test run aborted|shortMsg=') { throw 'Fresh UI hierarchy probe failed' }
     $path = Join-Path $run ("ui-{0:D3}.xml" -f $script:commandNumber)
     Invoke-ReleaseAdb @('pull', '/data/local/tmp/intime-release-ui.xml', $path) | Out-Null
@@ -243,6 +251,101 @@ function Wait-ReleaseAlarm([long]$After = 0) {
 function Complete-ReleasePhase([string]$Name) {
     $summary.passedPhases += $Name
     Write-Output "PASSED: $Name"
+}
+
+# Функциональная проверка release без instrumentation в процессе приложения.
+# Сверяем ActivityRecord/task и PID, видимое описание и действующий alarm;
+# это не чтение Room и не измерение визуальных кадров predictive-анимации.
+function Read-ReleaseResumed([string]$Prefix) {
+    $dump=Invoke-ReleaseAdb @('shell','dumpsys','activity','activities')
+    Set-Content (Join-Path $run "$Prefix-activities.log") $dump -Encoding UTF8
+    # API33 закрывает ActivityRecord перед tNN, API35/36 — после него.
+    # Скобка не является частью component; идентичность проверяем token/task.
+    $records=[regex]::Matches($dump,'(?m)^\s*(?:mResumedActivity:\s*|topResumedActivity=\s*)ActivityRecord\{(?<token>\S+) u0 (?<component>com\.vpe_soft\.intime\.intime/[^{}\s]+)\}? t(?<task>\d+)[^\r\n]*')
+    $unique=@($records|ForEach-Object {$_.Groups['token'].Value}|Select-Object -Unique)
+    if($unique.Count -ne 1){throw 'Unique resumed release ActivityRecord missing'}
+    return @{token=$unique[0];component=$records[0].Groups['component'].Value;task=$records[0].Groups['task'].Value}
+}
+function Wait-ReleaseNavigationMode([string]$Expected) {
+    $limit=(Get-Date).AddSeconds(20)
+    do {
+        if((Invoke-ReleaseAdb @('shell','settings','get','secure','navigation_mode')).Trim() -eq $Expected){return}
+        Start-Sleep -Milliseconds 250
+    } while((Get-Date) -lt $limit)
+    throw "Navigation mode not reached: $Expected"
+}
+function Test-ReleaseEdgeGestures([string]$Description,[long]$Alarm) {
+    $oldMode=(Invoke-ReleaseAdb @('shell','settings','get','secure','navigation_mode')).Trim()
+    $oldFlag=(Invoke-ReleaseAdb @('shell','settings','get','global','enable_back_animation')).Trim()
+    if($oldMode -notmatch '^[012]$' -or $oldFlag -notmatch '^(null|[01])$'){throw 'Unknown navigation state'}
+    $overlays=Invoke-ReleaseAdb @('shell','cmd','overlay','list','--user','0')
+    Set-Content (Join-Path $run 'gesture-overlay-before.log') $overlays -Encoding UTF8
+    $active=[regex]::Matches($overlays,'\[x\]\s+(com\.android\.internal\.systemui\.navbar\.[A-Za-z0-9_.]+)')
+    if($active.Count -gt 1){throw 'Ambiguous navigation overlays'}
+    $oldOverlay=if($active.Count){$active[0].Groups[1].Value}else{$null}
+    $summary.gestureNavigationBefore=@{mode=$oldMode;overlay=$oldOverlay;backAnimation=$oldFlag}
+    try {
+        Invoke-ReleaseAdb @('shell','cmd','overlay','enable-exclusive','--user','0','--category','com.android.internal.systemui.navbar.gestural')|Out-Null
+        Wait-ReleaseNavigationMode '2'
+        $ready=$false;$limit=(Get-Date).AddSeconds(20)
+        do {
+            $systemUi=Invoke-ReleaseAdb @('shell','dumpsys','activity','service','com.android.systemui/.SystemUIService')
+            foreach($section in [regex]::Matches($systemUi,'EdgeBackGestureHandler:([^\r\n]*(?:\r?\n[^\r\n]*\S[^\r\n]*)*)')){
+                $body=$section.Groups[1].Value
+                if($body.Contains('mIsEnabled=true') -and $body.Contains('mIsAttached=true') -and ($body.Contains('mIsGesturalModeEnabled=true') -or $body.Contains('mIsGestureHandlingEnabled=true'))){$ready=$true}
+            }
+            if(-not $ready){Start-Sleep -Milliseconds 250}
+        } while(-not $ready -and (Get-Date) -lt $limit)
+        Set-Content (Join-Path $run 'gesture-systemui-ready.log') $systemUi -Encoding UTF8
+        if(-not $ready){throw 'Edge handler unavailable; bootstrap with EmulatorSoftwareNavigation'}
+        if($TestApi -le 34){
+            Invoke-ReleaseAdb @('shell','settings','put','global','enable_back_animation','1')|Out-Null
+            if((Invoke-ReleaseAdb @('shell','settings','get','global','enable_back_animation')).Trim() -ne '1'){throw 'Back animation flag not enabled'}
+        }
+        $main=Read-ReleaseResumed 'gesture-main-before'
+        if($main.component -notmatch '/(?:com\.vpe_soft\.intime\.intime)?\.activity\.MainActivityV2$'){throw 'Main not resumed'}
+        $pidBefore=(Invoke-ReleaseAdb @('shell','pidof',$package)).Trim()
+        Click-ReleaseId 'btn_open_settings'
+        Wait-ReleaseNode "//node[@resource-id='${package}:id/export_to_json_btn']"|Out-Null
+        $settings=Read-ReleaseResumed 'gesture-settings-before'
+        if($settings.component -notmatch '/(?:com\.vpe_soft\.intime\.intime)?\.activity\.SettingsActivity$'){throw 'Settings not resumed'}
+        foreach($mode in @('cancel','commit')){
+            $result=Invoke-ReleaseAdb @('shell','uiautomator','runtest','/system/framework/android.test.runner.jar','/system/framework/android.test.base.jar','/data/local/tmp/intime-release-probe.jar','-c','intime.smoke.ReleaseHierarchyProbe#testEdgeBackGesture','-e','edgeMode',$mode)
+            Set-Content (Join-Path $run "gesture-$mode-probe.log") $result -Encoding UTF8
+            if($result -notmatch 'OK \(1 test\)' -or $result -notmatch "INTIME_EDGE_GESTURE_$($mode.ToUpperInvariant())" -or $result -match 'FAILURES!!!|INSTRUMENTATION_FAILED|Test run aborted|shortMsg='){throw "Edge injection failed: $mode"}
+            if($mode -eq 'cancel'){
+                Wait-ReleaseNode "//node[@resource-id='${package}:id/export_to_json_btn']"|Out-Null
+                $after=Read-ReleaseResumed 'gesture-cancel-after'
+                if($after.token -ne $settings.token -or $after.task -ne $settings.task){throw 'Canceled gesture changed Settings ActivityRecord'}
+            } else {
+                Assert-ReleaseText $Description
+                Wait-ReleaseNode "//node[@resource-id='${package}:id/fab_add_task']"|Out-Null
+                $after=Read-ReleaseResumed 'gesture-commit-after'
+                if($after.token -ne $main.token -or $after.task -ne $main.task){throw 'Committed gesture did not return to same Main ActivityRecord'}
+            }
+            if((Read-ReleaseAlarm) -ne $Alarm -or (Invoke-ReleaseAdb @('shell','pidof',$package)).Trim() -ne $pidBefore){throw 'Gesture changed alarm/process'}
+            Complete-ReleasePhase "release-edge-back-$mode"
+        }
+        $summary.gestureResults=@{main=$main;settings=$settings;afterCommit=$after;pid=$pidBefore;alarm=$Alarm;edgeHandlerReady=$true;cancelKeptSettings=$true;commitReturnedToMain=$true}
+    } finally {
+        try {
+            if($oldOverlay){Invoke-ReleaseAdb @('shell','cmd','overlay','enable-exclusive','--user','0','--category',$oldOverlay)|Out-Null}
+            else {Invoke-ReleaseAdb @('shell','cmd','overlay','disable','--user','0','com.android.internal.systemui.navbar.gestural')|Out-Null}
+            Wait-ReleaseNavigationMode $oldMode
+        } finally {
+            if($TestApi -le 34){
+                if($oldFlag -eq 'null'){Invoke-ReleaseAdb @('shell','settings','delete','global','enable_back_animation')|Out-Null}
+                else {Invoke-ReleaseAdb @('shell','settings','put','global','enable_back_animation',$oldFlag)|Out-Null}
+            }
+            if((Invoke-ReleaseAdb @('shell','settings','get','global','enable_back_animation')).Trim() -ne $oldFlag){throw 'Back animation flag not restored'}
+        }
+        $restored=Invoke-ReleaseAdb @('shell','cmd','overlay','list','--user','0')
+        Set-Content (Join-Path $run 'gesture-overlay-restored.log') $restored -Encoding UTF8
+        $restoredActive=[regex]::Matches($restored,'\[x\]\s+(com\.android\.internal\.systemui\.navbar\.[A-Za-z0-9_.]+)')
+        $restoredOverlay=if($restoredActive.Count -eq 1){$restoredActive[0].Groups[1].Value}else{$null}
+        if($restoredActive.Count -gt 1 -or $restoredOverlay -ne $oldOverlay){throw 'Navigation overlay not restored'}
+        $summary.gestureNavigationRestored=$true
+    }
 }
 
 # Читаем подписанную длительность dumpsys без предположения о фиксированной
@@ -1246,6 +1349,8 @@ try {
     # После нового boot_count ждём тот же alarm ДО запуска Activity: восстановить
     # его должен release BootReceiver, а не побочный эффект открытия приложения.
     # Просрочку во время выключения и boot-уведомление эта фаза не моделирует.
+    if($GestureOnly){Test-ReleaseEdgeGestures $edited $afterAck}
+    if(-not $GestureOnly){
     for ($bootIteration = 1; $bootIteration -le $RebootRepeats; $bootIteration++) {
     # Каждый повтор воспроизводит force-stop/запуск, а не только reboot уже стабильного
     # пакета. Проверяем сохранённое описание и срок до Home; после reboot Activity
@@ -1334,7 +1439,8 @@ try {
     Complete-ReleasePhase $bootPhase
     }
 
-    if (-not $RebootOnly) {
+    }
+    if (-not $RebootOnly -and -not $GestureOnly) {
     # Проверка реальной доставки: задаём appops только нашей новой установке,
     # меняем период задачи через UI на минуту, подтверждаем
     # её в деталях для нового отсчёта от текущего ACK и уходим Home.

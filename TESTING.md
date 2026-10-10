@@ -1484,3 +1484,42 @@ AVD остановлены, телефон/новые образы не испо
 инвентарь в batch. Рост AVD/cache отдельно не измерен. Приложение/постоянные
 скрипты не менялись, JVM suite не повторялась. Следующий шаг — release/R8
 отмена и завершение бокового Back-жеста на33/35/36.
+
+## Rc3: release/R8 боковой Back-жест API33/35/36 — 10 октября
+
+Финальные UI3/3 + release9/9 каждого.35/36 с первой попытки,33 после
+сохранённых focus/parser отказов. Сводка/точные границы — DEVICE_TEST_RESULTS.md;
+`.test-tools/runs/20261010-172054-rc3-gesture33-35-36-matrix/confirmed-matrix.json`.
+Bootstrap через scripts/test.ps1: ScreenPlatformTest, `-Offline -KeepEmulator
+-EmulatorGpu host -DisableEmulatorVulkan -EmulatorRamMb 4096 -EmulatorSoftwareNavigation`.
+Экранная навигация обязательна для активного EdgeBackGestureHandler.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -ApkPath 'C:/Projects/intime/.test-tools/runs/20261009-103501-release27-historical-json/candidate/intime-27-2.0.0-rc3.apk' -TestApi 33 -GestureOnly -ExpectedVersionCode 27 -ExpectedVersionName '2.0.0-rc3'
+```
+
+Повторять35/36 последовательно после очистки/остановки предыдущего AVD.
+GestureOnly совместим только с API33/35/36, без остальных режимов/repeats.
+Семь подготовительных фаз и cancel/commit дают9 фаз; reboot/notification
+не запускаются. Реальный непрерывный левый свайп вводится shell UiDevice;
+отмена сохраняет Settings ActivityRecord, завершение возвращает прежний Main
+ActivityRecord/task, сохраняет PID, видимое описание и alarm. Прямой Java
+instance/поля Room/кадры анимации не проверяются. Navigation overlay/mode
+и developer flag восстанавливаются даже при ошибке; на33 flag временно1.
+После этапа остановить только собственный AVD с проверкой PID/starttime/имени.
+
+Регрессии реальной функции ActivityRecord parser через AST, без adb/AVD:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-activity-record.ps1
+```
+
+Свежие5/5 проверяют оба формата скобки, одинаковый token в двух строках,
+отказ при неоднозначности и чужом пакете. Все12 финальных сохранённых снимков
+трёх API дополнительно сверены новым parser. Quiet guard host13/13 прошли.
+UI фокус не ослаблялся; исходные FAILED сохранены. Приложение/архивный APK
+не менялись, JVM suite не повторялась. AVD остановлены, телефон/новые образы
+не использовались. Отчёты15.23 MiB после удаления6.63 MiB идентичных adb-логов;
+named logs сохранены, рост AVD/cache отдельно не измерен. Следующий шаг —
+естественный light idle на31/33. Visual predictive/OEM/прочие открытые проверки
+не заменяются этим функциональным жестом.

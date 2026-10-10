@@ -634,6 +634,21 @@ do not upload a different payload under it. Earlier host auth13/13 + candidate8/
   Next: release/R8 canceled and completed side Back gestures on33/35/36.
   Missed-deadline boot delivery, Doze/quotas/OEM, API24/16KB and visual
   predictive animation remain separate gaps; this uses the Upload-key APK.
+  Functional release/R8 canceled/completed left-edge Back gestures now passed
+  on33/35/36: final UI3/3 + release9/9 each. Cancel keeps Settings ActivityRecord;
+  commit returns the original Main ActivityRecord/task. PID, visible description
+  and exact alarm unchanged. EdgeBackGestureHandler verified, navigation/flag
+  restored. Software navigation bootstrap required.35/36 first attempt;
+  33 after a preserved unknown focus failure, then a host ActivityRecord parser
+  bug (brace position differs). Parser fixed,5 host regressions and all12 saved
+  snapshots passed; quiet guard host13/13 also passed. All original FAILED kept.
+  Matrix: `.test-tools/runs/20261010-172054-rc3-gesture33-35-36-matrix/confirmed-matrix.json`.
+  GestureOnly/shell driver added; app/archived APK unchanged, JVM not rerun.
+  Owned AVDs stopped, no phone/new images. All stage reports15.23 MiB after
+  6.63 MiB identical duplicate-log cleanup; AVD/cache growth not measured.
+  ActivityRecord identity is not a Java instance assertion; visual animation,
+  right edge, landscape, back-to-home, OEM and Room fields remain outside scope.
+  Next: natural light idle31/33. Other Doze/quota/API24/16KB gaps remain open.
 - [x] R4.2: Play-compatible25→27 upgrade verified on a separate logical copy
   of17 real tasks from the user-provided JSON, API35,9/9 phases. All original
   fields/IDs/dates preserved; source unchanged, cleanup complete. Fresh UI3/3
