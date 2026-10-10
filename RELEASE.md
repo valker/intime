@@ -577,6 +577,18 @@ do not upload a different payload under it. Earlier host auth13/13 + candidate8/
   retry after expanding PackageManager queue waits passed. Cause/durable fix
   remain unproven; original FAILED preserved. App runtime unchanged, owned
   AVDs stopped. API31/33 rc3 periodic and a second period remain separate.
+  A subsequent fresh stage on API31/33 passed UI3/3 + release10/10 each on
+  the first attempt (9–10 October). Same archived Upload-key APK27/rc3:
+  one natural quiet repeat after process death at26:32.132/26:23.747 from
+  the initial alarm; naturalDispatchValidated=true, observedRepeats=1,
+  WorkManager SUCCESS count2 each. Two SUCCESS logs do not prove two repeats.
+  Reboot restored the same alarm before Activity. No manual dispatch,
+  clock/period/batching changes or live JobScheduler dumps during observation.
+  Matrix: `.test-tools/runs/20261009-233856-rc3-periodic31-33-matrix/confirmed-matrix.json`.
+  Owned installations/AVDs cleaned up and stopped; no phone or new images.
+  Logs about47.75 MiB, excluding unmeasured AVD/cache growth. App/runner
+  unchanged; JVM suite not rerun. One rc3 repeat now covered on31/33/35/36;
+  second period, Doze/quotas/OEM, API24/16KB and release predictive remain open.
 - [x] R4.2: Play-compatible25→27 upgrade verified on a separate logical copy
   of17 real tasks from the user-provided JSON, API35,9/9 phases. All original
   fields/IDs/dates preserved; source unchanged, cleanup complete. Fresh UI3/3

@@ -1350,3 +1350,30 @@ wait-for-background-handler в cmd package help и ожидаются обе ш�
 удалённые/сохранённые пути и SHA записаны в removed-duplicate-logs.json.
 Размер AVD/cache этим измерением не охвачен. Код приложения не менялся; JVM suite
 не повторялась,PS parser/diff check и реальные device-сценарии выполнены.
+
+## Rc3 natural periodic на API31/33 — 9–10 октября
+
+Следующий последовательный этап прошёл с первой попытки: UI3/3 и release10/10
+каждого API, один естественный тихий повтор после смерти процесса.
+Сверка: `.test-tools/runs/20261009-233856-rc3-periodic31-33-matrix/confirmed-matrix.json`.
+Bootstrap ScreenPlatformTest выполнялся через scripts/test.ps1 с параметрами
+`-Offline -KeepEmulator -EmulatorGpu host -DisableEmulatorVulkan -EmulatorRamMb 4096`.
+После bootstrap на том же выделенном AVD:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -ApkPath 'C:/Projects/intime/.test-tools/runs/20261009-103501-release27-historical-json/candidate/intime-27-2.0.0-rc3.apk' -TestApi 31 -PeriodicOnly -PeriodicWaitMinutes 65 -ExpectedVersionCode 27 -ExpectedVersionName '2.0.0-rc3'
+```
+
+Для API33 повторить bootstrap и команду с `-TestApi 33` после завершения/остановки
+API31. PeriodicRepeats=1 по умолчанию. Интервалы от первого alarm:
+1592.132/1583.747с; observedRepeats=1, WorkManager SUCCESS=2 каждого.
+Два SUCCESS не доказывают второй период. NaturalDispatchValidated=true;
+процесс отсутствовал после am kill, пакет оставался stopped=false. Новое тихое
+уведомление без ACK подтверждено без ручного запуска/ускорения worker и без
+JobScheduler dumps внутри ожидания. Reboot восстановил тот же alarm.
+Перед reboot на31 действует RebootSettleSeconds=15; ожидания очередей35/36
+на31/33 не используются. Код приложения/постоянного runner не менялся,
+JVM suite не повторялась. Собственные AVD очищены/остановлены, телефон и новые
+образы не использовались. Отчёты около47.75 MiB, без измерения роста AVD/cache.
+Один повтор rc3 проверен на31/33/35/36; второй период, Doze/квоты, OEM,
+API24/16КБ и release predictive остаются отдельными проверками.

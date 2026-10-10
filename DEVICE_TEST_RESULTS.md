@@ -3210,3 +3210,43 @@ adb-дубликатов в завершённых отчётах35/36. Осно
 Рост AVD/cache этим размером не измерен. Телефон,пользовательский JSON и main*.db
 не использовались. API31/33 rc3 periodic,второй период,Doze/квоты,OEM,API24/16КБ
 и release predictive-жесты не покрыты; R4.3/R5.3 целиком остаются открытыми.
+
+## Rc3 natural quiet worker API31/33 — 9–10 октября 2026
+
+Тот же архивный Upload-key APK27/2.0.0-rc3 с R8, SHA-256
+`9BFE60C4507CC5567888AF84EF72256620CC2B1BB11FA6CB9D717C80DB231760`.
+API31 и API33 выполнены последовательно, оба с первой попытки. Совместный итог:
+`.test-tools/runs/20261009-233856-rc3-periodic31-33-matrix/confirmed-matrix.json`.
+
+| API | UI summary (в .test-tools/runs) | Release summary | Результат | Тихий повтор после первого alarm |
+| --- | --- | --- | --- | --- |
+| 31 | `20261009-233911-eed7d7c5/summary.json` | `20261009-234221-release-smoke/summary.json` | 3/3 + 10/10 | 1592.132с (26:32.132) |
+| 33 | `20261010-001350-78b3ed69/summary.json` | `20261010-001658-release-smoke/summary.json` | 3/3 + 10/10 | 1583.747с (26:23.747) |
+
+UI failures/errors/skipped=0; release PASSED, health/cleanup ошибок нет.
+Emulator37.2.12, CPU4/RAM4096/host GPU/Vulkan disabled, ANR checks включены.
+В обоих summary naturalDispatchValidated=true, periodicProcessAbsentAfterKill=true,
+periodicObservedRepeats содержит один повтор, periodicWorkerSuccessCount=2,
+periodicLiveJobDumps=false, periodicBatchingChanged=false. Два SUCCESS сами по
+себе не подтверждают два повторных уведомления или второй период. Оба reboot
+восстановили тот же alarm до запуска Activity; BootReceiver logged=true.
+API31 использовал штатную подготовку RebootSettleSeconds=15; дополнительные
+ожидания очередей PackageManager API35/36 на31/33 не применялись.
+
+Покрыты CRUD/ACK, настройки/system Back, current JSON, process restart, reboot,
+первая реальная доставка и один тихий повтор после am kill фонового процесса.
+Подтверждены новое время отправки, priority=-1, flags=0x18, null sound/vibration,
+defaults0, groupAlertBehavior1 и отсутствие ACK у повторного уведомления.
+Это проверка системных полей, а не физического звука/вибрации. Ручной dispatch,
+изменение часов/периода/batching, UI и JobScheduler dumps внутри ожидания не
+использовались; непрерывность наблюдения прошла штатную проверку runner.
+
+Свои новые установки/файлы очищены, AVD остановлены с проверкой PID/starttime
+и имени; emulator.json отсутствует, qemu-system-x86_64 процессов нет.
+Отчёты обоих API и batch около47.75 MiB; рост AVD/cache этим размером не измерен.
+Новые образы не скачивались. Телефон, пользовательский JSON и main*.db не
+использовались. Код приложения и постоянные тестовые скрипты не менялись,
+JVM suite не повторялась; документация проверена git diff --check.
+Один повтор rc3 теперь проверен на31/33/35/36, но второй период rc3,
+forced/natural Doze, квоты, OEM, API24/16КБ, release predictive и APK с Play App
+signing этим этапом не покрыты. R4.3/R5.3 целиком остаются открытыми.
