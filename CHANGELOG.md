@@ -8,6 +8,12 @@ Final versionName 2.0.0 agreed by the user October 11; selected versionCode 28 i
 absent from the fresh saved APK/AAB/track snapshot (highest observed 27).
 This version remains unreleased; recheck the code before upload. Default builds
 remain 1.1.8 with a `.dev` package; productionRelease requires explicit parameters.
+Final APK/AAB 28/2.0.0 built offline October 11; upload signatures, manifests,
+bundle structure and embedded R8 mapping verified and archived. Additional
+build/cache/report files stayed below 100 MB. Fresh API31/33/35/36 matrix passed:
+UI 3/3 and final release CRUD/ACK, current/historical JSON, restart/reboot 9/9
+phases on each API. Final notification/idle/upgrade checks remain pending;
+no upload or publication was performed.
 Current candidate:27/2.0.0-rc3. Signing, AAB structure and the corresponding
 Play-signed APK are verified. Play25→27 passed on dedicated API35 with a separate
 JSON-derived copy of17 real tasks; the original phone database/preferences are

@@ -15,24 +15,67 @@ commit и track update не выполнялись. Снимок не резер
 перед загрузкой повторить проверку. Отчёт:
 `.test-tools/runs/20261011-final-version-preflight/summary.json`.
 
-Команда следующего этапа (на этом этапе не запускалась):
+Команда финальной сборки (выполнена 11 октября; при повторе дополнительно
+использован `-Dorg.gradle.caching=false` для ограничения расхода диска):
 
 ```powershell
 ./gradlew.bat ':app:assembleRelease' ':app:bundleRelease' '-PproductionRelease=true' '-PreleaseVersionCode=28' '-PreleaseVersionName=2.0.0' --offline --no-daemon --no-watch-fs --no-configuration-cache
 ```
 
-Новые APK/AAB 28 ещё не собраны: проверки rc3 относятся к архивному 27.
-Перед сборкой оценить расход диска относительно ограничения 100 МБ; затем сохранить
-точные SHA/manifest/mapping/signing и выполнить релевантные проверки нового
-артефакта. Черновик текста для магазина — `google_play/RELEASE_NOTES_2.0.0.md`.
+Новые APK/AAB 28 собраны и проверки артефактов выполнены, см. ниже.
+Проверки rc3 относятся к архивному 27. Для 28 повторены CRUD/JSON/reboot;
+остальные сценарии перечислены ниже как незавершённые.
+Черновик текста для магазина — `google_play/RELEASE_NOTES_2.0.0.md`.
 Загрузка/назначение на трек/rollout остаются отдельными согласуемыми действиями.
+
+Попытка сборки 11 октября остановлена контролем диска, до получения финальных
+артефактов. Запуск был offline; порог остановки 75 МиБ оставлял запас до лимита
+100 МБ. Свободное место всего диска уменьшилось скачком на 238 297 088 байт
+между измерениями. После остановки размеры app/build, проектного .gradle и
+пользовательского Gradle caches практически не изменились: соответственно
+-7 038, +88 и +9 854 байт. Причина общего прироста не установлена; его нельзя
+приписывать новым APK/AAB или считать доказательством расхода самой сборки.
+Это остановка инфраструктуры, не падение тестов. Пользователь затем разрешил
+контролировать бюджет по файлам сборки, кэша и отчётов. Отчёт первой попытки:
+`.test-tools/runs/20261011-final28-build/`. Сборка 28 не завершена;
+на момент первой остановки выходные APK/AAB оставались версией 27.
+
+Повторная offline-сборка успешно завершилась за 2 минуты 15 секунд.
+R8 и lintVitalRelease выполнены; APK/AAB подписаны подтверждённым Upload key.
+Проверены package/version, отсутствие debuggable, minSdk 24/targetSdk 36,
+apksigner, jarsigner, сертификат AAB, bundletool validate/dump manifest и
+совпадение встроенного mapping с архивным. Jarsigner подтвердил подпись;
+предупреждения о самоподписанном сертификате и отсутствии timestamp сохранены
+в отчёте. В AAB нет native .so; это не проверка работы на устройстве с 16-КБ страницами.
+В манифесте есть SCHEDULE_EXACT_ALARM; USE_EXACT_ALARM, INTERNET и AD_ID отсутствуют.
+
+Архив `.test-tools/runs/20261011-final28-build-retry/candidate/`:
+
+- APK `intime-28-2.0.0.apk`, SHA-256 `5447AF1B1F2D5E5C5A9551C432D41EC10AA889F95FCB4EACC32B086BF62C75A7`.
+- AAB `intime-28-2.0.0.aab`, SHA-256 `9FF56ACCAF07E4AD4BC10931495B59250CDF0E9758E02B4A071D5AF600962199`.
+- mapping SHA-256 `7FCBA853267D009B572EFD20C1C5694580B20B6AE995D1691A6BC52C9822F8C2`.
+
+Исходный HEAD `410f4453cd732171bd61c5c4271953eeaa1da7b3`, локальный diff сохранён.
+`verification-summary.json` подтверждает проверки артефактов; `disk-summary.json`
+показывает дополнительный размер файлов около 15,8 МБ вместе с архивом, ниже лимита.
+На этапе сборки телефон, установка, unit/device-прогоны, загрузка и публикация
+не использовались. Позднее 11 октября финальный APK 28 прошёл свежую матрицу
+API 31/33/35/36: на каждом UI bootstrap 3/3 и release/R8 9/9 фаз (CRUD/ACK,
+текущий/исторический JSON, restart/reboot). ANR/fatal checks включены, собственные
+установки удалены и AVD остановлены. Общий результат и бюджет:
+`.test-tools/runs/20261011-final28-runtime-matrix/confirmed-matrix.json` и
+`disk-summary.json`; диагностические логи сжаты с проверкой SHA-256.
+Дополнительные файлы этапа — около 47 МБ после сжатия; наблюдавшийся пик
+около 63,4 МБ (включая AVD), ниже лимита 100 МБ.
+Доставка/Doze/worker и Play25→28 этим этапом не покрыты, unit-набор не повторяли.
+Следующий шаг — уведомления на финальном APK 28, с контролем файлов AVD/отчётов.
 
 Доступ через Google Play API подготавливается отдельно: [PLAY_API.md](PLAY_API.md).
 Read-проверки и host-тесты прошли. Кандидат27 загружен без назначения на трек,
 Play APK27 скачан и проверен по App signing key/версии/DEX; production25,
 beta26 и прежний internal draft сохранены. Публикация скриптом не выполняется.
 
-Текущий локальный кандидат — **27/2.0.0-rc3**, 9 октября 2026, с поддержкой
+Предыдущий локальный кандидат — **27/2.0.0-rc3**, 9 октября 2026, с поддержкой
 исторической meta backup_version=1 из Play 25. Подписанные APK/AAB собраны с
 R8/lint; Upload key, манифесты, bundletool и совпадение mapping проверены.
 Семь конфигурационных случаев, свежие local 101/101, API 35 UI 3/3 и release
@@ -734,7 +777,7 @@ do not upload a different payload under it. Earlier host auth13/13 + candidate8/
   are outside this coverage; see UPGRADE.md/DEVICE_TEST_RESULTS.md.
 - [x] Public privacy page and current Console declarations reviewed using supplied CSV/screenshots/owner confirmations (R5.4); final-release approval not implied.
 - [x] Final versionName 2.0.0 agreed; versionCode 28 selected from fresh Play snapshot (R5.1), recheck before upload.
-- [ ] Fresh final artifacts, mapping and hashes archived after all changes.
+- [x] Fresh final 28/2.0.0 artifacts, mapping and hashes archived; artifact checks and API31/33/35/36 CRUD/JSON/reboot matrix passed October 11. Final notification/idle/upgrade checks remain pending.
 - [ ] Final release notes, tag and staged rollout prepared (R5.5).
 
 No publication, tag, Console submission or remote pipeline run is implied by
