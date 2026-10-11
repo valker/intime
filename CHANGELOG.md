@@ -7,7 +7,10 @@ All notable changes to InTime are documented in this file.
 Final versionName 2.0.0 agreed by the user October 11; versionCode28 was free
 before the authorized upload and is now saved in Play without track assignment.
 Saved AAB SHA-256 and unchanged tracks verified after validate/commit at14:20 UTC.
-This version remains unreleased; production stays25. Default builds
+Production28/2.0.0 configured for100% after the owner fixed permissions;
+validate/commit and fresh artifact/track/note verification passed October11
+at18:26:23 UTC. Release28 is IN_REVIEW;25 remains PUBLISHED. Availability of28
+to users is not yet confirmed. Default builds
 remain 1.1.8 with a `.dev` package; productionRelease requires explicit parameters.
 Final APK/AAB 28/2.0.0 built offline October 11; upload signatures, manifests,
 bundle structure and embedded R8 mapping verified and archived. Additional
@@ -21,6 +24,11 @@ Remaining final28 fallback/idle/worker/upgrade reruns waived by the user October
 using candidate27 evidence. Runtime sources and archived R8 mapping match27;
 these scenarios are not reported as fresh passes on28. Release preparation is
 next;28 is saved but unpublished. API24/16-KB device/OEM coverage remains limited.
+Owner authorized immediate100% production rollout October11. Track update was
+accepted in an uncommitted edit, but validate returned403 PERMISSION_DENIED.
+No commit attempted; owned edit deleted and production25/PUBLISHED reconfirmed.
+Production-release permission was subsequently fixed; the new edit succeeded.
+See `.test-tools/runs/20261011-play28-production100-retry/summary.json`.
 Previous rc candidate:27/2.0.0-rc3. Signing, AAB structure and the corresponding
 Play-signed APK are verified. Play25→27 passed on dedicated API35 with a separate
 JSON-derived copy of17 real tasks; the original phone database/preferences are
