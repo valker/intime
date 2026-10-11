@@ -1670,3 +1670,88 @@ ANR/fatal не обнаружены, свои AVD остановлены. Отч
 Рост AVD/cache не измерен, новых образов/телефона нет. Runtime/архивный APK
 прежние, JVM suite не повторялась. Далее — отдельный тихий повтор worker после
 штатного light entry31/33 с наблюдением maintenance.
+
+## Тихий worker после штатного light entry API31/33
+
+После bootstrap ScreenPlatformTest через `scripts/test.ps1 -Mode device -TestApi 31
+-Filter com.vpe_soft.intime.intime.activity.ScreenPlatformTest -Offline -KeepEmulator
+-EmulatorGpu host -DisableEmulatorVulkan -EmulatorRamMb 4096`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-smoke.ps1 -ApkPath .test-tools/runs/20261009-103501-release27-historical-json/candidate/intime-27-2.0.0-rc3.apk -TestApi 31 -PeriodicOnly -PeriodicLightIdle -PeriodicWaitMinutes 45 -ExpectedVersionCode 27 -ExpectedVersionName 2.0.0-rc3
+```
+
+Для33 заменить TestApi в обеих командах после остановки своего31. Режим
+PeriodicLightIdle допускает только PeriodicOnly/один повтор на31/33, без других
+режимов и дополнительных reboot.11 фаз:10 обычных periodic и подтверждение
+штатного light entry. Архивный APK не пересобирается; личный телефон/Pixel_8
+не использовать. Новый SDK image не требуется.
+
+После первого настоящего минутного alarm (уведомление с action ACK, без нажатия)
+сохраняются job, питание и stopped=false; `am kill` завершает лишь фоновый процесс.
+Включение virtual AC off/status discharging и screen off начинает наблюдение.
+До first notification when+15мин требуются два подряд согласованных IDLE-снимка
+DeviceIdleController/PowerManager/BatteryService. Затем каждые30с сохраняются
+первичные light snapshots и читается notification; готовые IDLE/light=true либо
+IDLE_MAINTENANCE/light=false допускаются отдельно. Возврат ACTIVE/несогласованность
+даёт INCONCLUSIVE; потеря подготовки — отказ проверки. Host gap>180с/перевод
+часов назад дают INFRASTRUCTURE_INTERRUPTED. Это дискретный опрос, не непрерывная
+трасса; отсутствие sampled maintenance не доказывает отсутствия короткого перехода.
+
+Нужен новый quiet notification when>=first+15мин: своё описание, без ACK,
+LOW, null sound/vibrate/defaults0 и требуемые flags/group suppression. Затем
+проверяются настоящий WorkManager SUCCESS TaskNotificationWorker после смерти
+процесса и отсутствие будущего alarm. При обнаружении повторно снимаются три
+службы; periodicLightDeliveryState означает состояние обнаружения, не состояние
+на точный момент вызова worker. Объект Notification проверяется; физический звук
+не измеряется. Private Room/wasNotified/work UUID не читаются.
+
+Не вызываются ручной jobscheduler run/force-idle/step и не меняются системные
+light timers, batching, часы или период WorkManager. Jobscheduler dumpsys читается
+только до и после ожидания; во время ожидания раз в5мин сохраняется диагностика
+трёх служб/uptime. Срок45мин относится к одному ожиданию; отсутствие запуска
+к лимиту — INCONCLUSIVE, а не доказанный дефект приложения. Восстанавливаются
+исходные virtual AC/status/экран, проверяются ACTIVE и неизменность light_* constants;
+finally восстанавливает питание и при отказе. Удаляются только свои установки/
+probe/backup. По окончании остановить только свой AVD с проверкой PID/starttime/имени.
+Deep/physical/OEM Doze, idle quotas и долговременная устойчивость остаются вне scope.
+
+### Границы активного NotificationRecord
+
+`Get-ReleaseNotificationRecord` в release runner читает только раздел
+Notification List и ограничивает запись отступом заголовка. История, настройки
+каналов и соседние записи не участвуют в проверках actions/when/flags/описания.
+Пустые строки и вложенные extras сохраняются. Production package сравнивается
+точно; отсутствие или несколько собственных записей не дают доказательства
+нужного уведомления. Старый regex до следующего NotificationRecord мог захватывать
+оставшийся dumpsys и ошибочно видеть исторический ACK у тихого повтора.
+
+```powershell
+powershell -NoProfile -File scripts/test-release-notification-record.ps1
+powershell -NoProfile -File scripts/test-release-quiet-guard.ps1
+```
+
+Первый сценарий проверяет 8 случаев границ и реальный quiet guard, второй —
+13 комбинаций тихих полей. У каждого случая есть русский комментарий условий,
+действия и ожидаемого результата. Это host-проверки формата; они не заменяют
+свежий device-прогон, WorkManager SUCCESS или измерение физического звука.
+
+Release runner сохранять в UTF-8 с BOM: Windows PowerShell 5.1 должен правильно
+читать русские UI-селекторы. Host-проверка границ также проверяет BOM до загрузки функций.
+
+### Результат light worker31/33 (10–11 октября)
+
+| API | UI | Release | Два IDLE, с | Quiet gap, с | SUCCESS | Состояние обнаружения | Maintenance в снимках |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 31 | 3/3 | 11/11 | 93.322 / 124.421 | 1090.63 | 1 | IDLE | False |
+| 33 | 3/3 | 11/11 | 243.427 / 273.778 | 1278.756 | 1 | IDLE | False |
+
+Итог .test-tools/runs/20261010-221654-rc3-light-worker31-33-matrix/confirmed-matrix.json. API33 после исправления
+границ NotificationRecord и восстановления UTF-8 BOM, оба прежних FAILED сохранены.
+API31 не повторялся: его исходное текущее уведомление сверено новым парсером.
+Host8+13+9+9+5; 10 архивных quiet-снимков — регрессия парсера, не fresh devices.
+Питание/constants/cleanup проверены, свои AVD остановлены. Отчёты 62.89 MiB,
+рост AVD/cache не измерен; телефон/новые images не использовались. Один повтор
+каждого AVD; sampled state не доказывает точное состояние запуска, квоты или
+физический звук. JVM suite не повторялась; детали/отказы — DEVICE_TEST_RESULTS.md.
+Следующий шаг — актуальный удалённый CI R4.4, остальные release gaps открыты.

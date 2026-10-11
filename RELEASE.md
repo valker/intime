@@ -706,3 +706,21 @@ do not upload a different payload under it. Earlier host auth13/13 + candidate8/
 
 No publication, tag, Console submission or remote pipeline run is implied by
 these checked local items.
+
+Quiet worker after unforced light entry31/33 completed 10–11 October:
+fresh UI3/3 + release11/11 each, one repeat with production WorkManager SUCCESS,
+no manual job dispatch/forced idle/timer or batching changes. API31 original pass
+was revalidated against its primary active notification with the bounded parser;
+API33 passed a full fresh retry. Original API33 parser failure (history ACK included)
+and subsequent UTF-8 BOM/UI selector failure remain FAILED, with cleanup evidence.
+Active NotificationRecord is now bounded by Notification List/indentation; host8/8
+plus quiet guard13/13 and10 saved quiet snapshots31/33/35/36 verified.
+Detection states/timings: DEVICE_TEST_RESULTS.md. Matrix:
+.test-tools/runs/20261010-221654-rc3-light-worker31-33-matrix/confirmed-matrix.json.
+Power/screen restored, light constants unchanged, owned AVDs stopped, no phone/new
+images. Reports 62.89 MiB after 29.53 MiB identical log cleanup;
+AVD/cache growth unmeasured, runtime/archived Upload-key APK unchanged, JVM suite
+not rerun. Sampled state does not establish state at the exact worker invocation,
+quota enforcement or physical audio. Physical/OEM and remaining gaps stay open.
+Next practical step: R4.4 fresh remote CI verification on the corrected commit;
+no push, pipeline dispatch, publication or tag performed by this stage.

@@ -3660,3 +3660,61 @@ notification ACK при включённом экране и restart. Worker в 
 квоты, physical/OEM deep/light Doze, API24/16КБ и Play-signing APK остаются
 открытыми; R4.3/R5.3 целиком не закрыты. Следующий шаг — отдельный тихий повтор
 worker после штатного light entry31/33 с наблюдением maintenance.
+
+## 10–11 октября: rc3, тихий worker после штатного light idle31/33
+
+| API | UI | Release | Два IDLE, с | Quiet gap, с | SUCCESS | Состояние обнаружения | Maintenance в снимках |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 31 | 3/3 | 11/11 | 93.322 / 124.421 | 1090.63 | 1 | IDLE | False |
+| 33 | 3/3 | 11/11 | 243.427 / 273.778 | 1278.756 | 1 | IDLE | False |
+
+Итог: .test-tools/runs/20261010-221654-rc3-light-worker31-33-matrix/confirmed-matrix.json,
+PASSED_AFTER_API33_PARSER_FIX_RETRY. APK27/2.0.0-rc3 прежний, SHA-256
+9BFE60C4507CC5567888AF84EF72256620CC2B1BB11FA6CB9D717C80DB231760. API31 прошёл исходный device-прогон;
+его первичное уведомление дополнительно сверено исправленным парсером.
+Итоговый API33 UI: C:\Projects\intime\.test-tools\runs\20261010-234050-9422a02d;
+release: C:\Projects\intime\.test-tools\runs\20261010-234310-release-smoke.
+
+После первого настоящего alarm без нажатия ACK фоновый процесс завершён am kill,
+stopped=false сохранён. Virtual AC off/status discharging и screen off дали два
+IDLE-снимка до when+15мин. Затем проверялись допустимые IDLE/maintenance;
+в обоих успешных прогонах все post-entry снимки и обнаружение показали IDLE,
+без force-idle/step/смены таймеров, batching, часов или ручного jobscheduler run.
+Настоящие SUCCESS связаны с production PID через ActivityManager Start proc;
+debug-worker не считается доказательством. Новый when>=first+15мин, описание,
+отсутствие ACK, LOW, null sound/vibrate/defaults0 и flags/group проверены в
+активной записи. После доставки нет будущего alarm. Питание/экран восстановлены,
+light constants неизменны, cleanup прошёл; собственные AVD остановлены.
+
+Первый API33 .test-tools/runs/20261010-224705-release-smoke сохранён FAILED:
+старый regex захватил 114547 символов до EOF вместо 4193 символов активной записи
+и увидел исторический ACK. Реальная запись тихая, gap2420.832с, SUCCESS2;
+это диагностическая сверка, не задним числом PASS завершённого сценария.
+Следующий .test-tools/runs/20261010-233922-release-smoke также FAILED:
+при сохранении runner был потерян UTF-8 BOM, Windows PowerShell5.1 неверно прочитал
+русский UI-селектор. BOM восстановлен и теперь проверяется до host-фикстур.
+Оба отказа и их cleanup сохранены; итоговый API33 выполнен полностью заново.
+
+Новый Get-ReleaseNotificationRecord читает только Notification List и ограничивает
+запись отступами, исключая историю/каналы/соседей; точный production package,
+пустые строки/extras/EOF/неоднозначность покрыты 8 host-случаями с русскими
+комментариями. Quiet guard13/13, light parser9/9, light state9/9, ActivityRecord5/5;
+10 сохранённых quiet-снимков31/33/35/36 дополнительно сверены как регрессионные
+данные, а не новые device-запуски. Runner итоговый SHA-256: 7E63A988B7EFD31263753B4A47050F91BC3E1ABBE489DE95C7CD86FCB509493B.
+API31 live runner: DE836D599D2EE20554CB763C403F94F0823F71CA5C276E19D44D37B7D397E756.
+
+Дискретные снимки показывают состояние при обнаружении, не на точный момент
+вызова worker. Отсутствие sampled maintenance не исключает краткий переход.
+Покрыт один тихий повтор каждого AVD после штатного light entry; физический звук,
+квоты, непрерывная трасса, physical/OEM deep/light Doze и длительная устойчивость
+не подтверждены. R4.3/R5.3 целиком не закрыты.
+
+Отчёты всего этапа, включая отказы: 62.89 MiB после удаления
+29.53 MiB только byte-identical numbered adb-копий по размеру/SHA-256;
+named logs сохранены, inventory duplicate-log-cleanup.json. Рост AVD/cache отдельно
+не измерен. Новых образов/телефона/пересборки APK нет; JVM suite не повторялась
+при изменении PS runner. PS parser и git diff --check прошли.
+Следующий практический шаг — R4.4: сверить новый GitLab pipeline исправленного
+коммита; удалённые build/lint/unit/device ещё требуют актуального подтверждения.
+API24/16КБ ограничены дисковым бюджетом; физическая проверка требует отдельно
+согласованного устройства/установки. Новая публикация/тег/remote push не выполнялись.

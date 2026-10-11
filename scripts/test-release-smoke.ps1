@@ -10,6 +10,8 @@ APK должен быть подписан подтверждённым upload k
 PeriodicOnly (API 31/33/35/36) проходит подготовку/boot/первый alarm и ждёт тихий
 повтор после am kill фонового процесса. Обычный полный режим сохраняет 14 фаз;
 periodic-режим содержит 10 фаз (11 при PeriodicRepeats=2) и не меняет batching/период/часы Android.
+PeriodicOnly + PeriodicLightIdle (API31/33, один повтор) содержит11 фаз:
+до eligibility подтверждается штатный light entry, затем worker/тихое уведомление.
 HistoricalJsonImport добавляет к полному режиму 15-ю фазу: SAF-импорт meta Play 25,
 восстановление собственной задачи и её alarm после перезапуска процесса.
 InexactOnly (API 31/33/35/36) содержит 11 фаз: подготовка, доставка fallback и ACK/restart.
@@ -56,6 +58,9 @@ param(
     # После реального первого alarm ждём тихого повторного worker в release/R8.
     # Никакого ручного job run, ускорения часов/периода или изменения batching.
     [switch]$PeriodicOnly,
+    # Один тихий повтор после штатного light entry при virtual AC off/screen off.
+    # Только PeriodicOnly на31/33; maintenance наблюдается, не вызывается вручную.
+    [switch]$PeriodicLightIdle,
     # Общий срок ожидания всех повторов, а не отдельный срок на каждый повтор.
     [ValidateRange(16, 75)][int]$PeriodicWaitMinutes = 65,
     # Два повтора проверяют также следующий естественный период после первого worker.
@@ -93,9 +98,11 @@ $commandNumber = 0
 $summary = @{ status = 'RUNNING'; passedPhases = @(); reports = $run; serial = $serial; testApi = $TestApi; rebootOnly = [bool]$RebootOnly; rebootResults = @(); rebootSettleSeconds = $RebootSettleSeconds; expectedVersionCode = $ExpectedVersionCode; expectedVersionName = $ExpectedVersionName }
 $summary.gestureOnly = [bool]$GestureOnly
 $summary.lightIdleOnly=[bool]$LightIdleOnly
+$summary.periodicLightIdle=[bool]$PeriodicLightIdle
 $lightPowerChanged=$false;$lightOriginalPower=$null
+if($PeriodicLightIdle -and (-not $PeriodicOnly -or $TestApi -notin @(31,33) -or $LightIdleOnly -or $GestureOnly -or $RebootOnly -or $HistoricalJsonImport -or $DozeOnly -or $InexactOnly -or $DozeSequence -or $DozeQuota -or $DozeQuotaSeven -or $PeriodicRepeats -ne 1 -or $RebootRepeats -ne 1)){throw 'PeriodicLightIdle requires PeriodicOnly API31/33, one repeat, without other modes'}
 if($LightIdleOnly -and ($TestApi -notin @(31,33) -or $GestureOnly -or $RebootOnly -or $HistoricalJsonImport -or $DozeOnly -or $DozeSequence -or $DozeQuota -or $DozeQuotaSeven -or $PeriodicOnly -or $RebootRepeats -ne 1 -or $PeriodicRepeats -ne 1)){throw 'LightIdleOnly requires API31/33, optionally InexactOnly, without other modes/repeats'}
-if($LightIdleOnly){
+if($LightIdleOnly -or $PeriodicLightIdle){
     # Загружаем только проверяемую функцию parser, без выполнения observer.
     $lightTokens=$null;$lightErrors=$null
     $lightAst=[System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'test-natural-light-idle.ps1'),[ref]$lightTokens,[ref]$lightErrors)
@@ -127,6 +134,38 @@ if ($TestApi -eq 24 -and -not $RebootOnly) { throw 'API 24 currently requires Re
 
 # SDK-компиляторы тоже могут писать предупреждения в stderr с exit 0.
 # Сохраняем оба потока и определяем результат по коду завершения.
+# Выделяем одну активную запись приложения только из Notification List.
+# Границы определяем по отступам dumpsys: поля записи глубже её заголовка,
+# следующая запись или раздел имеют меньший/равный отступ. Пустые строки
+# не завершают запись. История, настройки каналов и чужие записи исключаются,
+# чтобы их actions/when/flags не влияли на проверку текущего уведомления.
+# При отсутствии или нескольких собственных записях не выбираем произвольную.
+function Get-ReleaseNotificationRecord([string]$Dump) {
+    $lines=$Dump -split '\r?\n'
+    $section=-1;$sectionIndent=0;$records=@()
+    for($i=0;$i -lt $lines.Count;$i++){
+        $heading=[regex]::Match($lines[$i],'^(?<indent>[ \t]*)(?:Current )?Notification List:[ \t]*$')
+        if($heading.Success){$section=$i;$sectionIndent=$heading.Groups['indent'].Length;break}
+    }
+    if($section -lt 0){return [pscustomobject]@{Success=$false;Value=''}}
+    for($i=$section+1;$i -lt $lines.Count;$i++){
+        if([string]::IsNullOrWhiteSpace($lines[$i])){continue}
+        $indent=([regex]::Match($lines[$i],'^[ \t]*')).Length
+        if($indent -le $sectionIndent){break}
+        $header=[regex]::Match($lines[$i],'^[ \t]*NotificationRecord\([^\r\n]*\bpkg=com\.vpe_soft\.intime\.intime(?=[ \t])')
+        if(-not $header.Success){continue}
+        $end=$i+1
+        while($end -lt $lines.Count){
+            if(-not [string]::IsNullOrWhiteSpace($lines[$end]) -and ([regex]::Match($lines[$end],'^[ \t]*')).Length -le $indent){break}
+            $end++
+        }
+        $records+=($lines[$i..($end-1)] -join "`n")
+        $i=$end-1
+    }
+    if($records.Count -ne 1){return [pscustomobject]@{Success=$false;Value=''}}
+    return [pscustomobject]@{Success=$true;Value=$records[0]}
+}
+
 function Invoke-ReleaseTool([string]$Executable, [string[]]$Arguments, [string]$LogName) {
     $previousPreference = $ErrorActionPreference
     try {
@@ -363,7 +402,7 @@ function Assert-ReleaseLightDelivery([string]$Description,[long]$Deadline,[strin
         $summary.lightObservations+=,$snapshot
         if($index -gt 1 -and -not $snapshot.preparationReady){throw 'Light screen/power preparation lost'}
         $notifications=Invoke-ReleaseTool $adb @('-s',$serial,'shell','dumpsys','notification','--noredact') 'light-notifications-poll.log'
-        $record=[regex]::Match($notifications,'(?ms)^\s*NotificationRecord\([^\r\n]*pkg=com\.vpe_soft\.intime\.intime [^\r\n]*\r?\n(?:(?!^\s*NotificationRecord\().)*')
+        $record = Get-ReleaseNotificationRecord $notifications
         $when=[regex]::Match($record.Value,'(?m)^\s*when=(\d+)(?:/|\r?$)')
         $delivered=$record.Success -and $record.Value.Contains("android.text=String ($Description)") -and $record.Value -match 'actions=1' -and $when.Success -and [long]$when.Groups[1].Value -ge $Deadline
         if(-not $summary.lightEntryValidated){
@@ -656,7 +695,7 @@ function Assert-ReleaseInexactDelivery([string]$Description, [long]$Deadline, [s
             }
         }
         $dump = Invoke-ReleaseTool $adb @('-s', $serial, 'shell', 'dumpsys', 'notification', '--noredact') "$EvidencePrefix-notifications-poll.log"
-        $record = [regex]::Match($dump, '(?ms)^\s*NotificationRecord\([^\r\n]*pkg=com\.vpe_soft\.intime\.intime [^\r\n]*\r?\n(?:(?!^\s*NotificationRecord\().)*')
+        $record = Get-ReleaseNotificationRecord $dump
         $when = [regex]::Match($record.Value, '(?m)^\s*when=(\d+)(?:/|\r?$)')
         $delivered = $record.Success -and $record.Value.Contains("android.text=String ($Description)") -and $record.Value -match 'actions=1' -and $when.Success -and [long]$when.Groups[1].Value -ge $Deadline
         if (-not $delivered) { Write-Output 'Waiting for real inexact alarm notification...'; Start-Sleep -Seconds 15 }
@@ -795,7 +834,7 @@ function Assert-ReleaseQuotaNotification($Task,[long]$dispatch) {
     $releaseProcessIds=@([regex]::Matches($processes,'(?m)^\S+\s+(?<process>\d+)\s+[^\r\n]*\scom\.vpe_soft\.intime\.intime\s*$')|ForEach-Object {$_.Groups['process'].Value})
     $releaseProcessIds+=@([regex]::Matches($recent,'Start proc (?<process>\d+):com\.vpe_soft\.intime\.intime/')|ForEach-Object {$_.Groups['process'].Value})
     $notification=Invoke-ReleaseTool $adb @('-s',$serial,'shell','dumpsys','notification','--noredact') 'quota8-dispatch-notification.log'
-    $record=[regex]::Match($notification,'(?ms)^\s*NotificationRecord\([^\r\n]*pkg=com\.vpe_soft\.intime\.intime(?=\s)[^\r\n]*\r?\n.*?(?=^\s*NotificationRecord\(|^\s*Current Notification List:|^\s*Notification listeners:|\z)')
+    $record = Get-ReleaseNotificationRecord $notification
     $text=[regex]::Match($record.Value,'android.text=String \((?<text>[^\r\n]+)\)')
     $when=[regex]::Match($record.Value,'when=(\d+)')
     if(-not $when.Success -or [long]$when.Groups[1].Value -lt $Task.deadline){throw 'Eighth due task notification missing'}
@@ -967,7 +1006,7 @@ function Assert-ReleaseDozeDelivery([string]$Description, [long]$Deadline, [stri
         if ($state -ne 'IDLE') { throw "Deep idle not maintained: $state" }
         $notifications = Invoke-ReleaseAdb @('shell', 'dumpsys', 'notification', '--noredact')
         # Ищем только в активном record своего пакета, не в history/чужих уведомлениях.
-        $record = [regex]::Match($notifications, '(?ms)^\s*NotificationRecord\([^\r\n]*pkg=com\.vpe_soft\.intime\.intime [^\r\n]*\r?\n(?:(?!^\s*NotificationRecord\().)*')
+        $record = Get-ReleaseNotificationRecord $notifications
         $delivered = $record.Success -and $record.Value.Contains("android.text=String ($Description)")
         if (-not $delivered) { Start-Sleep -Seconds 2 }
     } while (-not $delivered -and (Get-Date) -lt $limit)
@@ -1042,7 +1081,10 @@ function Assert-ReleasePeriodicPollContinuity([datetimeoffset]$Previous, [dateti
 # а не подтверждением естественной доставки. Не читаем private Room/preferences,
 # поэтому сопоставление work UUID с private Room и wasNotified не утверждаем.
 # PeriodicRepeats=2 проверяет следующий период без вмешательства между повторами.
-# Doze/OEM и точное время запуска этой проверкой не покрываются.
+# Без PeriodicLightIdle Doze не проверяется; с ним подтверждается штатный light
+# entry до eligibility и sampled IDLE/maintenance до обнаружения повтора.
+# Состояние при обнаружении не является трассой состояния на точный момент
+# вызова worker. Physical/OEM/deep/квоты и точное время запуска не покрываются.
 # Проверяем именно объект Notification, а не настройки канала. API 31/33 печатают
 # defaults/flags в hex, API 35/36 — ноль и символические флаги. На API 31/33 нет
 # текстового SILENT: требуем ONLY_ALERT_ONCE (0x8), AUTO_CANCEL (0x10),
@@ -1064,10 +1106,33 @@ function Assert-ReleaseQuietNotification([string]$Record) {
     } elseif (-not $nativeSilent) { throw 'Quiet notification native SILENT flag missing' }
 }
 
+# После первого alarm и смерти фонового процесса готовим виртуальное питание.
+# Отказ при чужой симуляции/forced idle защищает смысл штатного входа; исходные
+# AC/status сохраняются для общего finally. Системные таймеры/период не меняем.
+function Start-ReleasePeriodicLightObservation {
+    $before=Read-ReleaseLightSnapshot 'light-before'
+    if(-not $before.lightEnabled -or -not $before.screenOn -or $before.lightState -ne 'ACTIVE'){throw 'Initial periodic light ACTIVE/screen on missing'}
+    $battery=Get-Content (Join-Path $run 'light-before-battery.log') -Raw
+    if($battery -match '(?:USB|Wireless|Dock) powered: true'){throw 'Unsupported periodic light original power'}
+    $ac=([regex]::Match($battery,'AC powered: (true|false)')).Groups[1].Value
+    $code=([regex]::Match($battery,'(?m)^\s*status: (\d+)')).Groups[1].Value
+    $status=@{'1'='unknown';'2'='charging';'3'='discharging';'4'='not-charging';'5'='full'}[$code]
+    if(-not $status){throw 'Unknown periodic light battery status'}
+    $script:lightOriginalPower=@{ac=$ac;status=$status;statusCode=$code}
+    $summary.lightOriginalPower=$script:lightOriginalPower
+    $summary.lightForcedIdleUsed=$false;$summary.lightTimersChanged=$false
+    $summary.lightObservations=@();$summary.lightEntryValidated=$false
+    $summary.lightMaintenanceObserved=$false
+    $script:lightPowerChanged=$true
+    Invoke-ReleaseAdb @('emu','power','ac','off')|Out-Null
+    Invoke-ReleaseAdb @('emu','power','status','discharging')|Out-Null
+    Invoke-ReleaseAdb @('shell','input','keyevent','223')|Out-Null
+}
+
 function Assert-ReleasePeriodicReminder([string]$Description) {
     $dump = Get-Content (Join-Path $run 'notifications-delivered.log') -Raw -Encoding UTF8
-    $pattern = '(?ms)^\s*NotificationRecord\([^\r\n]*pkg=com\.vpe_soft\.intime\.intime [^\r\n]*\r?\n(?:(?!^\s*NotificationRecord\().)*'
-    $initial = [regex]::Match($dump, $pattern)
+
+    $initial = Get-ReleaseNotificationRecord $dump
     # Старые платформы печатают только when, новые добавляют /postingTime.
     $first = [regex]::Match($initial.Value, '(?m)^\s*when=(\d+)(?:/|\r?$)')
     if (-not $initial.Success -or -not $first.Success -or -not $initial.Value.Contains("android.text=String ($Description)") -or $initial.Value -notmatch 'actions=1') { throw 'Initial alarm record with ACK missing' }
@@ -1088,6 +1153,7 @@ function Assert-ReleasePeriodicReminder([string]$Description) {
     $summary.periodicProcessAbsentAfterKill = $true
     $summary.periodicLiveJobDumps = $false
     Save-ReleasePeriodicDiagnostics 'before'
+    if($PeriodicLightIdle){Start-ReleasePeriodicLightObservation}
     $limit = (Get-Date).AddMinutes($PeriodicWaitMinutes)
     $timer = [Diagnostics.Stopwatch]::StartNew()
     $nextDiagnosticSeconds = 300
@@ -1096,21 +1162,55 @@ function Assert-ReleasePeriodicReminder([string]$Description) {
     $delivered = $false
     $posts = @()
     $previousPost = $firstPost
+    $lightIndex=0;$lightConsecutive=0
     Write-Output "Waiting for natural release worker (up to $PeriodicWaitMinutes minutes, unchanged batching)..."
     do {
         $pollAt = [datetimeoffset]::UtcNow
         try { Assert-ReleasePeriodicPollContinuity $lastPollAt $pollAt }
         catch { $observationError = $_.Exception.Message; break }
         $lastPollAt = $pollAt
+        if($PeriodicLightIdle){
+            try {
+                $lightIndex++
+                $snapshot=Read-ReleaseLightSnapshot "light-sample-$lightIndex"
+                $snapshot.elapsedSeconds=[math]::Round($timer.Elapsed.TotalSeconds,3)
+                $snapshot.guestNowMs=[long](Invoke-ReleaseTool $adb @('-s',$serial,'shell','date','+%s') 'light-guest-now.log').Trim()*1000
+                $summary.lightObservations+=,$snapshot
+                if($lightIndex -gt 1 -and -not $snapshot.preparationReady){throw 'Periodic light screen/power preparation lost'}
+                if(-not $summary.lightEntryValidated){
+                    if($snapshot.entryObserved -and $snapshot.guestNowMs -lt $firstPost+900000){$lightConsecutive++}else{$lightConsecutive=0}
+                    if($lightConsecutive -ge 2){
+                        $summary.lightEntryValidated=$true;$summary.lightEntry=$snapshot
+                        Complete-ReleasePhase 'release-periodic-natural-light-entry'
+                    }elseif($snapshot.guestNowMs -ge $firstPost+900000){throw 'Periodic light entry not confirmed before repeat eligibility'}
+                }
+                if($summary.lightEntryValidated){
+                    $lightState=Get-ReleaseLightDeliveryState $snapshot $true
+                    if($lightState -eq 'INVALID'){throw 'Periodic light observation lost valid IDLE/maintenance state'}
+                    if($lightState -eq 'MAINTENANCE'){$summary.lightMaintenanceObserved=$true}
+                }
+            }catch{$observationError=$_.Exception.Message;break}
+        }
         # Перезаписываем снимок опроса, чтобы длительное ожидание не раздувало диск.
         # Не вызываем UI/probe/Activity/instrumentation/ручной JobScheduler run.
         $notifications = Invoke-ReleaseTool $adb @('-s', $serial, 'shell', 'dumpsys', 'notification', '--noredact') 'periodic-notifications-poll.log'
-        $record = [regex]::Match($notifications, $pattern)
+        $record = Get-ReleaseNotificationRecord $notifications
         $when = [regex]::Match($record.Value, '(?m)^\s*when=(\d+)(?:/|\r?$)')
         # Один и тот же активный record не считается новым повтором. Каждый новый
         # when должен отстоять минимум на штатные 15 минут от предыдущей отправки.
         if ($record.Success -and $record.Value.Contains("android.text=String ($Description)") -and $when.Success -and [long]$when.Groups[1].Value -ge $previousPost + 900000) {
             Assert-ReleaseQuietNotification $record.Value
+            if($PeriodicLightIdle){
+                try {
+                    if(-not $summary.lightEntryValidated){throw 'Periodic light entry not confirmed before repeat'}
+                    $final=Read-ReleaseLightSnapshot 'light-at-worker'
+                    $finalState=Get-ReleaseLightDeliveryState $final $true
+                    if($finalState -eq 'INVALID'){throw 'Periodic light delivery state not confirmed'}
+                    if($finalState -eq 'MAINTENANCE'){$summary.lightMaintenanceObserved=$true}
+                    $summary.periodicLightStateAtDelivery=$final
+                    $summary.periodicLightDeliveryState=$finalState
+                }catch{$observationError=$_.Exception.Message;break}
+            }
             $post = [long]$when.Groups[1].Value
             $posts += @{ when = $post; gapSeconds = ($post - $previousPost) / 1000.0 }
             $previousPost = $post
@@ -1124,7 +1224,8 @@ function Assert-ReleasePeriodicReminder([string]$Description) {
             Save-ReleasePeriodicDiagnostics 'latest'
             $nextDiagnosticSeconds = $timer.Elapsed.TotalSeconds + 300
         }
-        Write-Output ("Worker wait: {0:N1} minutes" -f $timer.Elapsed.TotalMinutes)
+        if($PeriodicLightIdle){Write-Output ("Worker light wait: {0:N1} minutes, {1}" -f $timer.Elapsed.TotalMinutes,$snapshot.lightState)}
+        else{Write-Output ("Worker wait: {0:N1} minutes" -f $timer.Elapsed.TotalMinutes)}
         Start-Sleep -Seconds 30
     } while ((Get-Date) -lt $limit)
     if (-not $observationError) {
@@ -1146,6 +1247,10 @@ function Assert-ReleasePeriodicReminder([string]$Description) {
     if ((Read-ReleaseAlarm) -ne 0) { throw 'Unexpected future alarm after overdue repeat' }
     $summary.periodicQuietNotificationWhen = [long]$when.Groups[1].Value
     $summary.periodicGapSeconds = ($summary.periodicQuietNotificationWhen - $firstPost) / 1000.0
+    if($PeriodicLightIdle){
+        $summary.periodicLightDeliveryValidated=$true
+        Restore-ReleaseLightPower
+    }
     Complete-ReleasePhase 'release-periodic-quiet-after-process-exit'
     if ($PeriodicRepeats -eq 2) { Complete-ReleasePhase 'release-periodic-next-natural-period' }
     $summary.naturalDispatchValidated = $true
@@ -1827,6 +1932,7 @@ try {
     # планирования, а не доказанное падение приложения/R8. Остальные assertions
     # и ошибки диагностики/очистки по-прежнему считаются FAILED.
     if ($summary.message -like 'Natural release worker notification timed out*') { $summary.status = 'INCONCLUSIVE' }
+    if($PeriodicLightIdle -and $summary.message -match 'Periodic light entry not confirmed|Periodic light observation lost|Periodic light delivery state not confirmed'){$summary.status='INCONCLUSIVE'}
     if ($summary.message -like 'Periodic observation interrupted*') { $summary.status = 'INFRASTRUCTURE_INTERRUPTED' }
     if ($summary.message -like 'Inexact observation interrupted*') { $summary.status = 'INFRASTRUCTURE_INTERRUPTED' }
     if ($summary.message -like 'Inexact alarm notification timed out*') { $summary.status = 'INCONCLUSIVE' }

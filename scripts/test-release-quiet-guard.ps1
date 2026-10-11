@@ -1,4 +1,4 @@
-# Host-регрессии парсера тихих уведомлений без запуска приложения и эмулятора.
+﻿# Host-регрессии парсера тихих уведомлений без запуска приложения и эмулятора.
 param([string[]]$NotificationSnapshots=@())
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
@@ -9,6 +9,9 @@ $definition=$ast.Find({param($node) $node -is [System.Management.Automation.Lang
 if(-not $definition){throw 'Quiet guard missing'}
 # Загружаем только действительную функцию проверки, не запускаем release runner.
 Invoke-Expression $definition.Extent.Text
+$extractor=$ast.Find({param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Get-ReleaseNotificationRecord'},$true)
+if(-not $extractor){throw 'Notification extractor missing'}
+Invoke-Expression $extractor.Extent.Text
 $base=@'
 NotificationRecord(pkg=com.vpe_soft.intime.intime Notification(vibrate=null sound=null defaults=0 flags=ONLY_ALERT_ONCE|AUTO_CANCEL groupKey=silent))
   flags=ONLY_ALERT_ONCE|AUTO_CANCEL
@@ -67,8 +70,8 @@ foreach($case in $cases){
     if($accepted -ne $case.accept){throw "Unexpected quiet guard outcome: $($case.name)"}
     $results+=@{name=$case.name;api=$TestApi;status='PASSED'}
 }
-# Дополнительная сверка сохранённых активных records текущего device-этапа.
-# API берём из свежего summary в том же каталоге; сохраняем только пути/счётчик.
+# Дополнительная сверка сохранённых активных records, в том числе архивных.
+# API берём из summary в том же каталоге; сохраняем только пути/счётчик.
 # Эта проверка парсера снимков не заменяет device-наблюдение или WorkManager SUCCESS.
 $snapshotsChecked=0
 foreach($snapshot in $NotificationSnapshots){
@@ -76,7 +79,7 @@ foreach($snapshot in $NotificationSnapshots){
     $summary=Get-Content (Join-Path ([IO.Path]::GetDirectoryName($path)) 'summary.json') -Raw | ConvertFrom-Json
     $TestApi=[int]$summary.testApi
     $text=Get-Content -LiteralPath $path -Raw
-    $record=[regex]::Match($text,'(?ms)^\s*NotificationRecord\([^\r\n]*pkg=com\.vpe_soft\.intime\.intime [^\r\n]*\r?\n(?:(?!^\s*NotificationRecord\().)*')
+    $record=Get-ReleaseNotificationRecord $text
     if(-not $record.Success){throw 'Active own record missing'}
     Assert-ReleaseQuietNotification $record.Value
     $snapshotsChecked++
