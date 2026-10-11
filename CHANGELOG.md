@@ -4,8 +4,10 @@ All notable changes to InTime are documented in this file.
 
 ## [2.0.0] - Unreleased
 
-Draft target release. Default builds remain 1.1.8 with a `.dev` package;
-an explicit productionRelease candidate requires version parameters.
+Final versionName 2.0.0 agreed by the user October 11; selected versionCode 28 is
+absent from the fresh saved APK/AAB/track snapshot (highest observed 27).
+This version remains unreleased; recheck the code before upload. Default builds
+remain 1.1.8 with a `.dev` package; productionRelease requires explicit parameters.
 Current candidate:27/2.0.0-rc3. Signing, AAB structure and the corresponding
 Play-signed APK are verified. Play25→27 passed on dedicated API35 with a separate
 JSON-derived copy of17 real tasks; the original phone database/preferences are

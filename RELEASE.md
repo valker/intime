@@ -2,6 +2,31 @@
 
 This document describes the process for building and releasing Intime.
 
+### Финальная версия: параметры согласованы 11 октября
+
+- applicationId: `com.vpe_soft.intime.intime`.
+- versionName: `2.0.0`, выбран пользователем без rc-суффикса.
+- versionCode: `28`, следующий после максимального сохранённого кода 27.
+
+Свежая сверка Play API 11 октября в 10:39:55 UTC: bundles 21–27, APK 1/2/10–13;
+production 25, beta 26, internal 23 и прежний пустой draft. Код 28 отсутствует
+в полученном снимке. Для чтения создан временный edit, затем удалён; upload,
+commit и track update не выполнялись. Снимок не резервирует код: непосредственно
+перед загрузкой повторить проверку. Отчёт:
+`.test-tools/runs/20261011-final-version-preflight/summary.json`.
+
+Команда следующего этапа (на этом этапе не запускалась):
+
+```powershell
+./gradlew.bat ':app:assembleRelease' ':app:bundleRelease' '-PproductionRelease=true' '-PreleaseVersionCode=28' '-PreleaseVersionName=2.0.0' --offline --no-daemon --no-watch-fs --no-configuration-cache
+```
+
+Новые APK/AAB 28 ещё не собраны: проверки rc3 относятся к архивному 27.
+Перед сборкой оценить расход диска относительно ограничения 100 МБ; затем сохранить
+точные SHA/manifest/mapping/signing и выполнить релевантные проверки нового
+артефакта. Черновик текста для магазина — `google_play/RELEASE_NOTES_2.0.0.md`.
+Загрузка/назначение на трек/rollout остаются отдельными согласуемыми действиями.
+
 Доступ через Google Play API подготавливается отдельно: [PLAY_API.md](PLAY_API.md).
 Read-проверки и host-тесты прошли. Кандидат27 загружен без назначения на трек,
 Play APK27 скачан и проверен по App signing key/версии/DEX; production25,
@@ -17,8 +42,8 @@ R8/lint; Upload key, манифесты, bundletool и совпадение mapp
 назначения на трек; код27 занят. Play APK27 получен, обновление25→27 прошло
 на проектном API35 с синтетическими задачами и отдельно с логической JSON-копией
 17 реальных задач (9/9 фаз). Исходная SQLite/WAL/preferences телефона не проверялись.
-Следующий production-код должен быть выше27 и свободен в Console; финальные
-versionName/rollout ещё не согласованы. Новую сборку/загрузку на этом этапе не делаем.
+Финальные 28/2.0.0 выбраны 11 октября, см. выше; rollout ещё не согласован.
+Новая сборка/загрузка на этапе выбора параметров не выполнялась.
 Скачанный APK 26/rc2 неизменён и исправления импорта не содержит.
 
 ### Историческая инструкция получения Play APK27 (проверка завершена)
@@ -708,7 +733,7 @@ do not upload a different payload under it. Earlier host auth13/13 + candidate8/
   and host4/4. Original phone SQLite/WAL/preferences and delivery/OEM/reboot
   are outside this coverage; see UPGRADE.md/DEVICE_TEST_RESULTS.md.
 - [x] Public privacy page and current Console declarations reviewed using supplied CSV/screenshots/owner confirmations (R5.4); final-release approval not implied.
-- [ ] Final production version and unused Play versionCode confirmed (R5.1).
+- [x] Final versionName 2.0.0 agreed; versionCode 28 selected from fresh Play snapshot (R5.1), recheck before upload.
 - [ ] Fresh final artifacts, mapping and hashes archived after all changes.
 - [ ] Final release notes, tag and staged rollout prepared (R5.5).
 
