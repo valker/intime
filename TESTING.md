@@ -1161,6 +1161,17 @@ only the runner's process tree, not unrelated Java processes.
 
 ## CI
 
+Для лёгкой проверки стандартного GitLab.com runner запустите pipeline с
+`RUNNER_KVM_PROBE=true` (в UI New pipeline → Variables или при push:
+`git push -o ci.variable=RUNNER_KVM_PROBE=true gitlab HEAD:chatgpt`). В таком
+pipeline выполняется только `runnerKvmProbe`, тег `saas-linux-small-amd64`.
+Глобальный Android `before_script` отключён: SDK/эмулятор не скачиваются.
+Артефакт `runner-kvm.json` содержит наличие устройства, API KVM и результат
+создания пустой VM. Job success означает завершение диагностики, а пригодность
+определяется полем `kvm_usable`. Даже true ещё не доказывает загрузку Android
+или прохождение instrumented tests. Обычный pipeline сохраняет сборку, lint,
+unit tests и необязательный ручной device job на `android-emulator`.
+
 GitLab jobs use compile SDK 36 and publish JUnit/HTML reports even on failure. The manual
 instrumentedTests job requires a runner tagged android-emulator with /dev/kvm
 available in its container. Without such a runner, device verification runs

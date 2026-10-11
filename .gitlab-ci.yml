@@ -11,6 +11,9 @@ image: ubuntu:20.04
 
 variables:
 
+  # true запускает только лёгкую проверку KVM, без сборки и загрузки Android SDK.
+  RUNNER_KVM_PROBE: "false"
+
   # Установка пакетов в CI не должна ждать ответов debconf (в том числе tzdata).
   DEBIAN_FRONTEND: "noninteractive"
   # Фиксируем таймзону контейнера для воспроизводимых сборок и тестов.
@@ -74,6 +77,10 @@ before_script:
 # Basic android and gradle stuff
 # Check linting
 lintDebug:
+  rules:
+    - if: '$RUNNER_KVM_PROBE == "true"'
+      when: never
+    - when: on_success
   interruptible: true
   stage: build
   script:
@@ -87,6 +94,10 @@ lintDebug:
 
 # Make Project
 assembleDebug:
+  rules:
+    - if: '$RUNNER_KVM_PROBE == "true"'
+      when: never
+    - when: on_success
   interruptible: true
   stage: build
   script:
@@ -98,6 +109,10 @@ assembleDebug:
 
 # Run all tests, if any fails, interrupt the pipeline(fail it)
 debugTests:
+  rules:
+    - if: '$RUNNER_KVM_PROBE == "true"'
+      when: never
+    - when: on_success
   interruptible: true
   stage: test
   script:
@@ -111,6 +126,11 @@ debugTests:
       - app/build/test-results/testDebugUnitTest/
 
 instrumentedTests:
+  rules:
+    - if: '$RUNNER_KVM_PROBE == "true"'
+      when: never
+    - when: manual
+      allow_failure: true
   stage: test
   when: manual
   tags:
@@ -135,3 +155,25 @@ instrumentedTests:
       - app/build/reports/androidTests/
       - emulator.log
       - logcat.log
+
+# Проверяем реальный доступ к аппаратной виртуализации стандартного runner.
+# Успех job означает завершённую диагностику; пригодность KVM указана в JSON.
+runnerKvmProbe:
+  image: python:3.12-slim
+  stage: .pre
+  tags:
+    - saas-linux-small-amd64
+  before_script: []
+  needs: []
+  timeout: 3 minutes
+  rules:
+    - if: '$RUNNER_KVM_PROBE == "true"'
+      when: on_success
+    - when: never
+  script:
+    - python scripts/probe-runner-kvm.py
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - runner-kvm.json
