@@ -2,7 +2,20 @@
 
 This document describes the process for building and releasing Intime.
 
-### Текущий статус выпуска 2.0.0 — 11 октября, 18:26:23 UTC
+### Текущий статус выпуска 2.0.0 — опубликован 11 октября
+
+Свежая сверка 18:55:16 UTC: lifecycle **28/2.0.0 — PUBLISHED**,
+production `completed`, код 28, охват 100% без userFraction; RU/EN заметки
+и сохранённый SHA-256 AAB совпадают с подготовленными. Проверочный edit удалён.
+Отчёт `.test-tools/runs/20261011-play28-release-status/summary.json`.
+Создан локальный annotated tag **v2.0.0** на
+`04acfb101b7bfc3779482c253aa1e54003679f86` — коммите документации отправки релиза.
+app/src/main и app/build.gradle совпадают с исходным HEAD сборки `410f4453...`;
+аннотация содержит архивный diff/provenance и SHA-256 AAB. Тег не отправлен.
+R5.5 завершён. Дальше — оценка ошибок/ANR и обратной связи; автоматическое
+наблюдение не настроено. Этот статус заменяет прежнее ожидание проверки ниже.
+
+### Отправка на проверку — 11 октября, 18:26:23 UTC (история)
 
 После настройки прав владельцем повторная операция в новом edit успешно
 прошла validate и commit. Production настроен на **28 / 2.0.0, 100%**:
@@ -869,7 +882,8 @@ do not upload a different payload under it. Earlier host auth13/13 + candidate8/
 - [x] Public privacy page and current Console declarations reviewed using supplied CSV/screenshots/owner confirmations (R5.4); final-release approval not implied.
 - [x] Final versionName 2.0.0 agreed; versionCode 28 selected from fresh Play snapshot (R5.1), recheck before upload.
 - [x] Fresh final 28/2.0.0 artifacts, mapping and hashes archived; artifact checks and API31/33/35/36 CRUD/JSON/reboot/notification matrix verified October 11, with recorded SystemUI failure/retry and batch reserve-stop. Remaining final fallback/idle/worker/upgrade reruns waived by the user using27 evidence.
-- [ ] Final release notes, tag and staged rollout prepared (R5.5).
+- [x] R5.5: RU/EN notes saved, production100% PUBLISHED confirmed October11
+  18:55:16 UTC, local annotated tag v2.0.0 created. Tag push not performed.
 
 No publication, tag, Console submission or remote pipeline run is implied by
 these checked local items.

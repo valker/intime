@@ -2,7 +2,12 @@
 
 All notable changes to InTime are documented in this file.
 
-## [2.0.0] - Unreleased
+## [2.0.0] - 2026-10-11
+
+Google Play production release28/2.0.0 PUBLISHED confirmed October11 at18:55:16 UTC,
+100% rollout, RU/EN release notes and archived AAB hash verified via fresh API read.
+Local annotated tag v2.0.0 created on04acfb1 with build provenance; not pushed.
+The IN_REVIEW/permission failure entries below describe earlier release stages.
 
 Final versionName 2.0.0 agreed by the user October 11; versionCode28 was free
 before the authorized upload and is now saved in Play without track assignment.

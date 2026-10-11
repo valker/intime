@@ -1,5 +1,14 @@
 # Доступ к Google Play API для InTime
 
+## Версия 28 опубликована — текущий статус
+
+11 октября, 18:55:16 UTC: read-only сверка lifecycle подтвердила
+**RELEASE_LIFECYCLE_STATE_PUBLISHED** для 28/2.0.0. Production `completed`,
+100% без userFraction, RU/EN заметки и SHA-256 AAB совпадают с архивом.
+Проверочный edit удалён. Отчёт:
+`.test-tools/runs/20261011-play28-release-status/summary.json`.
+Нижеследующие IN_REVIEW и 403 — история подготовки; новых mutations не было.
+
 ## Выпуск 28 отправлен на проверку — текущий статус
 
 11 октября, 18:26:23 UTC: после настройки прав владельцем validate/commit
