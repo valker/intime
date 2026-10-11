@@ -160,7 +160,7 @@ instrumentedTests:
 # Успех job означает завершённую диагностику; пригодность KVM указана в JSON.
 runnerKvmProbe:
   image: python:3.12-slim
-  stage: .pre
+  stage: test
   tags:
     - saas-linux-small-amd64
   before_script: []
