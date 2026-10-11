@@ -1172,10 +1172,26 @@ pipeline выполняется только `runnerKvmProbe`, тег `saas-linu
 или прохождение instrumented tests. Обычный pipeline сохраняет сборку, lint,
 unit tests и необязательный ручной device job на `android-emulator`.
 
+11 октября проверка выполнена на fcd7c16: [pipeline2935333889](https://gitlab.com/valker/intime/-/pipelines/2935333889),
+единственная [job17090794445](https://gitlab.com/valker/intime/-/jobs/17090794445)
+успешно завершена на shared runner54907241, `saas-linux-small-amd64`.
+Артефакт показывает Linux/x86_64, `device_exists=false`,
+`cpu_virtualization_flag=false`, `kvm_usable=false`, reason=`device_missing`.
+На проверенном стандартном runner текущая аппаратно ускоренная device job
+не выполнится; нужен runner с доступным KVM. Это не проверка всех типов runners
+GitLab и не испытание программного эмулятора. Android SDK не скачивался,
+приложение не собиралось, instrumented tests не запускались.
+Первичные данные: `.test-tools/runs/20261011-hosted-kvm-probe`.
+
 GitLab jobs use compile SDK 36 and publish JUnit/HTML reports even on failure. The manual
 instrumentedTests job requires a runner tagged android-emulator with /dev/kvm
 available in its container. Without such a runner, device verification runs
 locally; the manual CI job must not be claimed as verified.
+
+Решение пользователя11 октября: device CI GitLab пока не настраиваем;
+проведённые локальные instrumented/release-прогоны приняты для текущего этапа.
+Manual job остаётся опциональным. Это не удалённый device PASS и не отмена
+правила запускать релевантные локальные/device-тесты при будущих изменениях.
 
 Проверка публичного GitLab API11 октября2026: последний pipeline
 [2909673906](https://gitlab.com/valker/intime/-/pipelines/2909673906) от3 октября

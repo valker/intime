@@ -3757,6 +3757,18 @@ runtime/CI не добавлялись; обновлена документац�
 
 ## 11 октября: R4.4, актуальный GitLab pipeline после согласованного push
 
+Последующее решение пользователя11 октября: настройка instrumented tests в
+GitLab отложена; для текущего этапа приняты проведённые локальные проверки.
+R4.4 закрыт в объёме GitLab build/lint/unit, не как remote device PASS.
+
+Последующая инфраструктурная диагностика: pipeline2935333889, job17090794445,
+fcd7c16, shared runner54907241 (`saas-linux-small-amd64`). Job success,
+но JSON: `device_exists=false`, `cpu_virtualization_flag=false`,
+`kvm_usable=false`, reason=`device_missing`. Единственная job pipeline —
+диагностика без Android SDK и эмулятора. Это не результат device tests.
+Для текущего аппаратно ускоренного CI нужен runner с доступным KVM.
+JSON/API сохранены в `.test-tools/runs/20261011-hosted-kvm-probe`.
+
 После явного согласия пользователя выполнен `git push gitlab HEAD:chatgpt`,
 обычный fast-forward7fbae394→898d5018e2d38f63ffa2198ef99c79a091b47085.
 Отправлены60 накопленных коммитов, включая обновление документации. master,

@@ -20,6 +20,12 @@ UI/data-access tree should not be restored as a normal runtime path.
 - Compile/target SDK: 36; min SDK: 24. JDK 17, Gradle 8.11.1, AGP 8.9.1.
 - Room 2.8.4, WorkManager 2.11.2; Kotlin/Compose остаются будущим пилотом.
 
+Проверенный статус11 октября2026: текущий кандидат27/2.0.0-rc3, Play25→27
+пройден на API35 с отдельной JSON-копией17 задач, не с исходной БД телефона.
+Release/UI проверки выполнены на выделенных API31/33/35/36; детали и ограничения
+в DEVICE_TEST_RESULTS.md. GitLab build/lint/101 unit подтверждены; device CI
+отложен пользователем. API24/16KB, physical/OEM и финальная публикация открыты.
+
 ## Runtime Code Layout
 
 | Role | Examples | Rule |

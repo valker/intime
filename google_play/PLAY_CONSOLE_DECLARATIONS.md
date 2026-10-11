@@ -1,6 +1,7 @@
 # Play Console Declarations
 
-Reviewed against source code and the signed candidate AAB on October 4, 2026.
+Source/document review refreshed October11,2026; artifact checks refer to
+the archived signed candidate27/2.0.0-rc3 and DEVICE_TEST_RESULTS.md.
 This is a draft for Google Play Console app content forms, not evidence that
 forms were submitted or accepted. Review the final artifact and current Console
 questions before submission. App operation is offline; system backup and
@@ -99,8 +100,13 @@ Draft answers for app-operated data flows; final review remains open:
 Privacy policy content: `PRIVACY_POLICY.md`. Before release, publish the matching
 text at an accessible public URL and check the app/store links. The resources
 currently contain https://valker.github.io/intime_privacy_policy.html; its
-availability/content could not be verified by the web tool on October 4.
-This does not establish that the site is unavailable.
+availability/content was checked by direct HTTP GET on October11 (HTTP200).
+The published text is old: it describes developer log collection, cookies and
+third-party services, whereas the current application has no own upload flow
+or INTERNET permission. Publish the reviewed replacement from
+`google_play/intime_privacy_policy.html` after approval; it has not been published.
+Actual Console answers remain unverified. The existing policy is historical
+text, not evidence that the current app performs those data flows.
 
 Important consistency note: task titles, reminder intervals, and backup files are
 user data stored locally on the device. Local processing alone is not data
@@ -109,7 +115,7 @@ Android system backup and SAF can use a cloud provider selected by the user;
 the policy explains both. Confirm applicable disclosures for the final build,
 its dependencies and these transfers in the current Console form.
 
-Official references checked October 4, 2026:
+Official references rechecked October11,2026:
 [Data safety definitions](https://support.google.com/googleplay/android-developer/answer/10787469),
 [User Data/privacy policy requirements](https://support.google.com/googleplay/android-developer/answer/10144311),
 [Android system backup](https://developer.android.com/identity/data/autobackup).

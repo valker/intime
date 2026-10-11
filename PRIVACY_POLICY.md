@@ -1,6 +1,8 @@
 # Privacy Policy for InTime
 
-**Last updated:** October 4, 2026
+**Last updated:** October 11, 2026
+
+InTime is developed by Valentin Pimenov and provided as a free application.
 
 ## Task data and local operation
 

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>InTime — Privacy Policy</title>
+<style>
+body { margin: 0; background: #fff; color: #202b30; font: 17px/1.65 system-ui, sans-serif; }
+main { max-width: 800px; margin: auto; padding: 24px; }
+h1, h2 { line-height: 1.25; }
+h2 { margin-top: 1.8em; }
+a { color: #17597a; overflow-wrap: anywhere; }
+code { font-size: .9em; }
+.table { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #bccbd1; text-align: left; padding: 10px; }
+th { background: #edf3f5; }
+</style>
+</head>
+<body>
+<main>
+<h1>Privacy Policy for InTime</h1>
+<p><strong>Last updated:</strong> October 11, 2026</p>
+<p>InTime is developed by Valentin Pimenov and provided as a free application.</p>
+<h2>Task data and local operation</h2>
+<p>InTime works without an account or an internet connection. It stores task descriptions, reminder intervals, due dates and acknowledgement times in a local Room/SQLite database in the app&#x27;s internal storage. Local settings also record session and notification timing. The developer does not receive this information. InTime has no application server, advertising, analytics or tracking SDKs, and does not perform its own network uploads or cloud synchronization.</p>
+<h2>Android backup and device transfer</h2>
+<p>The application permits Android system backup (<code>allowBackup=true</code>). Depending on your device, backup service and settings, Android may include app data in a system backup, including a cloud backup, or transfer it to another device. These operations are handled by the operating system and its selected service, not by an InTime server. Manage system backups in your device settings. The app does not guarantee that data always remains on one device.</p>
+<h2>Import and export</h2>
+<p>You can export tasks as an unencrypted UTF-8 JSON file and import a compatible file using Android&#x27;s document picker. The selected provider may be local storage or a cloud service. That provider handles storage or transmission under its own terms. InTime does not choose or automatically upload to a cloud provider. Protect exported files yourself; they contain task descriptions and dates. Successful import replaces the current task list rather than merging it.</p>
+<h2>Permissions and external applications</h2>
+<div class="table"><table>
+<tr><th>Permission</th><th>Purpose</th></tr>
+<tr><td>POST_NOTIFICATIONS</td><td>Display reminders; you can deny or disable notifications.</td></tr>
+<tr><td>SCHEDULE_EXACT_ALARM</td><td>Schedule the nearest due task precisely when Android permits it; otherwise scheduling is less precise.</td></tr>
+<tr><td>RECEIVE_BOOT_COMPLETED</td><td>Restore scheduling and, when appropriate, notify about missed tasks after restart.</td></tr>
+<tr><td>WAKE_LOCK</td><td>WorkManager background execution.</td></tr>
+<tr><td>ACCESS_NETWORK_STATE</td><td>WorkManager infrastructure; does not permit internet uploads.</td></tr>
+<tr><td>FOREGROUND_SERVICE</td><td>Declared by WorkManager; the current worker does not request foreground execution.</td></tr>
+</table></div>
+<p>The build also uses an application-specific signature permission for AndroidX receiver protection. It has no INTERNET permission. Store links open an external store or browser, whose data practices are separate from InTime.</p>
+<h2>Security and deletion</h2>
+<p>Android&#x27;s app storage isolation and device security protect local data. InTime does not add database or export-file encryption. Avoid placing sensitive information in task descriptions displayed by notifications. You can delete tasks in the app or clear app data/uninstall it to remove local app storage. Exported files and system/provider backups must be managed separately; clearing local app data does not promise deletion of those copies.</p>
+<h2>Changes and contact</h2>
+<p>Policy changes will be recorded with an updated date. For questions, contact the developer through the InTime store listing or the <a href="https://github.com/valker/intime/issues">project issue tracker</a>.</p>
+</main>
+</body>
+</html>

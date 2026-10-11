@@ -6,9 +6,11 @@ All notable changes to InTime are documented in this file.
 
 Draft target release. Default builds remain 1.1.8 with a `.dev` package;
 an explicit productionRelease candidate requires version parameters.
-Upload-key signing and AAB structure were verified October 4, 2026; the Play-signed
-installation update and a real-data upgrade remain unverified. See ROADMAP.md
-and [UPGRADE.md](UPGRADE.md) for the checked status.
+Current candidate:27/2.0.0-rc3. Signing, AAB structure and the corresponding
+Play-signed APK are verified. Play25→27 passed on dedicated API35 with a separate
+JSON-derived copy of17 real tasks; the original phone database/preferences are
+outside coverage. No production rollout performed. See ROADMAP.md and
+[UPGRADE.md](UPGRADE.md) for the checked status.
 
 ### New Features
 
@@ -28,7 +30,7 @@ and [UPGRADE.md](UPGRADE.md) for the checked status.
 - **Code Architecture** — Clean separation between UI, domain logic, and data access layers
 - **Multi-Language Support** — Full support for English and Russian with proper text encoding
 - **Offline-First** — Complete offline functionality, no server dependency
-- **Data Safety** — Migrations 4 → 5 → 6 and 5 → 6 are implemented; actual production data still needs verification
+- **Data Safety** — Migrations 4 → 5 → 6 and 5 → 6 are implemented; Play25→27 preserves the tested separate copy of17 tasks
 
 ### Fixed
 
@@ -45,15 +47,16 @@ and [UPGRADE.md](UPGRADE.md) for the checked status.
 - **Architecture:** MVVM with LiveData and ViewModels
 - **Database:** Room 2.8.4, schema 6 with migrations from historical SQLite 4/5
 - **Scheduling:** AlarmManager + WorkManager coordination
-- **Upgrade Compatibility** — Not yet confirmed for installed production v1; historical schemas 4/5 now have migration paths
+- **Upgrade Compatibility** — Play25→27 verified on dedicated API35 within the documented synthetic/JSON-copy scope
 
 ### Migration from v1
 
 The intended path is an update of `com.vpe_soft.intime.intime` with a compatible
 signing certificate and a higher versionCode, retaining its `main` database.
 Current `.dev` APKs install separately and do not read production data.
-Migration of the actual v1 database and the installation upgrade still require
-R4.2 checks. Historical schema-4/5 fixtures are covered by new migration tests;
+The installation upgrade25→27 and schema5→6 passed with synthetic tasks and
+a separate JSON-derived copy of17 real tasks. This does not verify the original
+phone SQLite/WAL/preferences. Historical schema-4/5 fixtures have migration tests;
 schema versions 1–3 still have no registered migration paths.
 See UPGRADE.md before preparing an update; JSON import is a separate replacement
 operation and does not prove automatic migration.

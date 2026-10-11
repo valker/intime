@@ -3,10 +3,9 @@
 This document describes the process for building and releasing Intime.
 
 Доступ через Google Play API подготавливается отдельно: [PLAY_API.md](PLAY_API.md).
-Локальная read-проверка и 13 host-тестов прошли. После исправления приглашения
-OAuth/generatedapks.list версии 26 PASSED, App signing сертификат совпал,
-универсальный APK доступен в метаданных. Загрузка AAB/скачивание APK через API
-ещё не выполнены. Публикация скриптом не выполняется.
+Read-проверки и host-тесты прошли. Кандидат27 загружен без назначения на трек,
+Play APK27 скачан и проверен по App signing key/версии/DEX; production25,
+beta26 и прежний internal draft сохранены. Публикация скриптом не выполняется.
 
 Текущий локальный кандидат — **27/2.0.0-rc3**, 9 октября 2026, с поддержкой
 исторической meta backup_version=1 из Play 25. Подписанные APK/AAB собраны с
@@ -14,16 +13,19 @@ R8/lint; Upload key, манифесты, bundletool и совпадение mapp
 Семь конфигурационных случаев, свежие local 101/101, API 35 UI 3/3 и release
 15/15 прошли, включая исторический SAF-импорт и restart. Артефакты:
 `.test-tools/runs/20261009-103501-release27-historical-json/candidate/`.
-Результаты и SHA-256 — DEVICE_TEST_RESULTS.md. Сборка не загружена/не опубликована;
-до загрузки проверить свободность кода 27 в Console. Следующий шаг — получить
-Play APK с App signing key и проверить обновление 25 → 27 на проектном AVD.
+Результаты и SHA-256 — DEVICE_TEST_RESULTS.md. AAB27 уже загружен в Play без
+назначения на трек; код27 занят. Play APK27 получен, обновление25→27 прошло
+на проектном API35 с синтетическими задачами и отдельно с логической JSON-копией
+17 реальных задач (9/9 фаз). Исходная SQLite/WAL/preferences телефона не проверялись.
+Следующий production-код должен быть выше27 и свободен в Console; финальные
+versionName/rollout ещё не согласованы. Новую сборку/загрузку на этом этапе не делаем.
 Скачанный APK 26/rc2 неизменён и исправления импорта не содержит.
 
-### Получение Play APK 27 для следующей проверки
+### Историческая инструкция получения Play APK27 (проверка завершена)
 
-Runner готов к явно указанным 27/2.0.0-rc3; host/preflight проверки прошли,
-но обновление 25 → 27 ещё не выполнялось: APK 27 из Console пока отсутствует.
-Следующие действия выполняет владелец Play Console:
+Play APK27 уже получен через API и upgrade выполнен; повторять загрузку27
+не нужно. Ниже сохранён альтернативный ручной маршрут для будущих кандидатов
+с новым свободным кодом, а не список текущих действий.
 
 1. Проверить, что код 27 ещё не занят. Открыть InTime → Тестирование и выпуск →
    Тестирование → Внутреннее тестирование. Создать выпуск или открыть уже имеющийся
@@ -357,7 +359,7 @@ run identifiers, initial conditions and coverage limits.
 | API 36 | Upload-signed APK smoke 14/14, forced exact deep Doze, two natural periodic repeats (11/11), ordinary inexact 11/11, single inexact forced deep Doze 12/12 and two deliveries (14/14, host GPU/Vulkan disabled) | OEM inexact Doze, natural Doze/quotas, long-term system ANR stability and remaining matrix |
 | WorkManager | Debug execution/KEEP; October 6 release/R8 two natural quiet repeats after process exit on API 31, 33, 35 and 36, each 11/11; earlier controlled run kept separately | Timing guarantees, other API/OEM and Play upgrade coverage open |
 | 16 KB pages | Fresh AAB contains no native `.so` files | Separate device/platform verification not performed |
-| CI | October 11 push: pipeline2935265890 on898d501 passed build/lint/101 unit tests; remote lint XML0 errors/30 warnings | Manual device job not run; eligible KVM runner/authenticated control unverified |
+| CI | October11 pipeline2935265890 passed build/lint/101 unit tests; remote lint XML0 errors/30 warnings | Device CI deferred by user decision; completed local device checks accepted for this stage |
 
 Use the release-smoke runner and commands in [TESTING.md](TESTING.md), only on
 the dedicated project AVDs. Do not install or clear a personal device implicitly.
@@ -423,22 +425,25 @@ unverified on device. Play listing artwork is separate from these launcher XMLs.
 
 ## R6.4: Privacy Policy
 
-The local [PRIVACY_POLICY.md](PRIVACY_POLICY.md) draft was updated October 4.
+The local [PRIVACY_POLICY.md](PRIVACY_POLICY.md) draft was updated October11.
 The app performs no own network uploads or cloud sync. It permits Android system
 backup, and user-selected SAF providers may be cloud services. The policy states
 these limits and explains that JSON exports are unencrypted.
 
 Before release, publish matching text at a public policy URL and verify app/store
 links. The currently referenced `https://valker.github.io/intime_privacy_policy.html`
-was not readable through the web tool in this review; availability and consistency
-remain unverified. Repository edits do not update that site or Console.
+returned HTTP200 on October11. Its historical text describes developer log
+collection, cookies and third-party services and differs from the reviewed
+current policy. The replacement HTML is prepared in
+`google_play/intime_privacy_policy.html`; publication is pending approval.
+Repository edits do not update that site or Console.
 Google requires a publicly accessible privacy policy URL; see the
 [User Data policy](https://support.google.com/googleplay/android-developer/answer/10144311).
 
 ## R6.5: Play Console Declarations
 
 The [declaration draft](google_play/PLAY_CONSOLE_DECLARATIONS.md) was reviewed
-against the merged signed AAB, source flows and official documentation October 4.
+against artifact records, current source flows and official documentation October11.
 It includes WorkManager permissions and the system-backup/SAF caveats.
 Final Data safety answers, content forms and Play acceptance are unverified;
 a file in the repository is not a submitted Console declaration.
@@ -448,7 +453,8 @@ a file in the repository is not a submitted Console declaration.
 [CHANGELOG.md](CHANGELOG.md) describes an unreleased target version. Final date,
 version and user-facing release notes require approval after the remaining checks.
 Do not state automatic migration of all v1 installations or exact 15-minute
-background delivery. The real-data/Play update remains R4.2.
+background delivery. R4.2 passed for a separate JSON-derived copy of17 tasks;
+the original phone SQLite/WAL/preferences remain outside that verification.
 
 ## Release Checklist
 
@@ -722,8 +728,8 @@ images. Reports 62.89 MiB after 29.53 MiB identical log cleanup;
 AVD/cache growth unmeasured, runtime/archived Upload-key APK unchanged, JVM suite
 not rerun. Sampled state does not establish state at the exact worker invocation,
 quota enforcement or physical audio. Physical/OEM and remaining gaps stay open.
-Next practical step: R4.4 fresh remote CI verification on the corrected commit;
-no push, pipeline dispatch, publication or tag performed by this stage.
+Historical next step at the end of that stage was R4.4; the subsequent CI
+verification and current user decision are recorded below.
 
 Subsequent October11 authorized push completed: pipeline2935265890 on898d501
 passed assembleDebug, lintDebug (remote XML0 errors/30 warnings) and101/101
@@ -731,3 +737,15 @@ unit tests with no failures/errors/skips. Evidence:
 .test-tools/runs/20261011-084918-gitlab-current-pipeline/summary.json.
 R4.4 automatic checks confirmed; manual instrumentedTests remains unrun.
 Eligible android-emulator/KVM runner and authenticated job control unverified.
+Subsequent October11 hosted-runner probe: pipeline2935333889/job17090794445 on
+fcd7c16 completed on saas-linux-small-amd64, but /dev/kvm was absent and
+kvm_usable=false. Current accelerated device CI requires a KVM-capable runner;
+the probe did not download Android SDK or execute application/device tests.
+
+11 октября пользователь отложил настройку device CI GitLab: для текущего этапа
+достаточно проведённых локальных instrumented/release-проверок. R4.4 закрыт
+в согласованном объёме build/lint/unit; remote device PASS не заявляется.
+Следующий шаг R5.4: публикация согласованной privacy-страницы и сверка фактических
+форм Console. Готовый HTML — google_play/intime_privacy_policy.html; публичная
+страница сейчас HTTP200 со старым текстом о сборе логов/cookies/сторонних сервисах.
+Публикации политики и изменения Console на этом этапе не выполнялись.

@@ -1,9 +1,8 @@
 # Intime v2 Implementation Plan
 
 > Текущий порядок и проверенный статус находятся в [ROADMAP.md](ROADMAP.md),
-> обновлённом 4 октября 2026 года. Ниже сохранён исторический перечень работ.
-> Его отметки Done не подтверждают production-миграцию, signing или device smoke;
-> эти проверки остаются открытыми в актуальном roadmap.
+> актуализированном11 октября2026 года. Ниже сохранён перечень работ;
+> отметки Done следует читать вместе с границами проверок в roadmap.
 
 This document turns the product roadmap and technical notes into a concrete,
 reviewable work plan for the `chatgpt` branch. It assumes `PRODUCT.md`,
@@ -48,8 +47,12 @@ Gaps that block a releasable v2:
 
 - **Post-v1 cleanup:** documentation, unused classes, and dependencies should stay
   aligned with the now-current-only source tree.
-- Release smoke testing is still needed on the supported API matrix.
-- Final production icon/adaptive icon work still needs designer input.
+- Release smoke passed on dedicated API31/33/35/36; API24/16KB and physical
+  OEM/natural Doze coverage remain open. No additional images within the100MB budget.
+- Production launcher/adaptive icons are implemented and checked; store artwork
+  and untested masks/platforms remain separate review items.
+- Public privacy text, actual Console declarations and the final production
+  version/rollout still need review. GitLab device CI is deferred by user decision.
 
 ## Goals
 
@@ -100,7 +103,9 @@ from current runtime code paths.
 
 **Checked:** bounded local/device scheduling regressions and upload-signed release
 smoke on API 31/33/35/36. **Remaining:** API 24, full release worker/Doze coverage
-and Play upgrade; see DEVICE_TEST_RESULTS.md for per-run limits.
+and physical/OEM coverage. Play25→27 passed on a separate JSON-derived copy of17
+tasks; original phone SQLite/WAL/preferences remain outside coverage.
+See DEVICE_TEST_RESULTS.md for per-run limits.
 
 **Target model** (from `TECH_NOTES.md`):
 
