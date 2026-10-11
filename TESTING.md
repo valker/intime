@@ -1165,6 +1165,20 @@ GitLab jobs use compile SDK 36 and publish JUnit/HTML reports even on failure. T
 instrumentedTests job requires a runner tagged android-emulator with /dev/kvm
 available in its container. Without such a runner, device verification runs
 locally; the manual CI job must not be claimed as verified.
+
+Проверка публичного GitLab API11 октября2026: последний pipeline
+[2909673906](https://gitlab.com/valker/intime/-/pipelines/2909673906) от3 октября
+на7fbae394 — success. lintDebug/assembleDebug/debugTests выполнены успешно,
+JUnit97/97, failures/errors/skipped0. instrumentedTests — manual,
+allow_failure=true, без started_at/finished_at: он не запускался.
+Локальный d087322 опережает удалённую chatgpt на59 коммитов. Свежие проверки
+актуального кода: scripts/test.ps1 -Mode local -Offline,101/101; затем
+gradlew --offline -Pci --console=plain --no-watch-fs :app:lintDebug :app:assembleDebug,
+build PASS, lint0 ошибок/30 warnings. Эти локальные результаты не заменяют
+pipeline текущего кода. Сводка/копии свежего lint/API:
+.test-tools/runs/20261011-083935-ci-preflight; unit:
+.test-tools/runs/20261011-084008-f631ff79. CI-конфигурация не менялась;
+push/запуск нового pipeline не выполнены, устройство не использовалось.
 # Проверки загрузки Play-кандидата (9 октября 2026)
 
 `node scripts/prepare-play-candidate.test.mjs` использует mock HTTP и точный

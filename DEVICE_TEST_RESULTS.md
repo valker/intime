@@ -3718,3 +3718,39 @@ named logs сохранены, inventory duplicate-log-cleanup.json. Рост AV
 коммита; удалённые build/lint/unit/device ещё требуют актуального подтверждения.
 API24/16КБ ограничены дисковым бюджетом; физическая проверка требует отдельно
 согласованного устройства/установки. Новая публикация/тег/remote push не выполнялись.
+
+## 11 октября: R4.4, сверка GitLab и локальная готовность текущего кода
+
+Публичный API GitLab и git ls-remote проверены заново. Последний pipeline
+[2909673906](https://gitlab.com/valker/intime/-/pipelines/2909673906) — success,
+ref chatgpt, commit7fbae39460a81649cf98c5401e56edd86f31f353, завершён3 октября.
+lintDebug16915412664, assembleDebug16915412665 и debugTests16915412666 — success;
+JUnit97/97, failures/errors/skipped0. instrumentedTests16915412667 — manual,
+allow_failure=true, started_at/finished_at null. Его не запускали, success
+pipeline не подтверждает удалённые device-тесты. Это уточнение прежней записи
+об отсутствии подтверждённого успешного CI, а не новый запуск старых тестов.
+
+Текущий проверенный HEAD d0873221edb31ab9faa6e516a1610b49f29dfb37,59 коммитов
+после удалённой chatgpt. Удалённый SHA является предком, возможен обычный
+fast-forward без force. CI-файлы с момента успешного pipeline не менялись.
+
+Свежий scripts/test.ps1 -Mode local -Offline прошёл101/101 (0 failures/errors/
+skipped), .test-tools/runs/20261011-084008-f631ff79/summary.json. Последующий
+gradlew --offline -Pci --console=plain --no-watch-fs :app:lintDebug :app:assembleDebug
+прошёл. Lint XML/HTML/text созданы после начала проверки, скопированы в отчёт;
+0 errors/fatal,30 warnings:25 UnusedResources,2 MonochromeLauncherIcon,
+2 NotifyDataSetChanged,1 IconMissingDensityFolder. Предупреждения не устранены
+и не объявлены ошибками сборки. APK debug SHA-256:
+485412BA9CF02EE0D6950588C63EA4982FEE073064BF079540773853E727CE2B.
+
+Сводка: .test-tools/runs/20261011-083935-ci-preflight/summary.json,
+LOCAL_READY_REMOTE_UPDATE_PENDING. Там gitlab-pipeline/jobs/tests.json,
+build-lint.log, свежие lint reports и outgoing-files.txt. Ключи/keystore,
+APK/AAB, личные БД и реальные JSON-копии задач не входят в список новых
+отправляемых файлов; тестовый RSA-ключ создаётся в памяти, JSON resource
+play25-backup — синтетическая фикстура. GitLab push/dispatch не выполнялись.
+
+R4.4 открыт для CI актуального кода и удалённого device job. Локальные101 тест
+не переносятся на исторический97-тестовый pipeline. Новые тесты/изменения
+runtime/CI не добавлялись; обновлена документация фактического состояния.
+Эмулятор/телефон/образы не использовались, зависимости не скачивались (offline).

@@ -461,8 +461,18 @@ release/R8 и оставшаяся Android-матрица проверяются
   debugTests и instrumentedTests были skipped. Локально воспроизведён тот же lint;
   исправлены app:tint/ru-переводы, тексты UI, API guards уведомлений и accessibility.
   lintDebug + assembleDebug прошли: 0 ошибок/24 warnings. CI сохраняет полный lint
-  report даже при падении. Нужен новый pipeline на исправленном коммите;
-  успешность удалённых тестов ещё не подтверждена.
+  report даже при падении. Проверка публичного API 11 октября уточнила историю:
+  pipeline 2909673906 от 3 октября на 7fbae394 прошёл lintDebug, assembleDebug и
+  debugTests (97/97, без ошибок/пропусков). instrumentedTests остался manual,
+  allow_failure=true и не запускался; общий success не подтверждает device job.
+  На GitLab chatgpt по-прежнему 7fbae394; локальный d087322 опережает его на59
+  коммитов. Свежая локальная проверка11 октября:101/101 unit, debug build PASS,
+  lint0 ошибок/30 warnings. CI-конфигурация относительно успешного коммита прежняя.
+  Отчёт: .test-tools/runs/20261011-083935-ci-preflight/summary.json;
+  unit: .test-tools/runs/20261011-084008-f631ff79/summary.json.
+  Для завершения нужен pipeline актуального кода после согласованной отправки
+  ветки chatgpt и отдельно device job на runner с KVM. Push/запуск не выполнены;
+  R4.4 остаётся открыт. Старый success не является текущим PASS59 новых коммитов.
   При слиянии локальной master добавлен GitHub Actions для lint/build/unit tests,
   адаптированный к текущим JDK 17/Gradle 8.11.1/AGP 8.9.1. GitLab CI сохранён.
   Успешный удалённый запуск GitHub Actions тоже пока не подтверждён.

@@ -357,7 +357,7 @@ run identifiers, initial conditions and coverage limits.
 | API 36 | Upload-signed APK smoke 14/14, forced exact deep Doze, two natural periodic repeats (11/11), ordinary inexact 11/11, single inexact forced deep Doze 12/12 and two deliveries (14/14, host GPU/Vulkan disabled) | OEM inexact Doze, natural Doze/quotas, long-term system ANR stability and remaining matrix |
 | WorkManager | Debug execution/KEEP; October 6 release/R8 two natural quiet repeats after process exit on API 31, 33, 35 and 36, each 11/11; earlier controlled run kept separately | Timing guarantees, other API/OEM and Play upgrade coverage open |
 | 16 KB pages | Fresh AAB contains no native `.so` files | Separate device/platform verification not performed |
-| CI | Configuration and local checks recorded | Successful new remote pipelines not confirmed |
+| CI | October 11 API audit: GitLab pipeline2909673906 on7fbae394 passed build/lint/97 unit tests; current d087322 locally passed build/lint/101 unit tests | Current remote code59 commits behind; manual device job not run, fresh pipeline pending |
 
 Use the release-smoke runner and commands in [TESTING.md](TESTING.md), only on
 the dedicated project AVDs. Do not install or clear a personal device implicitly.
