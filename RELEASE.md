@@ -357,7 +357,7 @@ run identifiers, initial conditions and coverage limits.
 | API 36 | Upload-signed APK smoke 14/14, forced exact deep Doze, two natural periodic repeats (11/11), ordinary inexact 11/11, single inexact forced deep Doze 12/12 and two deliveries (14/14, host GPU/Vulkan disabled) | OEM inexact Doze, natural Doze/quotas, long-term system ANR stability and remaining matrix |
 | WorkManager | Debug execution/KEEP; October 6 release/R8 two natural quiet repeats after process exit on API 31, 33, 35 and 36, each 11/11; earlier controlled run kept separately | Timing guarantees, other API/OEM and Play upgrade coverage open |
 | 16 KB pages | Fresh AAB contains no native `.so` files | Separate device/platform verification not performed |
-| CI | October 11 API audit: GitLab pipeline2909673906 on7fbae394 passed build/lint/97 unit tests; current d087322 locally passed build/lint/101 unit tests | Current remote code59 commits behind; manual device job not run, fresh pipeline pending |
+| CI | October 11 push: pipeline2935265890 on898d501 passed build/lint/101 unit tests; remote lint XML0 errors/30 warnings | Manual device job not run; eligible KVM runner/authenticated control unverified |
 
 Use the release-smoke runner and commands in [TESTING.md](TESTING.md), only on
 the dedicated project AVDs. Do not install or clear a personal device implicitly.
@@ -724,3 +724,10 @@ not rerun. Sampled state does not establish state at the exact worker invocation
 quota enforcement or physical audio. Physical/OEM and remaining gaps stay open.
 Next practical step: R4.4 fresh remote CI verification on the corrected commit;
 no push, pipeline dispatch, publication or tag performed by this stage.
+
+Subsequent October11 authorized push completed: pipeline2935265890 on898d501
+passed assembleDebug, lintDebug (remote XML0 errors/30 warnings) and101/101
+unit tests with no failures/errors/skips. Evidence:
+.test-tools/runs/20261011-084918-gitlab-current-pipeline/summary.json.
+R4.4 automatic checks confirmed; manual instrumentedTests remains unrun.
+Eligible android-emulator/KVM runner and authenticated job control unverified.

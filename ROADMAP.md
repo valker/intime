@@ -398,7 +398,7 @@ release/R8 и оставшаяся Android-матрица проверяются
   Питание/constants/cleanup подтверждены.
   Host8/8 границ записи + quiet13/13; итог DEVICE_TEST_RESULTS.md и
   20261010-221654-rc3-light-worker31-33-matrix/confirmed-matrix.json.
-  Далее — R4.4: свежий удалённый pipeline исправленного коммита.
+  Свежий удалённый pipeline подтверждён11 октября, см. R4.4; остаётся remote device job.
   Остальные Doze/квоты/OEM, API24/16КБ и визуальная predictive-анимация открыты.
   На API 36 прошли 19 debug-тестов и четыре отдельные notification/reboot-фазы.
   Добавлены два UI-теста: границы выбранных элементов четырёх экранов относительно
@@ -470,9 +470,15 @@ release/R8 и оставшаяся Android-матрица проверяются
   lint0 ошибок/30 warnings. CI-конфигурация относительно успешного коммита прежняя.
   Отчёт: .test-tools/runs/20261011-083935-ci-preflight/summary.json;
   unit: .test-tools/runs/20261011-084008-f631ff79/summary.json.
-  Для завершения нужен pipeline актуального кода после согласованной отправки
-  ветки chatgpt и отдельно device job на runner с KVM. Push/запуск не выполнены;
-  R4.4 остаётся открыт. Старый success не является текущим PASS59 новых коммитов.
+  После явного согласия11 октября выполнен обычный fast-forward push60 коммитов,
+  включая документацию, в gitlab/chatgpt:898d501. Автоматический pipeline2935265890
+  на этом SHA — success: assembleDebug, lintDebug (XML0 ошибок/30 warnings),
+  debugTests101/101,0 failures/errors/skipped. Сводка:
+  .test-tools/runs/20261011-084918-gitlab-current-pipeline/summary.json.
+  Актуальные автоматические CI-проверки подтверждены; instrumentedTests manual,
+  allow_failure=true, не запускался. Список runners/trace API требует авторизации
+  (401), наличие подходящего android-emulator/KVM runner не установлено.
+  R4.4 остаётся открыт только в части удалённого device job; success его не заменяет.
   При слиянии локальной master добавлен GitHub Actions для lint/build/unit tests,
   адаптированный к текущим JDK 17/Gradle 8.11.1/AGP 8.9.1. GitLab CI сохранён.
   Успешный удалённый запуск GitHub Actions тоже пока не подтверждён.

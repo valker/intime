@@ -3754,3 +3754,38 @@ R4.4 открыт для CI актуального кода и удалённо�
 не переносятся на исторический97-тестовый pipeline. Новые тесты/изменения
 runtime/CI не добавлялись; обновлена документация фактического состояния.
 Эмулятор/телефон/образы не использовались, зависимости не скачивались (offline).
+
+## 11 октября: R4.4, актуальный GitLab pipeline после согласованного push
+
+После явного согласия пользователя выполнен `git push gitlab HEAD:chatgpt`,
+обычный fast-forward7fbae394→898d5018e2d38f63ffa2198ef99c79a091b47085.
+Отправлены60 накопленных коммитов, включая обновление документации. master,
+GitHub remote, production/Play не изменялись. Новый
+[pipeline2935265890](https://gitlab.com/valker/intime/-/pipelines/2935265890)
+автоматически создан source=push для точного отправленного SHA и ref chatgpt.
+Итог pipeline — success:
+
+| Job | ID | Результат |
+| --- | --- | --- |
+| lintDebug | 17090448230 | success, XML0 errors/fatal и30 warnings |
+| assembleDebug | 17090448231 | success |
+| debugTests | 17090448232 | success,101/101; failures/errors/skipped0 |
+| instrumentedTests | 17090448233 | manual, не запускался |
+
+Для каждого автоматического job проверены commit.id и соответствие pipeline;
+JUnit получен из test_report API, lint XML — из артефакта конкретного job.
+Это удалённые результаты текущего кода, а не перенос локального PASS или старых97
+тестов. Неподтверждённый remote build/lint/unit блокер снят. CI/runtime файлы в
+этом шаге не менялись, дополнительных локальных тестов не запускали: новый
+898d501 отличается от локально проверенного d087322 только четырьмя md-файлами.
+
+Device-job allow_failure=true, started_at/finished_at null. Общий success не
+доказывает его выполнение; R4.4 остаётся открыт в этой части. GitLab trace API
+и список project runners вернули401: нужны авторизованный доступ и подтверждение
+runner android-emulator с доступом к /dev/kvm. Наличие такого runner не установлено,
+ручной job не запускался и настройки runners не изменялись.
+
+Артефакты: .test-tools/runs/20261011-084918-gitlab-current-pipeline/summary.json,
+REMOTE_AUTOMATIC_CI_PASSED_DEVICE_NOT_RUN. Рядом pipeline.json/jobs.json,
+test-report.json и remote-lint.xml, сведения об отказе доступа к traces/runners.
+APK/большие ZIP не скачивались, телефон/AVD не использовались.

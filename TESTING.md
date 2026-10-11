@@ -1179,6 +1179,19 @@ pipeline текущего кода. Сводка/копии свежего lint/
 .test-tools/runs/20261011-083935-ci-preflight; unit:
 .test-tools/runs/20261011-084008-f631ff79. CI-конфигурация не менялась;
 push/запуск нового pipeline не выполнены, устройство не использовалось.
+
+После согласия пользователя11 октября выполнен обычный push в gitlab/chatgpt,
+60 коммитов вместе с документацией. Автоматически созданный
+[pipeline2935265890](https://gitlab.com/valker/intime/-/pipelines/2935265890)
+на898d501 — success: assembleDebug/lintDebug/debugTests. Публичный JUnit API
+подтверждает101/101, failures/errors/skipped0. Из артефакта lint XML получены
+0 ошибок/30 warnings. instrumentedTests17090448233 — manual, allow_failure=true,
+started_at/finished_at null; device-тесты этим pipeline не выполнены.
+Сводка/первичные API-ответы/XML: .test-tools/runs/20261011-084918-gitlab-current-pipeline.
+Полные trace и список runners требуют авторизации (401); XML lint и JUnit доступны
+публично. Следующий шаг этой части R4.4 — подтвердить runner android-emulator с
+доступом к /dev/kvm и отдельный запуск device-job; не заменять его общим success.
+APK/большие архивы не скачивались, телефон/локальный эмулятор не использовались.
 # Проверки загрузки Play-кандидата (9 октября 2026)
 
 `node scripts/prepare-play-candidate.test.mjs` использует mock HTTP и точный
@@ -1768,4 +1781,6 @@ Host8+13+9+9+5; 10 архивных quiet-снимков — регрессия 
 рост AVD/cache не измерен; телефон/новые images не использовались. Один повтор
 каждого AVD; sampled state не доказывает точное состояние запуска, квоты или
 физический звук. JVM suite не повторялась; детали/отказы — DEVICE_TEST_RESULTS.md.
-Следующий шаг — актуальный удалённый CI R4.4, остальные release gaps открыты.
+Актуальные автоматические проверки GitLab R4.4 впоследствии подтверждены
+11 октября (pipeline2935265890,101/101), см. CI выше. Открыты remote device job
+и остальные release gaps.
