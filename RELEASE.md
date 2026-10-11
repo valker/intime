@@ -23,8 +23,9 @@ commit и track update не выполнялись. Снимок не резер
 ```
 
 Новые APK/AAB 28 собраны и проверки артефактов выполнены, см. ниже.
-Проверки rc3 относятся к архивному 27. Для 28 повторены CRUD/JSON/reboot;
-остальные сценарии перечислены ниже как незавершённые.
+Проверки rc3 относятся к архивному 27. Для 28 повторены CRUD/JSON/reboot и уведомления;
+оставшиеся повторные сценарии отменены пользователем 11 октября: результаты
+27 приняты для релизного решения без нового прогона на 28. Это не свежий PASS 28.
 Черновик текста для магазина — `google_play/RELEASE_NOTES_2.0.0.md`.
 Загрузка/назначение на трек/rollout остаются отдельными согласуемыми действиями.
 
@@ -67,8 +68,51 @@ API 31/33/35/36: на каждом UI bootstrap 3/3 и release/R8 9/9 фаз (CR
 `disk-summary.json`; диагностические логи сжаты с проверкой SHA-256.
 Дополнительные файлы этапа — около 47 МБ после сжатия; наблюдавшийся пик
 около 63,4 МБ (включая AVD), ниже лимита 100 МБ.
-Доставка/Doze/worker и Play25→28 этим этапом не покрыты, unit-набор не повторяли.
-Следующий шаг — уведомления на финальном APK 28, с контролем файлов AVD/отчётов.
+CRUD-этап не покрывал доставку/Doze/worker и Play25→28, unit-набор не повторяли.
+Позднее полный notification smoke финального APK прошёл на API 31/33/35/36:
+на каждом UI 3/3 + release 15/15, delivery/action ACK, запрет/восстановление
+уведомлений и канала. Первый API 35 имел 1 failure при ANR SystemUI, неизменённый
+повтор на свежем AVD прошёл. Batch API 36 остановлен резервным порогом после
+успешного индивидуального smoke; подтверждены его 15 фаз/health/cleanup.
+Исходные отказы сохранены, итоговая сверка:
+`.test-tools/runs/20261011-final28-notification-matrix/confirmed-matrix.json`.
+ZIP-логи/UI XML сверены по SHA; прирост файлов этапа около 69,2 МБ, наблюдавшийся
+пик 90,9 МБ, в пределах лимита. Unit-набор не повторяли, upload/publish не было.
+Повторные fallback/idle/worker/Play upgrade тесты 28 отменены пользователем
+11 октября. Исходники app/src/main совпадают с кандидатом 27; сохранённый diff
+27 менял build guard и smoke-скрипт. Архивный mapping также совпадает.
+API 24, реальное устройство с 16-КБ страницами и OEM-ограничения не проверены;
+отмена повторов не означает появления такого покрытия.
+
+### R5.5: подготовленный порядок выпуска 2.0.0
+
+Сверка Play 11 октября в 13:54:50 UTC подтвердила отсутствие кода 28:
+максимальный сохранённый код 27, production 25, beta 26, internal 23.
+Временный edit удалён; загрузка, commit, track update и публикация не выполнялись.
+Отчёт `.test-tools/runs/20261011-final28-release-preflight/summary.json`.
+SHA-256 локального AAB повторно сверена и совпадает с указанной выше.
+
+1. После разрешения владельца загрузить и сохранить **точный архивный AAB 28**
+   `intime-28-2.0.0.aab`, SHA-256
+   `9FF56ACCAF07E4AD4BC10931495B59250CDF0E9758E02B4A071D5AF600962199`,
+   без назначения на трек. Сначала повторить сверку кодов и текущих треков;
+   при конфликте остановиться. Проверить полученный code/hash, validate edit,
+   сохранить commit и перечитать метаданные. Сохранение может инициировать
+   обработку/проверку Google; публикация пользователям этим шагом не разрешается.
+   Старый prepare-play-candidate.ps1 привязан к 27: для 28 его запускать нельзя.
+2. Подготовить проект production-релиза с названием `2.0.0`, кодом `28` и
+   RU/EN текстами из `google_play/RELEASE_NOTES_2.0.0.md`. Предлагаемый начальный
+   rollout — **10%**, но процент и отправку на проверку/публикацию согласовать
+   отдельно. До этого production 25 и остальные треки сохраняются.
+3. Сохранить итоговую документацию в release-коммите, подготовить тег `v2.0.0`.
+   В описании сохранить provenance сборки: HEAD `410f4453...` и архивный diff;
+   тег документации не заменяет эти сведения. Push тега согласовать отдельно.
+4. После согласованного rollout проверить статус Play и сообщения Console.
+   Оценить ошибки/ANR и обратную связь перед увеличением доли до 100%;
+   конкретный срок расширения пока не выбран, автоматическая публикация не настроена.
+
+Оставшиеся повторы тестов не запускаем, сборку не повторяем и новые SDK-образы
+не скачиваем. AAB 28 пока не загружен; тег и production rollout не выполнены.
 
 Доступ через Google Play API подготавливается отдельно: [PLAY_API.md](PLAY_API.md).
 Read-проверки и host-тесты прошли. Кандидат27 загружен без назначения на трек,
@@ -615,7 +659,9 @@ Previous HTTP400/404 and approval rejection are retained as historical evidence,
 not current blockers. See PLAY_API.md/DEVICE_TEST_RESULTS.md. Code27 is used;
 do not upload a different payload under it. Earlier host auth13/13 + candidate8/8.
 
-- [ ] Remaining device coverage and release worker verified (R4.3/R5.3).
+- [x] R5.3 completed in the agreed scope October 11: remaining final28
+  fallback/idle/worker/upgrade reruns waived by the user using candidate27 evidence.
+  No fresh PASS is claimed for those scenarios on28. R4.3 device/platform limits remain.
   Candidate27/rc3 focused R8 smoke completed in one sequential stage on
   API31/33/36: UI3/3 and release9/9 each (RebootOnly + HistoricalJsonImport).
   Current/historical JSON,CRUD/ACK/process restart and one reboot preserving
@@ -777,7 +823,7 @@ do not upload a different payload under it. Earlier host auth13/13 + candidate8/
   are outside this coverage; see UPGRADE.md/DEVICE_TEST_RESULTS.md.
 - [x] Public privacy page and current Console declarations reviewed using supplied CSV/screenshots/owner confirmations (R5.4); final-release approval not implied.
 - [x] Final versionName 2.0.0 agreed; versionCode 28 selected from fresh Play snapshot (R5.1), recheck before upload.
-- [x] Fresh final 28/2.0.0 artifacts, mapping and hashes archived; artifact checks and API31/33/35/36 CRUD/JSON/reboot matrix passed October 11. Final notification/idle/upgrade checks remain pending.
+- [x] Fresh final 28/2.0.0 artifacts, mapping and hashes archived; artifact checks and API31/33/35/36 CRUD/JSON/reboot/notification matrix verified October 11, with recorded SystemUI failure/retry and batch reserve-stop. Remaining final fallback/idle/worker/upgrade reruns waived by the user using27 evidence.
 - [ ] Final release notes, tag and staged rollout prepared (R5.5).
 
 No publication, tag, Console submission or remote pipeline run is implied by

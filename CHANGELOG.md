@@ -12,9 +12,15 @@ Final APK/AAB 28/2.0.0 built offline October 11; upload signatures, manifests,
 bundle structure and embedded R8 mapping verified and archived. Additional
 build/cache/report files stayed below 100 MB. Fresh API31/33/35/36 matrix passed:
 UI 3/3 and final release CRUD/ACK, current/historical JSON, restart/reboot 9/9
-phases on each API. Final notification/idle/upgrade checks remain pending;
-no upload or publication was performed.
-Current candidate:27/2.0.0-rc3. Signing, AAB structure and the corresponding
+phases on each API. Subsequent final notification matrix verified UI3/3 +
+release15/15 on all four APIs: delivery/action ACK and notification/channel
+denial/restoration. Initial API35 SystemUI ANR failure and unchanged successful
+retry, plus API36 batch reserve-stop after completed smoke, are recorded.
+Remaining final28 fallback/idle/worker/upgrade reruns waived by the user October 11
+using candidate27 evidence. Runtime sources and archived R8 mapping match27;
+these scenarios are not reported as fresh passes on28. Release preparation is
+next; no upload/publication of28. API24/16-KB device/OEM coverage remains limited.
+Previous rc candidate:27/2.0.0-rc3. Signing, AAB structure and the corresponding
 Play-signed APK are verified. Play25→27 passed on dedicated API35 with a separate
 JSON-derived copy of17 real tasks; the original phone database/preferences are
 outside coverage. No production rollout performed. See ROADMAP.md and
