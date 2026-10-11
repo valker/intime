@@ -435,7 +435,9 @@ links. The currently referenced `https://valker.github.io/intime_privacy_policy.
 returned HTTP200 on October11. Its historical text describes developer log
 collection, cookies and third-party services and differs from the reviewed
 current policy. The replacement HTML is prepared in
-`google_play/intime_privacy_policy.html`; publication is pending approval.
+`google_play/intime_privacy_policy.html` was published with explicit user approval
+in site commit c69e859. Pages deployment38125867804 succeeded; the permanent
+URL returned HTTP200 and the full text matched, normalizing CRLF/LF.
 Repository edits do not update that site or Console.
 Google requires a publicly accessible privacy policy URL; see the
 [User Data policy](https://support.google.com/googleplay/android-developer/answer/10144311).
@@ -705,7 +707,7 @@ do not upload a different payload under it. Earlier host auth13/13 + candidate8/
   fields/IDs/dates preserved; source unchanged, cleanup complete. Fresh UI3/3
   and host4/4. Original phone SQLite/WAL/preferences and delivery/OEM/reboot
   are outside this coverage; see UPGRADE.md/DEVICE_TEST_RESULTS.md.
-- [ ] Public privacy page and actual Console declarations verified (R5.4).
+- [x] Public privacy page and current Console declarations reviewed using supplied CSV/screenshots/owner confirmations (R5.4); final-release approval not implied.
 - [ ] Final production version and unused Play versionCode confirmed (R5.1).
 - [ ] Fresh final artifacts, mapping and hashes archived after all changes.
 - [ ] Final release notes, tag and staged rollout prepared (R5.5).
@@ -749,3 +751,44 @@ the probe did not download Android SDK or execute application/device tests.
 форм Console. Готовый HTML — google_play/intime_privacy_policy.html; публичная
 страница сейчас HTTP200 со старым текстом о сборе логов/cookies/сторонних сервисах.
 Публикации политики и изменения Console на этом этапе не выполнялись.
+Локальный сайт C:/Projects/valker.github.io обновлён fast-forward до cf2026b;
+подготовлена только замена intime_privacy_policy.html, без push. Перед публикацией
+сверить remote HEAD и отсутствие посторонних изменений. Формы Console:
+google_play/PLAY_CONSOLE_DECLARATIONS.md, раздел «Сверка владельцем аккаунта».
+
+Последующая согласованная публикация policy завершена: сайт c69e859,
+GitHub Pages38125867804 success, постоянный URL HTTP200/совпадение текста.
+Изменена только страница политики; Console и release-треки не менялись.
+Оставшийся шаг R5.4 — сверить фактические ответы Console, включая Data safety CSV.
+Data safety CSV затем предоставлен:782 строки, единственный ответ о сборе/
+передаче данных=false согласуется с текущей реализацией; изменения не требуются
+по заполненным данным. Пустые условные поля не считаем ответами или ошибками.
+Статус отправки/одобрения и прочие формы CSV не подтверждает; R5.4 открыт.
+Пользователь затем подтвердил совпадение URL privacy в Console с опубликованной
+страницей. Далее требуется сверить рекламу, доступ, аудиторию/рейтинг и статусы
+Console; изменения форм не выполнялись.
+Ответ «Нет» о наличии рекламы в Console также подтверждён пользователем.
+Доступ подтверждён пользователем: «Все функции доступны напрямую».
+Целевая аудитория по скриншоту Console:13–15,16–17,от18 лет; приложение
+заявлено как не привлекающее детей. Возрастной рейтинг ещё не проверен.
+Затем предоставлен скриншот рейтингов Console: ESRB Everyone/PEGI3/USK0,
+дата изменения6 января2019. Наличие рейтингов подтверждено; ответы анкеты
+и статус «Требуются действия» этим не подтверждаются.
+Последующий скриншот: «Требуются действия» пусто, «Все декларации заполнены».
+Статус заполнения подтверждён; правильность отдельных оставшихся ответов
+и одобрение нового релиза этим не устанавливаются.
+Рекламный идентификатор: скриншот подтверждает «не используется», соответствует
+кандидату27. Точная alarm-декларация USE_EXACT_ALARM объяснена manifest Play25:
+это разрешение есть в25, а SCHEDULE_EXACT_ALARM ограничено maxSdk32. В27 только
+SCHEDULE_EXACT_ALARM. Форму не меняли; при финальном rollout сверить активные
+артефакты/требования Console, не считать нынешнее отличие ошибкой само по себе.
+Скриншот health/finance/government: функций здоровья и финансовых функций нет,
+приложение не связано с государственными органами. Ответы зафиксированы без
+изменений Console. Для завершения текущей сверки R5.4 остаётся само выбранное
+обоснование USE_EXACT_ALARM внутри «Настроить»; наличие разрешения уже объяснено.
+Последующий скриншот формы: выбрана «Установка будильников», не «Календарь».
+R5.4 текущая сверка завершена, изменения форм не выполнялись. Это не утверждение
+пригодности прежней версии под ограниченное USE_EXACT_ALARM и не одобрение
+финального релиза. Кандидат27 использует SCHEDULE_EXACT_ALARM; перед rollout
+сверить старые активные артефакты и требуемые Console ответы. Далее R5.1:
+финальная versionName и подтверждённый свободный versionCode выше27.

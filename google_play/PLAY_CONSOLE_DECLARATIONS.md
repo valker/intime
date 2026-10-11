@@ -2,8 +2,9 @@
 
 Source/document review refreshed October11,2026; artifact checks refer to
 the archived signed candidate27/2.0.0-rc3 and DEVICE_TEST_RESULTS.md.
-This is a draft for Google Play Console app content forms, not evidence that
-forms were submitted or accepted. Review the final artifact and current Console
+The current Console declarations were reviewed using the user-provided CSV,
+screenshots and confirmations on October11. Evidence and limits are below;
+this is not approval of a future release. Review the final artifact and current Console
 questions before submission. App operation is offline; system backup and
 user-selected document providers may transfer data (see PRIVACY_POLICY.md).
 
@@ -11,7 +12,7 @@ user-selected document providers may transfer data (see PRIVACY_POLICY.md).
 
 Declared permissions:
 
-| Permission | Play Console answer | Reason |
+| Permission | Actual app use (not a submitted Console answer) | Reason |
 | --- | --- | --- |
 | `POST_NOTIFICATIONS` | Required for app functionality | Intime sends reminder notifications when a task becomes due or overdue. |
 | `SCHEDULE_EXACT_ALARM` | Required for app functionality | Intime is a reminder app. Exact alarms are needed so user-created reminders fire at the selected time. |
@@ -37,7 +38,27 @@ Not declared:
 
 ## Exact Alarms
 
-Use case: **Alarm, timer, calendar, or reminder app**
+Сверка11 октября: Console показывает обработанную декларацию
+`android.permission.USE_EXACT_ALARM` (изменение17 июня2024). Проверка
+пользовательского Play25/1.1.12 через aapt подтверждает это разрешение;
+SCHEDULE_EXACT_ALARM в25 ограничено maxSdkVersion32. Кандидат27/rc3 имеет
+только SCHEDULE_EXACT_ALARM без этого ограничения. Различие связано с разными
+артефактами, не доказывает ошибку Console. Последующий скриншот формы подтверждает
+выбранное обоснование «Установка будильников»; «Календарь» не выбран.
+Декларацию не удаляем/не заменяем автоматически при сохранённой
+старой Play-версии; при финальном выпуске сверить артефакты активных треков и
+требования Console. Проверка APK не устанавливала приложение на телефон.
+Выводы aapt: `.test-tools/runs/20261011-console-permissions-review`.
+Различия разрешений описаны в
+[Android alarm documentation](https://developer.android.com/develop/background-work/services/alarms).
+
+Runtime use case of candidate27: **Local task reminders using SCHEDULE_EXACT_ALARM**.
+This is not a claim of eligibility for USE_EXACT_ALARM: Google restricts that
+permission to qualifying core alarm/timer/calendar functionality. The screenshot
+records the existing answer for Play25; it does not independently prove policy
+eligibility. The candidate removes USE_EXACT_ALARM. Before the final rollout,
+review retained old artifacts and the actual declaration requested by Console.
+[Google Play exact-alarm permission policy](https://support.google.com/googleplay/android-developer/answer/16558241?hl=en).
 
 Suggested declaration text:
 
@@ -103,9 +124,12 @@ currently contain https://valker.github.io/intime_privacy_policy.html; its
 availability/content was checked by direct HTTP GET on October11 (HTTP200).
 The published text is old: it describes developer log collection, cookies and
 third-party services, whereas the current application has no own upload flow
-or INTERNET permission. Publish the reviewed replacement from
-`google_play/intime_privacy_policy.html` after approval; it has not been published.
-Actual Console answers remain unverified. The existing policy is historical
+or INTERNET permission. After explicit user approval the reviewed replacement
+`google_play/intime_privacy_policy.html` was published in site commit c69e859;
+Pages deployment38125867804 succeeded. The permanent URL returned HTTP200 and
+the full page text matched the prepared HTML after CRLF/LF normalization.
+The supplied Data safety export was reviewed October11 (see below); other
+Console answers and submission status remain unverified. The previous policy was historical
 text, not evidence that the current app performs those data flows.
 
 Important consistency note: task titles, reminder intervals, and backup files are
@@ -120,6 +144,83 @@ Official references rechecked October11,2026:
 [User Data/privacy policy requirements](https://support.google.com/googleplay/android-developer/answer/10144311),
 [Android system backup](https://developer.android.com/identity/data/autobackup).
 The repository review does not establish compliance or Play approval.
+
+## Сверка владельцем аккаунта: R5.4
+
+Ожидаемое поведение ниже проверено по исходникам и сохранённому merged manifest
+кандидата27/2.0.0-rc3. Data safety CSV предоставлен и проверен11 октября;
+Остальные подтверждения пользователя и скриншоты перечислены в таблице. Названия
+разделов могут отличаться по языку и обновлениям интерфейса; ненужные формы
+не создавайте только из-за списка разрешений Android.
+
+Откройте InTime в Play Console → Правила и программы → Контент приложения.
+Проверьте обе вкладки: «Требуются действия» и «Обработано».
+
+| Раздел | С чем сверить | Фактический статус |
+| --- | --- | --- |
+| Политика конфиденциальности | URL https://valker.github.io/intime_privacy_policy.html показывает согласованный текст | Страница опубликована/проверена; пользователь подтвердил совпадение URL в Console |
+| Реклама | Приложение не содержит рекламы и рекламных SDK | Пользователь подтвердил ответ «Нет» в Console |
+| Доступ к приложению | Все функции доступны без регистрации, пароля и подписки | Пользователь подтвердил ответ «Все функции доступны напрямую» в Console |
+| Рекламный идентификатор | В текущем APK нет AD_ID и рекламного SDK | Скриншот Console: рекламный идентификатор не используется; соответствует текущей сборке |
+| Выполнение операций в точное время | Play25 содержит USE_EXACT_ALARM, кандидат27 использует SCHEDULE_EXACT_ALARM | Скриншот формы: выбрана «Установка будильников»; ответ зафиксирован для прежней версии, пригодность USE не утверждается |
+| Безопасность данных | Нет собственных сетевых загрузок/аналитики; Room локально, Android backup разрешён, JSON/SAF выбирает пользователь | CSV: главный ответ false согласуется; статус отправки неизвестен |
+| Целевая аудитория | Фактические выбранные возрастные группы должен подтвердить владелец; исходники не определяют аудиторию магазина | Скриншот пользователя: 13–15, 16–17, от18 лет; «Ваше приложение не привлекает детей» |
+| Возрастные ограничения | Категория Productivity сама по себе не является возрастным рейтингом | На скриншоте присвоенные рейтинги, включая ESRB Everyone, PEGI3, USK0; дата изменения6 января2019 |
+| Приложения для здоровья | Текущее назначение — универсальные периодические задачи, без специализированных функций здоровья | Скриншот Console: функций, связанных со здоровьем, нет |
+| Финансовые функции | В приложении нет финансовых сервисов | Скриншот Console: «В моем приложении нет финансовых функций» |
+| Приложения государственных учреждений | Приложение не является сервисом государственных органов | Скриншот Console: приложение не связано с органами государственной власти |
+| Статус заполнения | Проверить вкладку «Требуются действия» | Скриншот Console: «Все декларации заполнены», список пуст |
+
+Для проверки Data safety без изменений скачайте существующие ответы:
+«Безопасность данных» → «Начать»/«Настроить» → «Экспортировать в виде CSV-файла»
+справа вверху. Сохраните CSV локально и передайте путь агенту. Это экспорт,
+а не импорт или отправка декларации. Не используйте шаблон вместо текущих
+ответов: он не подтверждает настройки аккаунта.
+
+Для остальных разделов достаточно сообщить текущий URL политики, ответ о рекламе,
+статус доступа, выбранные возрастные группы, полученный рейтинг и перечень
+пунктов «Требуются действия». Не включайте пароли и данные сервисного аккаунта.
+Менять/отправлять формы следует после сверки конкретных расхождений.
+
+Скриншот пользователя подтверждает статус вкладки «Требуются действия»:
+«Все декларации заполнены», список пуст. Это отсутствие незаполненных деклараций
+на показанном экране, а не подтверждение правильности каждого ответа или
+одобрения будущего релиза. Раскрытые ответы health/finance/government и
+advertising ID затем также проверены по скриншотам, см. таблицу. Обоснование
+USE_EXACT_ALARM также прочитано: «Установка будильников». Текущая сверка R5.4
+завершена в объёме этих подтверждений. Формы не менялись; принятие финального
+релиза, полный повтор анкеты рейтингов и соответствие старой версии требованиям
+USE_EXACT_ALARM не выводятся из статуса «Обработано». При финальном выпуске
+повторно сверить активные артефакты и необходимые Console декларации.
+
+Официальные инструкции:
+[Контент приложения](https://support.google.com/googleplay/android-developer/answer/9859455?hl=ru),
+[экспорт Data safety CSV](https://support.google.com/googleplay/android-developer/answer/10787469?hl=ru).
+В Publisher API есть [applications.dataSafety](https://developers.google.com/android-publisher/api-ref/rest/v3/applications/dataSafety),
+но это POST для записи CSV, а не метод чтения существующих ответов. На этом
+этапе его не вызываем; никакие декларации/выпуски через API не менялись.
+
+### Результат проверки CSV11 октября
+
+Пользователь предоставил `C:/Users/Valentin/Downloads/data_safety_export.csv`.
+Проверены все782 строки и пять столбцов. Заполнена только строка
+`PSL_DATA_COLLECTION_COLLECTS_PERSONAL_DATA`: `false`; остальные781 значение
+пусты. Ответ «Нет» согласуется с проверенной текущей реализацией: локальное
+хранение/обработка, нет собственных upload/analytics flows и INTERNET.
+Выбранный пользователем SAF-provider и Android backup отдельно описаны в policy;
+не называем сохранение локальных задач отсутствием пользовательских данных.
+
+Пустые поля не трактуются как false, ошибочные ответы или подтверждённые ответы
+«Нет»: вопросы могут быть условными. В том числе `PSL_ACM_NONE` не заполнен;
+если Console показывает обязательный вопрос о способах создания аккаунта,
+для текущего приложения соответствует вариант «В приложении нельзя создать
+аккаунт». Если вопрос скрыт, только из-за пустой CSV-строки его не исправляем.
+
+Не обнаружено заполненных ответов, противоречащих текущему поведению.
+CSV не содержит package/version, статуса отправки/одобрения, URL policy,
+рекламы, доступа, возрастных групп и рейтинга; эти пункты не закрыты.
+Исходный CSV не изменялся, импорт/POST/отправка формы не выполнялись.
+Сводка и SHA исходника: `.test-tools/runs/20261011-data-safety-csv-review/summary.json`.
 
 ## Ads
 
@@ -138,6 +239,11 @@ access, organization membership, or reviewer login.
 
 Recommended category: **Utility / Productivity**
 
+Пользователь предоставил скриншот раскрытого раздела Console: видны присвоенные
+рейтинги, включая ESRB Everyone, PEGI3 и USK0; дата последнего изменения
+6 января2019 года. Зафиксировано наличие рейтингов, но сами ответы анкеты
+и соответствие её ответов будущему финальному артефакту этим экраном не проверены.
+
 Suggested answers:
 
 - No violence, fear, sexual content, gambling, controlled substances, or user
@@ -152,6 +258,11 @@ Recommended answer: **General audience / not designed for children**
 
 The app is a productivity utility for personal task reminders and is not designed
 or marketed specifically for children.
+
+Фактические настройки Console подтверждены скриншотом пользователя: целевые
+группы13–15,16–17 и от18 лет, указано «Ваше приложение не привлекает детей».
+Группы младше13 на этом экране не перечислены. Это выбранная целевая аудитория,
+а не полученный возрастной рейтинг и не подтверждение одобрения Google.
 
 ## Store Listing Privacy Notes
 

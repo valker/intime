@@ -24,8 +24,9 @@ The app does not guarantee that data always remains on one device.
 
 ## Import and export
 
-You can export tasks as an unencrypted UTF-8 JSON file and import a compatible
-file using Android's document picker. The selected provider may be local storage
+Where supported by your installed version, you can export tasks as an unencrypted
+UTF-8 JSON file. InTime 2.0 also supports importing a compatible file. These
+operations use Android's document picker. The selected provider may be local storage
 or a cloud service. That provider handles storage or transmission under its own
 terms. InTime does not choose or automatically upload to a cloud provider.
 Protect exported files yourself; they contain task descriptions and dates.
