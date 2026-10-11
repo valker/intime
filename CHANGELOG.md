@@ -4,9 +4,10 @@ All notable changes to InTime are documented in this file.
 
 ## [2.0.0] - Unreleased
 
-Final versionName 2.0.0 agreed by the user October 11; selected versionCode 28 is
-absent from the fresh saved APK/AAB/track snapshot (highest observed 27).
-This version remains unreleased; recheck the code before upload. Default builds
+Final versionName 2.0.0 agreed by the user October 11; versionCode28 was free
+before the authorized upload and is now saved in Play without track assignment.
+Saved AAB SHA-256 and unchanged tracks verified after validate/commit at14:20 UTC.
+This version remains unreleased; production stays25. Default builds
 remain 1.1.8 with a `.dev` package; productionRelease requires explicit parameters.
 Final APK/AAB 28/2.0.0 built offline October 11; upload signatures, manifests,
 bundle structure and embedded R8 mapping verified and archived. Additional
@@ -19,7 +20,7 @@ retry, plus API36 batch reserve-stop after completed smoke, are recorded.
 Remaining final28 fallback/idle/worker/upgrade reruns waived by the user October 11
 using candidate27 evidence. Runtime sources and archived R8 mapping match27;
 these scenarios are not reported as fresh passes on28. Release preparation is
-next; no upload/publication of28. API24/16-KB device/OEM coverage remains limited.
+next;28 is saved but unpublished. API24/16-KB device/OEM coverage remains limited.
 Previous rc candidate:27/2.0.0-rc3. Signing, AAB structure and the corresponding
 Play-signed APK are verified. Play25→27 passed on dedicated API35 with a separate
 JSON-derived copy of17 real tasks; the original phone database/preferences are
